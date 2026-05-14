@@ -1,13 +1,13 @@
 name: flatbuffers-format publish (dry-run)
 
-# Manual-only. This workflow builds, tests, and runs `npm publish --dry-run`
-# against `projects/flatbuffers-formatter/` so we can sanity-check the
-# tarball contents on demand. It does NOT actually publish.
-#
-# Real publishes are still manual for now: run `npm publish` locally from
-# `projects/flatbuffers-formatter/` after `prepublishOnly` passes. We can
-# wire up automated publishing later once an `NPM_TOKEN` secret has been
-# configured on the repo and the maintainer has explicitly opted in.
+# Manual-only sanity check. Real publishes are now driven by
+# `release-please.yml` — that workflow opens a release PR for any
+# Conventional Commits on `main`, then `npm publish --provenance`es on
+# merge. This file stays around as an on-demand "show me what the
+# tarball would look like" tool: it runs the full `prepublishOnly`
+# chain and `npm publish --dry-run` without ever touching the registry.
+# Trigger it from the Actions tab whenever you want to inspect the
+# packaged artifact without cutting a release.
 
 on:
   workflow_dispatch:
