@@ -48,14 +48,23 @@ if ! command -v flatc >/dev/null 2>&1; then
   exit 0
 fi
 
-echo "flatc-conform: using $(flatc --version)"
+flatc_version_line="$(flatc --version)"
+echo "flatc-conform: using ${flatc_version_line}"
 echo "flatc-conform: corpus = ${CORPUS_DIR}"
 
-# --- skip list ---
+# Parse the major version number out of "flatc version 25.12.19" or
+# "flatc version 2.0.8". Used below to skip fixtures that require
+# features not in older flatc releases.
+flatc_major=0
+if [[ "${flatc_version_line}" =~ flatc[[:space:]]+version[[:space:]]+([0-9]+) ]]; then
+  flatc_major="${BASH_REMATCH[1]}"
+fi
+
+# --- unconditional skip list ---
 # Each entry is a corpus file basename that intentionally exercises a
 # formatter edge case that flatc rejects on grounds unrelated to the
-# formatter's correctness. Adding to this list is a deliberate choice
-# — every entry must have a one-line rationale.
+# formatter's correctness, on EVERY flatc version. Adding to this list
+# is a deliberate choice — every entry must have a one-line rationale.
 declare -A SKIP_REASON=(
   # flatc requires at least one declaration; this fixture is intentionally
   # comments-only to exercise blank-/comment-only input through the formatter.
@@ -64,10 +73,17 @@ declare -A SKIP_REASON=(
   # semantic layer forbids it ("wrap in table first"). Keep as a formatter
   # over-acceptance test.
   ["04-vectors.fbs"]="nested vector types are grammar-legal but flatc-rejected"
-  # flatc 2.0.8 — the version Debian/Ubuntu currently packages — rejects
-  # fixed-size arrays inside structs. Newer flatc (>= 23.x) accepts them
-  # and this file becomes flatc-clean. Revisit when system flatc updates.
-  ["14-fixed-arrays.fbs"]="flatc 2.0.8 doesn't support struct fixed arrays; newer flatc does"
+)
+
+# --- version-gated skip list ---
+# Each entry uses a feature added to flatc in a specific release. If the
+# installed flatc's major version is older, skip with a clear "upgrade your
+# flatc to test this fixture" message. If it's new enough, treat as a
+# normal test target.
+declare -A MIN_FLATC_MAJOR=(
+  ["20-enum-value-metadata.fbs"]=23
+  ["21-offset64-vector64-attrs.fbs"]=23
+  ["22-union-underlying-type.fbs"]=23
 )
 
 shopt -s nullglob
@@ -89,6 +105,12 @@ for f in "${files[@]}"; do
   if [[ -n "${SKIP_REASON[$base]:-}" ]]; then
     skip=$((skip + 1))
     echo "SKIP: ${base} — ${SKIP_REASON[$base]}"
+    continue
+  fi
+  min_major="${MIN_FLATC_MAJOR[$base]:-0}"
+  if (( min_major > flatc_major )); then
+    skip=$((skip + 1))
+    echo "SKIP: ${base} — needs flatc >= ${min_major}.x (installed: ${flatc_major}.x). Upgrade to test this fixture."
     continue
   fi
   # `flatc -b --schema -o <dir> <file>` parses the .fbs and emits a binary
