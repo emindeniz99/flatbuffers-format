@@ -3,13 +3,12 @@ grammar FlatBuffers;
 // ---------------------------------------------------------------------------
 // FlatBuffers schema grammar (.fbs) for ANTLR4 / antlr-ng.
 //
-// Adapted from the official grammar reference:
-//   https://flatbuffers.dev/flatbuffers_grammar.html
+// Reference: https://flatbuffers.dev/flatbuffers_grammar.html
+//            https://github.com/antlr/grammars-v4/tree/master/flatbuffers
 //
-// Comments are routed to channel(HIDDEN) so they don't interfere with
-// parsing; the formatter recovers them from the token stream via
-// `getHiddenTokensToLeft`. Doc comments (`///`) are kept on their own
-// channel so we can distinguish them from regular line comments.
+// Comments stay on channel(HIDDEN) so the formatter can recover them.
+// Doc comments are a separate token type so we can distinguish `///`
+// from `//` when re-emitting.
 // ---------------------------------------------------------------------------
 
 schema
@@ -31,45 +30,46 @@ decl
     | objectLiteralDecl
     ;
 
-includeDecl        : 'include' STRING_LITERAL ';' ;
-namespaceDecl      : 'namespace' IDENT ('.' IDENT)* ';' ;
-attributeDecl      : 'attribute' (STRING_LITERAL | IDENT) ';' ;
-rootTypeDecl       : 'root_type' IDENT ';' ;
-fileExtensionDecl  : 'file_extension' STRING_LITERAL ';' ;
-fileIdentifierDecl : 'file_identifier' STRING_LITERAL ';' ;
+includeDecl        : (INCLUDE | NATIVE_INCLUDE) STRING_LITERAL ';' ;
+namespaceDecl      : NAMESPACE identifier ('.' identifier)* ';' ;
+attributeDecl      : ATTRIBUTE (STRING_LITERAL | identifier) ';' ;
+rootTypeDecl       : ROOT_TYPE nsIdent ';' ;
+fileExtensionDecl  : FILE_EXTENSION STRING_LITERAL ';' ;
+fileIdentifierDecl : FILE_IDENTIFIER STRING_LITERAL ';' ;
 
-tableDecl  : 'table'  IDENT metadata? '{' fieldDecl* '}' ;
-structDecl : 'struct' IDENT metadata? '{' fieldDecl* '}' ;
+tableDecl  : TABLE  identifier metadata? '{' fieldDecl* '}' ;
+structDecl : STRUCT identifier metadata? '{' fieldDecl* '}' ;
 
-fieldDecl  : IDENT ':' typeRef ('=' scalar)? metadata? ';' ;
+fieldDecl  : identifier ':' typeRef ('=' scalar)? metadata? ';' ;
 
 typeRef
-    : '[' typeRef ']'                              # vectorType
-    | IDENT                                        # namedType
+    : '[' typeRef (':' INT_LITERAL)? ']'   # vectorType
+    | nsIdent                              # namedType
     ;
 
+nsIdent : identifier ('.' identifier)* ;
+
 enumDecl
-    : 'enum' IDENT (':' IDENT)? metadata?
+    : ENUM identifier (':' identifier)? metadata?
       '{' (enumValDecl (',' enumValDecl)* ','?)? '}'
     ;
 
-enumValDecl : IDENT ('=' scalar)? ;
+enumValDecl : identifier ('=' scalar)? ;
 
 unionDecl
-    : 'union' IDENT metadata?
+    : UNION identifier metadata?
       '{' (unionValDecl (',' unionValDecl)* ','?)? '}'
     ;
 
 unionValDecl
-    : IDENT ':' IDENT     # unionAliasVal
-    | IDENT               # unionPlainVal
+    : (identifier ':')? nsIdent
     ;
 
-rpcServiceDecl : 'rpc_service' IDENT '{' rpcMethod* '}' ;
-rpcMethod      : IDENT '(' IDENT ')' ':' IDENT metadata? ';' ;
+rpcServiceDecl : RPC_SERVICE identifier '{' rpcMethod* '}' ;
+rpcMethod      : identifier '(' nsIdent ')' ':' nsIdent metadata? ';' ;
 
 metadata        : '(' (metadataEntry (',' metadataEntry)*)? ')' ;
-metadataEntry   : IDENT (':' singleValue)? ;
+metadataEntry   : identifier (':' singleValue)? ;
 
 singleValue : scalar | STRING_LITERAL ;
 
@@ -77,25 +77,60 @@ scalar
     : ('+' | '-')? INT_LITERAL       # intScalar
     | ('+' | '-')? FLOAT_LITERAL     # floatScalar
     | STRING_LITERAL                 # stringScalar
-    | IDENT                          # identScalar
+    | identifier                     # identScalar
     ;
 
 objectLiteralDecl : objectLiteral ;
 objectLiteral     : '{' (objectField (',' objectField)*)? '}' ;
-objectField       : (IDENT | STRING_LITERAL) ':' objectValue ;
+objectField       : (identifier | STRING_LITERAL) ':' objectValue ;
 objectValue
     : scalar                                                  # scalarValue
     | objectLiteral                                           # nestedObjectValue
     | '[' (objectValue (',' objectValue)*)? ']'               # arrayValue
     ;
 
+identifier
+    : IDENT
+    | keywordAsIdent
+    ;
+
+// Anywhere a user-defined name is allowed, FlatBuffers accepts a
+// keyword in that position (see grammars-v4). This list mirrors the
+// declared keyword tokens below.
+keywordAsIdent
+    : TABLE
+    | STRUCT
+    | ENUM
+    | UNION
+    | NAMESPACE
+    | INCLUDE
+    | NATIVE_INCLUDE
+    | ATTRIBUTE
+    | ROOT_TYPE
+    | FILE_EXTENSION
+    | FILE_IDENTIFIER
+    | RPC_SERVICE
+    ;
+
 // ---------------------------------------------------------------------------
 // Lexer
 // ---------------------------------------------------------------------------
 
-// Keep these tokens defined as implicit string literals above so
-// rule references read naturally. The lexer rules below only cover
-// literals + identifiers + skip rules.
+// Keywords: declared before IDENT so the longest-match tie-break
+// favors them (ANTLR convention).
+
+TABLE           : 'table' ;
+STRUCT          : 'struct' ;
+ENUM            : 'enum' ;
+UNION           : 'union' ;
+NAMESPACE       : 'namespace' ;
+INCLUDE         : 'include' ;
+NATIVE_INCLUDE  : 'native_include' ;
+ATTRIBUTE       : 'attribute' ;
+ROOT_TYPE       : 'root_type' ;
+FILE_EXTENSION  : 'file_extension' ;
+FILE_IDENTIFIER : 'file_identifier' ;
+RPC_SERVICE     : 'rpc_service' ;
 
 INT_LITERAL    : '0' [xX] [0-9a-fA-F]+
                | [0-9]+

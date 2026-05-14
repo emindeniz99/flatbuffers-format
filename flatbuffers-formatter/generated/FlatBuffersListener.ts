@@ -15,11 +15,11 @@ import { StructDeclContext } from "./FlatBuffersParser.js";
 import { FieldDeclContext } from "./FlatBuffersParser.js";
 import { VectorTypeContext } from "./FlatBuffersParser.js";
 import { NamedTypeContext } from "./FlatBuffersParser.js";
+import { NsIdentContext } from "./FlatBuffersParser.js";
 import { EnumDeclContext } from "./FlatBuffersParser.js";
 import { EnumValDeclContext } from "./FlatBuffersParser.js";
 import { UnionDeclContext } from "./FlatBuffersParser.js";
-import { UnionAliasValContext } from "./FlatBuffersParser.js";
-import { UnionPlainValContext } from "./FlatBuffersParser.js";
+import { UnionValDeclContext } from "./FlatBuffersParser.js";
 import { RpcServiceDeclContext } from "./FlatBuffersParser.js";
 import { RpcMethodContext } from "./FlatBuffersParser.js";
 import { MetadataContext } from "./FlatBuffersParser.js";
@@ -35,6 +35,8 @@ import { ObjectFieldContext } from "./FlatBuffersParser.js";
 import { ScalarValueContext } from "./FlatBuffersParser.js";
 import { NestedObjectValueContext } from "./FlatBuffersParser.js";
 import { ArrayValueContext } from "./FlatBuffersParser.js";
+import { IdentifierContext } from "./FlatBuffersParser.js";
+import { KeywordAsIdentContext } from "./FlatBuffersParser.js";
 
 
 /**
@@ -177,6 +179,16 @@ export class FlatBuffersListener implements ParseTreeListener {
      */
     exitNamedType?: (ctx: NamedTypeContext) => void;
     /**
+     * Enter a parse tree produced by `FlatBuffersParser.nsIdent`.
+     * @param ctx the parse tree
+     */
+    enterNsIdent?: (ctx: NsIdentContext) => void;
+    /**
+     * Exit a parse tree produced by `FlatBuffersParser.nsIdent`.
+     * @param ctx the parse tree
+     */
+    exitNsIdent?: (ctx: NsIdentContext) => void;
+    /**
      * Enter a parse tree produced by `FlatBuffersParser.enumDecl`.
      * @param ctx the parse tree
      */
@@ -207,29 +219,15 @@ export class FlatBuffersListener implements ParseTreeListener {
      */
     exitUnionDecl?: (ctx: UnionDeclContext) => void;
     /**
-     * Enter a parse tree produced by the `unionAliasVal`
-     * labeled alternative in `FlatBuffersParser.unionValDecl`.
+     * Enter a parse tree produced by `FlatBuffersParser.unionValDecl`.
      * @param ctx the parse tree
      */
-    enterUnionAliasVal?: (ctx: UnionAliasValContext) => void;
+    enterUnionValDecl?: (ctx: UnionValDeclContext) => void;
     /**
-     * Exit a parse tree produced by the `unionAliasVal`
-     * labeled alternative in `FlatBuffersParser.unionValDecl`.
+     * Exit a parse tree produced by `FlatBuffersParser.unionValDecl`.
      * @param ctx the parse tree
      */
-    exitUnionAliasVal?: (ctx: UnionAliasValContext) => void;
-    /**
-     * Enter a parse tree produced by the `unionPlainVal`
-     * labeled alternative in `FlatBuffersParser.unionValDecl`.
-     * @param ctx the parse tree
-     */
-    enterUnionPlainVal?: (ctx: UnionPlainValContext) => void;
-    /**
-     * Exit a parse tree produced by the `unionPlainVal`
-     * labeled alternative in `FlatBuffersParser.unionValDecl`.
-     * @param ctx the parse tree
-     */
-    exitUnionPlainVal?: (ctx: UnionPlainValContext) => void;
+    exitUnionValDecl?: (ctx: UnionValDeclContext) => void;
     /**
      * Enter a parse tree produced by `FlatBuffersParser.rpcServiceDecl`.
      * @param ctx the parse tree
@@ -394,6 +392,26 @@ export class FlatBuffersListener implements ParseTreeListener {
      * @param ctx the parse tree
      */
     exitArrayValue?: (ctx: ArrayValueContext) => void;
+    /**
+     * Enter a parse tree produced by `FlatBuffersParser.identifier`.
+     * @param ctx the parse tree
+     */
+    enterIdentifier?: (ctx: IdentifierContext) => void;
+    /**
+     * Exit a parse tree produced by `FlatBuffersParser.identifier`.
+     * @param ctx the parse tree
+     */
+    exitIdentifier?: (ctx: IdentifierContext) => void;
+    /**
+     * Enter a parse tree produced by `FlatBuffersParser.keywordAsIdent`.
+     * @param ctx the parse tree
+     */
+    enterKeywordAsIdent?: (ctx: KeywordAsIdentContext) => void;
+    /**
+     * Exit a parse tree produced by `FlatBuffersParser.keywordAsIdent`.
+     * @param ctx the parse tree
+     */
+    exitKeywordAsIdent?: (ctx: KeywordAsIdentContext) => void;
 
     visitTerminal(node: TerminalNode): void {}
     visitErrorNode(node: ErrorNode): void {}

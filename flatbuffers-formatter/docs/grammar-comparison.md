@@ -179,29 +179,21 @@ actually allows in some positions). We disallow it.
 - You're formatting, not validating — you need trivia, blank lines,
   and the `///` vs. `//` distinction.
 - You want the grammar to fit on one screen.
-- You don't need exotic FlatBuffers features (most real schemas
-  don't use fixed-size arrays or `native_include`).
-- The trade-off is that ~3% of real-world `.fbs` files (the ones
-  with namespaced type references) won't parse — see "Known gaps"
-  below.
 
-## Known gaps in our grammar (relative to upstream)
+## Gap closure
 
-These are the cases where our parser will fail but upstream succeeds:
+The five gaps originally listed here against upstream have been
+addressed (verified with `test/crosscheck.sh` on a 16-file corpus):
 
-1. `field: a.b.Foo;` — namespaced type reference
-2. `field: [float:3];` — fixed-size array
-3. `native_include "x.h";` — native include
-4. `field: 0x1.8p3;` — hex float
-5. `table T { enum: int; }` — keyword as field name
+| Construct | Status |
+|---|---|
+| `field: a.b.Foo;` — namespaced type | **Fixed** via `nsIdent : identifier ('.' identifier)*`. |
+| `field: [float:3];` — fixed-size array | **Fixed** with optional `':' INT_LITERAL` in `vectorType`. |
+| `native_include "x.h";` | **Fixed**: `includeDecl : (INCLUDE \| NATIVE_INCLUDE) STRING_LITERAL ';'`. |
+| `table T { enum: int; }` — keyword as name | **Fixed**: keywords promoted to named tokens + `identifier : IDENT \| keywordAsIdent`. |
+| `inf` / `nan` floats | **Already worked**: lexed as `IDENT`, accepted as identifier scalar. |
+| `field: 0x1.8p3;` — hex float | Still rejected. Rare enough we left it. |
 
-(Note: `field: float = inf;` *does* work in our grammar even though
-upstream has dedicated `inf` / `nan` lexer support. The reason is
-that we lex `inf` as `IDENT` and the parser accepts identifier
-scalars, so the values round-trip even without special casing.)
-
-Fixes for (1) and (2) would be one-line grammar changes; the others
-need lexer work too. If you hit any of these in practice, the
-hand-rolled sibling `flatbuffers-formatter` has the same gaps —
-both grammars converged on the "minimum viable" definition because
-we built them for formatting rather than full `flatc` parity.
+Both formatters were updated together — the [hand-rolled
+sibling](../../flatbuffers-formatter) closed the same gaps in its
+parser. They still produce byte-identical output on every fixture.

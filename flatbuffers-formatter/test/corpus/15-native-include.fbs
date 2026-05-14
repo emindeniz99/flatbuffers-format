@@ -1,0 +1,8 @@
+native_include "my_native_type.h";
+include "other_schema.fbs";
+
+namespace App;
+
+table Wrapper {
+  x: int;
+}

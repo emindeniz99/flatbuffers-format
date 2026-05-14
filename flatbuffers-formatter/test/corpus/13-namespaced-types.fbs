@@ -1,0 +1,17 @@
+namespace App.Domain;
+
+table Order {
+  user: App.Auth.User;
+  items: [App.Catalog.Item];
+  status: App.Domain.OrderStatus = Pending;
+}
+
+union Payment {
+  App.Pay.Card,
+  bank: App.Pay.BankTransfer
+}
+
+rpc_service OrderService {
+  Place(App.Domain.OrderRequest): App.Domain.OrderResponse;
+  Cancel(App.Domain.CancelRequest): App.Domain.CancelResponse (idempotent);
+}

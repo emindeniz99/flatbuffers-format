@@ -1,0 +1,6 @@
+table Reserved {
+  enum: int;
+  union: string;
+  table: bool;
+  namespace: float;
+}

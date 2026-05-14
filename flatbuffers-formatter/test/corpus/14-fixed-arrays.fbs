@@ -1,0 +1,11 @@
+struct Matrix3x3 {
+  rows: [Vec3:3];
+}
+
+struct Vec3 {
+  values: [float:3];
+}
+
+struct Color {
+  rgba: [ubyte:4];
+}
