@@ -1,0 +1,32 @@
+// Union with an explicit underlying integer type, e.g.
+//   union Weapon : uint8 { Sword, Axe }
+// Mirrors the `enum X : T { ... }` syntax; added to flatc after
+// version 2.0.8 (per the FlatBuffers commit history; the upstream
+// EBNF spec at flatbuffers.dev/grammar still understates this).
+
+namespace UnionBase;
+
+table Sword {
+  damage: short;
+}
+
+table Axe {
+  damage: short;
+  cleave: bool = false;
+}
+
+table Wand {
+  spell: string;
+}
+
+union Weapon: uint8 {
+  Sword,
+  Axe,
+  Wand
+}
+
+table Hero {
+  primary: Weapon;
+}
+
+root_type Hero;

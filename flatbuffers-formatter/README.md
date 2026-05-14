@@ -197,7 +197,7 @@ runtime deps) lives at
 [`../flatbuffers-formatter-handrolled`](../flatbuffers-formatter-handrolled) in the same
 monorepo. Both formatters are **differential-tested**: every file in
 `test/corpus/` must produce byte-identical output from both engines, on
-every commit, via `bash test/crosscheck.sh` — currently **16/16 pass**.
+every commit, via `bash test/crosscheck.sh` — currently **23/23 pass**.
 That cross-check runs in `prepublishOnly` before any release, so a
 grammar bug in either implementation cannot ship.
 
@@ -221,6 +221,18 @@ etc.), not an npm one — wiring it into the publish chain would break
 maintainer machines that don't have it. The script skips with a clear
 warning (exit 0) when `flatc` isn't on PATH, so it stays friendly to
 fresh checkouts.
+
+The grammar is kept up to date with the **latest** flatc release
+(currently 25.12.x), which adds syntax not present in the Ubuntu/Debian
+apt package (still flatc 2.0.8 as of writing). Fixtures that exercise
+post-2.0.8 features — per-enum-value metadata, the `(offset64)` /
+`(vector64)` field attributes, and union with explicit underlying type
+(`union W : uint8 { … }`) — carry a `MIN_FLATC_MAJOR` entry in the
+conformance script, so contributors on older flatc see a clear
+`SKIP — needs flatc >= 23.x` message and the script still exits 0. To
+test against the dialect this formatter targets, install flatc from
+source or grab a prebuilt binary from
+[`google/flatbuffers/releases`](https://github.com/google/flatbuffers/releases).
 
 This check is intentionally stricter than the formatter's own parser:
 flatc applies semantic rules (root-type required for object literals,

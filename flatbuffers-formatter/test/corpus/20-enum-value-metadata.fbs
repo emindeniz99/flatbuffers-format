@@ -1,0 +1,22 @@
+// Exercises per-enum-value metadata: the upstream FlatBuffers EBNF
+// allows an optional `metadata` block on each enum value (after the
+// optional `= value` initializer). Earlier versions of our grammar
+// only accepted `(deprecated)` etc. on the enum header, not on the
+// individual values. This fixture pins the closed gap.
+
+namespace EnumMeta;
+
+attribute "priority";
+
+enum Status: byte {
+  Pending,
+  Active = 1 (priority: 0),
+  Retired (deprecated),
+  Banned = 99 (deprecated, priority: -1)
+}
+
+table Holder {
+  s: Status = Pending;
+}
+
+root_type Holder;

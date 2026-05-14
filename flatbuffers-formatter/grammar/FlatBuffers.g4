@@ -54,10 +54,10 @@ enumDecl
       '{' (enumValDecl (',' enumValDecl)* ','?)? '}'
     ;
 
-enumValDecl : identifier ('=' scalar)? ;
+enumValDecl : identifier ('=' scalar)? metadata? ;
 
 unionDecl
-    : UNION identifier metadata?
+    : UNION identifier (':' identifier)? metadata?
       '{' (unionValDecl (',' unionValDecl)* ','?)? '}'
     ;
 

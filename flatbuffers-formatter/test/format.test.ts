@@ -378,6 +378,68 @@ test("block comments are NOT nestable — first */ closes (C-style behavior, doc
   );
 });
 
+test("corpus 20: per-enum-value metadata round-trips through both engines", () => {
+  // Closes an upstream-EBNF gap that was flagged in docs/ebnf-conformance.md.
+  // Each enum value may carry its own (deprecated), (priority: N), etc.
+  // metadata block — independent of the enum-header metadata block.
+  //
+  // Required behavior:
+  //   - value with no metadata still parses and round-trips
+  //   - value with single-item metadata: `Retired (deprecated)`
+  //   - value with multi-item metadata: `Banned = 99 (deprecated, priority: -1)`
+  //   - the formatter places the metadata on the same line as the value name,
+  //     after the optional `= value`, with one space separating them
+  const canonical = readCorpus("20-enum-value-metadata.fbs");
+  assert.equal(format(canonical), canonical, "fixture is canonical (fixed point)");
+  // Pin the specific shapes we care about.
+  assert.match(canonical, /Pending,$/m, "value without metadata");
+  assert.match(canonical, /Active = 1 \(priority: 0\),$/m, "value with single-key metadata");
+  assert.match(canonical, /Retired \(deprecated\),$/m, "value-with-only-metadata (no =)");
+  assert.match(canonical, /Banned = 99 \(deprecated, priority: -1\)$/m, "value with multi-key metadata");
+});
+
+test("corpus 21: offset64 / vector64 metadata attrs round-trip", () => {
+  // 64-bit-offset metadata attributes (added in flatc 23.5.x). These ride
+  // on the generic `metadata` production — no grammar change was needed —
+  // so this test pins that the formatter doesn't accidentally regress
+  // metadata handling for these specific attribute names.
+  const canonical = readCorpus("21-offset64-vector64-attrs.fbs");
+  assert.equal(format(canonical), canonical, "fixture is canonical");
+  assert.match(canonical, /blob: \[ubyte\] \(offset64\);/, "single (offset64)");
+  assert.match(canonical, /shards: \[ubyte\] \(vector64, required\);/, "vector64 combined with required");
+});
+
+test("corpus 22: union with explicit underlying type round-trips on both engines", () => {
+  // Union underlying type: `union W : uint8 { Sword, Axe }` — added to flatc
+  // after 2.0.8. We extended the grammar's unionDecl to mirror enumDecl's
+  // optional `: type` slot. This test pins:
+  //   - the syntax parses
+  //   - the formatter emits it with the same spacing as enumDecl
+  //     (`union NAME: TYPE { … }`, single space after colon, no space before)
+  //   - the round-trip is byte-stable
+  const canonical = readCorpus("22-union-underlying-type.fbs");
+  assert.equal(format(canonical), canonical, "fixture is canonical");
+  assert.match(canonical, /^union Weapon: uint8 \{$/m, "union underlying type spacing matches enumDecl");
+});
+
+test("union underlying type: accepts ugly input and lands on canonical", () => {
+  // Independent of the corpus file: directly feed mangled spacing of the
+  // new syntax and verify normalization.
+  const ugly = `union W   :   uint8 { A , B }`;
+  assert.equal(format(ugly), `union W: uint8 {\n  A,\n  B\n}\n`);
+});
+
+test("per-enum-value metadata accepts ugly input and lands on canonical form", () => {
+  // Independent of the corpus file: feed deliberately mangled per-value
+  // metadata directly and confirm the formatter normalizes it.
+  const ugly = `enum E:byte{A=1   (   deprecated   ),B=2(  priority:5  )}`;
+  const out = format(ugly);
+  assert.equal(
+    out,
+    `enum E: byte {\n  A = 1 (deprecated),\n  B = 2 (priority: 5)\n}\n`,
+  );
+});
+
 test("malformed input: signed inf/nan rejected (only bare inf/nan are supported)", () => {
   // We documented in docs/grammar-comparison.md that the lexer accepts bare
   // `inf` and `nan` as float defaults, but rejects `+inf`, `-inf`, `+nan`,

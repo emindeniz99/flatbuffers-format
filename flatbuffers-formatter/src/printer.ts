@@ -291,11 +291,16 @@ export class Printer {
     let s = v.identifier().getText();
     const sc = v.scalar();
     if (sc) s += ` = ${this.formatScalar(sc)}`;
+    const meta = v.metadata();
+    if (meta) s += " " + this.formatMetadata(meta);
     return s;
   }
 
   private printUnion(ctx: UnionDeclContext) {
-    this.out.push(`union ${ctx.identifier().getText()}`);
+    const ids = ctx.identifier();
+    let head = `union ${ids[0]!.getText()}`;
+    if (ids.length > 1) head += `: ${ids[1]!.getText()}`;
+    this.out.push(head);
     const meta = ctx.metadata();
     if (meta) this.out.push(" " + this.formatMetadata(meta));
     this.out.push(" {");

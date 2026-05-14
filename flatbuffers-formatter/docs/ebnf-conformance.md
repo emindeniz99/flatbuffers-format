@@ -42,13 +42,13 @@ below.
 | 3 | `namespace_decl` | `namespaceDecl` | yes | Dot-separated identifier path terminated by `;`. |
 | 4 | `attribute_decl` | `attributeDecl` | yes | Quoted string **or** bare identifier — matches upstream. |
 | 5 | `type_decl` | `tableDecl`, `structDecl` | yes | Upstream uses one rule with `(table\|struct)`; we split for clarity. The accepted language is identical. Our field list is `fieldDecl*` (zero or more); upstream's `field_decl+` requires at least one. See [Deliberate extensions](#deliberate-extensions). |
-| 6 | `enum_decl` | `enumDecl`, `unionDecl`, `unionValDecl` | partial | Upstream folds enum and union into one production. We split them: `enumDecl` handles `enum NAME : TYPE { … }`, `unionDecl` handles `union NAME { … }`. Net accepted language matches, with one extension: union members may carry an optional `name :` prefix (`unionValDecl: (identifier ':')? nsIdent`), which `flatc` accepts but the EBNF does not formalize. |
+| 6 | `enum_decl` | `enumDecl`, `unionDecl`, `unionValDecl` | yes | Upstream folds enum and union into one production. We split them: `enumDecl` handles `enum NAME : TYPE { … }`, `unionDecl` handles `union NAME (':' identifier)? { … }`. Union underlying type was added to flatc after 2.0.8 (the upstream EBNF page still understates this); our grammar accepts it as of 2026-05-14. Pinned by `test/corpus/22-union-underlying-type.fbs`. One extension preserved: union members may carry an optional `name :` prefix (`unionValDecl: (identifier ':')? nsIdent`), which `flatc` accepts but the EBNF does not formalize. |
 | 7 | `root_decl` | `rootTypeDecl` | yes | `root_type` + namespaced identifier + `;`. |
 | 8 | `field_decl` | `fieldDecl` | yes | `IDENT ':' type ('=' scalar)? metadata? ';'`. |
 | 9 | `rpc_decl` | `rpcServiceDecl` | partial | Upstream requires one or more `rpc_method` (`rpc_method+`); we accept zero or more (`rpcMethod*`). An empty `rpc_service` body is technically out-of-spec but is harmless for a formatter and matches `flatc`. |
 | 10 | `rpc_method` | `rpcMethod` | yes | `IDENT '(' nsIdent ')' ':' nsIdent metadata? ';'`. |
 | 11 | `type` | `typeRef`, `nsIdent` | partial | Upstream enumerates base type names (`bool`, `byte`, `int32`, `string`, …) as keywords. We lex them as `IDENT` and accept any `IDENT` (or namespaced `IDENT`) in type position. Strictly broader than the spec; flagged as **partial** rather than **extension** because the looseness is incidental, not deliberate. A non-existent type name parses cleanly in our grammar; `flatc` would reject it at semantic-analysis time. |
-| 12 | `enumval_decl` | `enumValDecl` | partial | Upstream allows optional metadata on each enum value (`ident [ = integer_constant ] [ metadata ]`). We accept `identifier ('=' scalar)?` but no per-value metadata. No fixture in the corpus exercises per-value metadata, so this has not surfaced in practice. |
+| 12 | `enumval_decl` | `enumValDecl` | yes | Upstream allows optional metadata on each enum value (`ident [ = integer_constant ] [ metadata ]`). Closed by extending `enumValDecl` to `identifier ('=' scalar)? metadata?`. Pinned by `test/corpus/20-enum-value-metadata.fbs`. |
 | 13 | `metadata` | `metadata`, `metadataEntry` | yes | Optional parenthesized comma-separated list of `ident (: single_value)?`. |
 | 14 | `scalar` | `scalar` | extension | Upstream: `boolean_constant \| integer_constant \| float_constant`. Ours additionally accepts `STRING_LITERAL` and bare `identifier` (the latter covers `true`/`false`/`inf`/`nan`/`infinity` since we lex them as `IDENT`). String-in-scalar position is a real-world `flatc` extension used for default values like enum names. |
 | 15 | `object` | `objectLiteral`, `objectField`, `objectValue` | yes | `{ commasep(key : value) }` with key as `identifier` or `STRING_LITERAL`. |
@@ -108,10 +108,11 @@ Places we reject input the EBNF accepts.
    and similar do not parse. Already flagged in
    [`grammar-comparison.md`](./grammar-comparison.md). No fixture in
    the corpus exercises this; closing the gap is a lexer-only change.
-2. **Per-enum-value metadata** (row 12) — `enumval_decl` upstream
-   allows `[ metadata ]` on each value; we don't. Easy fix
-   (`enumValDecl : identifier ('=' scalar)? metadata?`). Not in the
-   16-file corpus, so it hasn't surfaced.
+
+Per-enum-value metadata (formerly listed here) was closed on
+2026-05-14 — see row 12. Both the ANTLR grammar and the hand-rolled
+sibling parser accept it; corpus fixture `20-enum-value-metadata.fbs`
+pins the behavior.
 
 No other gaps were found in the row-by-row audit.
 

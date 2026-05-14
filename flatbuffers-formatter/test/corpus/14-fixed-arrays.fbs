@@ -1,9 +1,14 @@
-struct Matrix3x3 {
-  rows: [Vec3:3];
-}
+// Fixed-size arrays inside structs. Both scalar element types and
+// struct element types are exercised. Vec3 must be declared before
+// Matrix3x3 so flatc's single-pass struct resolver sees the inner
+// type as a struct (not "unknown") when processing the outer.
 
 struct Vec3 {
   values: [float:3];
+}
+
+struct Matrix3x3 {
+  rows: [Vec3:3];
 }
 
 struct Color {

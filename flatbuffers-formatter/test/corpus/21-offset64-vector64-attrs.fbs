@@ -1,0 +1,17 @@
+// 64-bit offset / vector attributes (`(offset64)` and `(vector64)`)
+// added in flatc 23.5.x. These are pure metadata annotations on a
+// vector field — no new type production, so they round-trip through
+// the generic metadata path without any grammar change. This fixture
+// pins the syntactic coverage so future grammar refactors don't
+// accidentally regress it.
+
+namespace Buf64;
+
+table Wide {
+  // Single attribute, no value.
+  blob: [ubyte] (offset64);
+  // Single attribute combined with required.
+  shards: [ubyte] (vector64, required);
+}
+
+root_type Wide;
