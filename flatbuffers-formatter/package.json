@@ -1,32 +1,38 @@
 {
-  "name": "flatbuffers-formatter",
+  "name": "flatbuffers-formatter-antlr",
   "version": "0.1.0",
   "private": true,
-  "description": "A FlatBuffers (.fbs) schema formatter. Pure TypeScript, runs in browser or Node, ships with a CLI.",
+  "description": "FlatBuffers (.fbs) formatter using an ANTLR-generated parser. TypeScript, browser + CLI.",
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js"
     }
   },
   "bin": {
-    "fbs-fmt": "./dist/cli.js"
+    "fbs-fmt-antlr": "./dist/src/cli.js"
   },
   "files": [
     "dist",
-    "src"
+    "src",
+    "generated",
+    "grammar"
   ],
   "scripts": {
-    "build": "tsc",
-    "fmt": "node dist/cli.js",
-    "test": "tsc -p tsconfig.test.json && node --test dist-test/test/*.test.js",
-    "prepare": "tsc"
+    "generate": "antlr-ng -Dlanguage=TypeScript -o generated grammar/FlatBuffers.g4",
+    "build": "npm run generate && tsc",
+    "fmt": "node dist/src/cli.js",
+    "test": "npm run generate && tsc -p tsconfig.test.json && node --test dist-test/test/*.test.js"
+  },
+  "dependencies": {
+    "antlr4ng": "^3.0.16"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "antlr-ng": "^1.0.10",
     "typescript": "^5.6.0"
   }
 }

@@ -4,9 +4,7 @@
     "outDir": "./dist-test",
     "rootDir": ".",
     "declaration": false,
-    "declarationMap": false,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false
+    "declarationMap": false
   },
-  "include": ["src/**/*", "test/**/*"]
+  "include": ["src/**/*", "generated/**/*", "test/**/*"]
 }

@@ -1,3 +1,6 @@
 node_modules/
 dist/
 dist-test/
+# Generated parser is checked in so the project is buildable
+# without first running the antlr-ng generator. Re-run
+# `npm run generate` after editing the grammar.
