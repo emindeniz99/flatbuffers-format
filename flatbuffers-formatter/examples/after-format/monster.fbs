@@ -1,0 +1,91 @@
+// A small, realistic FlatBuffers schema for a multiplayer game lobby.
+// This is the "before" snapshot — written by a human, lightly
+// inconsistent on spacing and indent. Run it through
+// `flatbuffers-format` to get `examples/after-format/monster.fbs`.
+
+include "common.fbs";
+
+namespace Game.Lobby;
+
+attribute "priority";
+
+/// Cosmetic team colors. Stored as ubyte to keep wire size small.
+enum TeamColor: ubyte {
+  Red = 0,
+  Blue = 1,
+  Green = 2,
+  Yellow = 3
+}
+
+/// What the player is currently doing in the lobby UI.
+enum PlayerState: byte {
+  Idle,
+  Ready,
+  InMatch,
+  Disconnected
+}
+
+/// 3D position. A struct (fixed layout, inline in the parent table).
+struct Vec3 {
+  x: float;
+  y: float;
+  z: float;
+}
+
+/// Axis-aligned bounding box.
+struct AABB {
+  min: Vec3;
+  max: Vec3;
+}
+
+/// A weapon equipped by the player.
+table Weapon {
+  name: string (required);
+  damage: short = 10;
+  range: float = 1.5;
+  ammo: ushort = 0;
+}
+
+/// A passive/active ability — exclusive with Weapon in `Equipment`.
+table Ability {
+  id: string (required, key);
+  cooldown_ms: uint = 30000;
+  charges: ubyte = 1;
+}
+
+/// Equipment slot is either a Weapon, an Ability, or absent.
+union Equipment {
+  Weapon,
+  Ability
+}
+
+/// A single player in the lobby.
+table Player (original_order) {
+  id: string (required, key);
+  display_name: string;
+  team: TeamColor = Red;
+  state: PlayerState = Idle;
+  hp: short = 100;
+  pos: Vec3;
+  loadout: [Equipment];
+  /// Server-side flag; clients should never set this.
+  is_host: bool = false (deprecated);
+}
+
+/// A lobby is the root object exchanged between client and server.
+table Lobby {
+  code: string (required, key);
+  bounds: AABB;
+  players: [Player];
+  max_players: ubyte = 8;
+}
+
+/// Streaming RPC: client sends a Lobby, server streams Player updates.
+rpc_service LobbyService {
+  Join(Player): Lobby;
+  Watch(Lobby): Player (streaming: "server", priority: 1);
+}
+
+root_type Lobby;
+file_identifier "LOBY";
+file_extension "lob";

@@ -81,6 +81,8 @@ npm i -g flatbuffers-format         # global CLI
 npx flatbuffers-format ...          # one-shot, no install
 ```
 
+See [docs/cookbook.md](docs/cookbook.md) for copy-paste recipes (CI gates, pre-commit hooks, programmatic use, browser, Prettier integration, migration tips).
+
 ## Editor integration
 
 There's no dedicated editor plugin yet. Until there is, run the CLI from
