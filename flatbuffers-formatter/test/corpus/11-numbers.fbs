@@ -1,0 +1,14 @@
+table N {
+  a: int = 0;
+  b: int = -1;
+  c: int = +42;
+  d: int = 0xFF;
+  e: int = 0xdeadbeef;
+  f: float = 1.5;
+  g: float = -1.5;
+  h: float = 1.5e10;
+  i: float = 1.5E-10;
+  j: float = .5;
+  k: bool = true;
+  l: bool = false;
+}

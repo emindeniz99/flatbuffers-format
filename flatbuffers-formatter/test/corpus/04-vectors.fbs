@@ -1,0 +1,6 @@
+table V {
+  flat: [int];
+  nested: [[ubyte]];
+  three: [[[float]]];
+  strs: [string];
+}

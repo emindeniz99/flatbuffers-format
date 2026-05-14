@@ -1,0 +1,28 @@
+namespace Builtins;
+
+table AllScalars {
+  a:bool = false;
+  b:byte = 0;
+  c:ubyte = 0;
+  d:short = 0;
+  e:ushort = 0;
+  f:int = 0;
+  g:uint = 0;
+  h:float = 0.0;
+  i:long = 0;
+  j:ulong = 0;
+  k:double = 0.0;
+  l:int8 = 0;
+  m:uint8 = 0;
+  n:int16 = 0;
+  o:uint16 = 0;
+  p:int32 = 0;
+  q:uint32 = 0;
+  r:int64 = 0;
+  s:uint64 = 0;
+  t:float32 = 0.0;
+  u:float64 = 0.0;
+  v:string;
+}
+
+root_type AllScalars;

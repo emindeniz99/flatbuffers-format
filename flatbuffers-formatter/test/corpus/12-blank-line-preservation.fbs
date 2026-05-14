@@ -1,0 +1,16 @@
+namespace A.B;
+
+
+table First {
+  x: int;
+}
+
+
+
+table Second {
+  y: string;
+}
+
+table Third {
+  z: bool;
+}

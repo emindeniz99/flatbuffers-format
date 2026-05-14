@@ -103,11 +103,6 @@ export function trailingComment(
  * Used so trailing comments survive a round-trip.
  */
 export function tailTrivia(stream: BufferedTokenStream): Trivia[] {
-  // EOF token sits at the end; everything hidden to its left after
-  // the last real token is captured via the last decl's
-  // getHiddenTokensToRight. Easier: walk the raw token list and
-  // grab hidden tokens that come after the last non-hidden,
-  // non-EOF token.
   const tokens = stream.getTokens();
   let lastReal = -1;
   for (let i = tokens.length - 1; i >= 0; i--) {
@@ -118,8 +113,25 @@ export function tailTrivia(stream: BufferedTokenStream): Trivia[] {
     }
   }
   if (lastReal < 0) return toTrivia(tokens.filter((t) => t.channel !== 0));
-  const tail = tokens.slice(lastReal + 1).filter((t) => t.channel !== 0);
-  return toTrivia(tail);
+  let tail = tokens.slice(lastReal + 1).filter((t) => t.channel !== 0);
+  // The last real token (typically `}`) may itself have a trailing
+  // comment on the same line — that's emitted by the decl printer
+  // via writeTrailing. Drop any hidden tokens before the first
+  // newline so we don't double-print it here.
+  let skipUntilNewline = true;
+  const filtered: Token[] = [];
+  for (const tok of tail) {
+    if (skipUntilNewline) {
+      const isNewlineWS = tok.type === WS && (tok.text ?? "").includes("\n");
+      if (isNewlineWS) {
+        skipUntilNewline = false;
+        filtered.push(tok);
+      }
+      continue;
+    }
+    filtered.push(tok);
+  }
+  return toTrivia(filtered);
 }
 
 function Token_EOF(): number {

@@ -1,0 +1,18 @@
+// leading
+namespace N; // trailing on namespace
+
+/// doc for table T
+/// (multi-line doc)
+table T {
+  /// doc for field a
+  a: int; // trailing on a
+  /* block before b */
+  b: string; /* trailing block */
+  c: float; // c only
+
+  // a comment between fields, with blank lines above and below
+
+  d: bool;
+} // trailing on closing brace
+
+// trailing file comment
