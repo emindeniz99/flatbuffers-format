@@ -54,6 +54,7 @@
     "test": "npm run generate && tsc -p tsconfig.test.json && node --test dist-test/test/*.test.js",
     "build:sibling": "cd ../flatbuffers-formatter-handrolled && npm ci --no-audit --no-fund && npm run build",
     "test:crosscheck": "bash test/crosscheck.sh",
+    "test:flatc-conform": "bash scripts/flatc-conform.sh",
     "prepublishOnly": "npm run build && npm test && npm run build:sibling && npm run test:crosscheck"
   },
   "dependencies": {

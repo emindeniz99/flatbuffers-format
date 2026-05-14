@@ -201,6 +201,35 @@ every commit, via `bash test/crosscheck.sh` — currently **16/16 pass**.
 That cross-check runs in `prepublishOnly` before any release, so a
 grammar bug in either implementation cannot ship.
 
+### Validating the corpus against `flatc`
+
+A second, *independent* check verifies that the corpus is built out of
+real FlatBuffers schemas — not just schemas our two parsers happen to
+agree on. Every `test/corpus/*.fbs` file is fed to Google's official
+[`flatc`](https://github.com/google/flatbuffers) compiler via:
+
+```bash
+npm run test:flatc-conform
+```
+
+The script (`scripts/flatc-conform.sh`) runs
+`flatc -b --schema --no-warnings` on each corpus file and reports a
+pass/fail summary. It is **deliberately not** part of `prepublishOnly`,
+because `flatc` is a *system* dependency (installed via
+`apt-get install flatbuffers-compiler`, `brew install flatbuffers`,
+etc.), not an npm one — wiring it into the publish chain would break
+maintainer machines that don't have it. The script skips with a clear
+warning (exit 0) when `flatc` isn't on PATH, so it stays friendly to
+fresh checkouts.
+
+This check is intentionally stricter than the formatter's own parser:
+flatc applies semantic rules (root-type required for object literals,
+attributes must be declared before use, fixed vector nesting, etc.) on
+top of the grammar. Files that pass the grammar but fail flatc are
+flagged for human review — they may be genuine formatter-edge-case
+schemas (which is fine), or they may indicate the corpus has drifted
+from real-world FlatBuffers (which is not).
+
 ## Build from source
 
 ```bash
