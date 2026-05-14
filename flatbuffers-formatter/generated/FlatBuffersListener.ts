@@ -27,6 +27,7 @@ import { MetadataEntryContext } from "./FlatBuffersParser.js";
 import { SingleValueContext } from "./FlatBuffersParser.js";
 import { IntScalarContext } from "./FlatBuffersParser.js";
 import { FloatScalarContext } from "./FlatBuffersParser.js";
+import { HexFloatScalarContext } from "./FlatBuffersParser.js";
 import { StringScalarContext } from "./FlatBuffersParser.js";
 import { IdentScalarContext } from "./FlatBuffersParser.js";
 import { ObjectLiteralDeclContext } from "./FlatBuffersParser.js";
@@ -302,6 +303,18 @@ export class FlatBuffersListener implements ParseTreeListener {
      * @param ctx the parse tree
      */
     exitFloatScalar?: (ctx: FloatScalarContext) => void;
+    /**
+     * Enter a parse tree produced by the `hexFloatScalar`
+     * labeled alternative in `FlatBuffersParser.scalar`.
+     * @param ctx the parse tree
+     */
+    enterHexFloatScalar?: (ctx: HexFloatScalarContext) => void;
+    /**
+     * Exit a parse tree produced by the `hexFloatScalar`
+     * labeled alternative in `FlatBuffersParser.scalar`.
+     * @param ctx the parse tree
+     */
+    exitHexFloatScalar?: (ctx: HexFloatScalarContext) => void;
     /**
      * Enter a parse tree produced by the `stringScalar`
      * labeled alternative in `FlatBuffersParser.scalar`.

@@ -17,6 +17,7 @@ import {
   FileExtensionDeclContext,
   FileIdentifierDeclContext,
   FloatScalarContext,
+  HexFloatScalarContext,
   IdentifierContext,
   IdentScalarContext,
   IncludeDeclContext,
@@ -259,6 +260,10 @@ export class Printer {
       const sign = signText(ctx);
       return `${sign}${ctx.FLOAT_LITERAL().getText()}`;
     }
+    if (ctx instanceof HexFloatScalarContext) {
+      const sign = signText(ctx);
+      return `${sign}${ctx.HEX_FLOAT_LITERAL().getText()}`;
+    }
     if (ctx instanceof StringScalarContext) return ctx.STRING_LITERAL().getText();
     if (ctx instanceof IdentScalarContext) return ctx.identifier().getText();
     return ctx.getText();
@@ -392,7 +397,7 @@ export class Printer {
   }
 }
 
-function signText(ctx: IntScalarContext | FloatScalarContext): string {
+function signText(ctx: IntScalarContext | FloatScalarContext | HexFloatScalarContext): string {
   const text = ctx.getText();
   if (text.startsWith("-")) return "-";
   if (text.startsWith("+")) return "+";

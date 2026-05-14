@@ -74,8 +74,9 @@ metadataEntry   : identifier (':' singleValue)? ;
 singleValue : scalar | STRING_LITERAL ;
 
 scalar
-    : ('+' | '-')? INT_LITERAL       # intScalar
-    | ('+' | '-')? FLOAT_LITERAL     # floatScalar
+    : ('+' | '-')? INT_LITERAL          # intScalar
+    | ('+' | '-')? FLOAT_LITERAL        # floatScalar
+    | ('+' | '-')? HEX_FLOAT_LITERAL    # hexFloatScalar
     | STRING_LITERAL                 # stringScalar
     | identifier                     # identScalar
     ;
@@ -134,6 +135,16 @@ RPC_SERVICE     : 'rpc_service' ;
 
 INT_LITERAL    : '0' [xX] [0-9a-fA-F]+
                | [0-9]+
+               ;
+
+// Hex floats per C99: `0x` mantissa (with optional fractional part)
+// followed by mandatory binary exponent `p[+-]?digits`. Both `flatc`
+// and the upstream FlatBuffers EBNF accept these. Listed before
+// FLOAT_LITERAL so the lexer picks the longer match.
+HEX_FLOAT_LITERAL
+               : '0' [xX] [0-9a-fA-F]+ '.' [0-9a-fA-F]* [pP] [+\-]? [0-9]+
+               | '0' [xX] '.' [0-9a-fA-F]+              [pP] [+\-]? [0-9]+
+               | '0' [xX] [0-9a-fA-F]+                  [pP] [+\-]? [0-9]+
                ;
 
 FLOAT_LITERAL  : [0-9]+ '.' [0-9]* EXP?

@@ -1,0 +1,21 @@
+// C99-style hex float literals. flatc accepts these as far back as
+// 2.0.8; closing this gap brings the formatter's grammar in line with
+// the upstream EBNF spec (which lists hex_float_constant as a
+// scalar form).
+//
+// The forms exercised below cover the three lexer alternatives:
+//   - `mantissa.fraction p exponent` (`0x1.8p3`)
+//   - `.fraction p exponent`         (`0x.8p4`)
+//   - `mantissa p exponent`          (`0x1p0`)
+// Plus signs on the binary exponent and a leading - on the value.
+
+table HexFloats {
+  a: double = 0x1.8p3; // 12.0  — mantissa.fraction p exponent
+  b: double = 0X1.8P+3; // uppercase variants and explicit + sign
+  c: double = 0x1.8p-3; // negative exponent
+  d: double = 0x1p0; // 1.0 — mantissa-only, no fraction
+  e: double = 0x.8p4; // 8.0 — fraction-only, no integer mantissa
+  f: float = -0x1.8p3; // negated value (-12.0)
+}
+
+root_type HexFloats;

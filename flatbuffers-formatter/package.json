@@ -41,6 +41,7 @@
     "src",
     "generated",
     "grammar",
+    "CHANGELOG.md",
     "README.md",
     "LICENSE"
   ],

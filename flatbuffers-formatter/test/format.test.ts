@@ -398,6 +398,56 @@ test("corpus 20: per-enum-value metadata round-trips through both engines", () =
   assert.match(canonical, /Banned = 99 \(deprecated, priority: -1\)$/m, "value with multi-key metadata");
 });
 
+test("corpus 23: C99-style hex float literals round-trip on both engines", () => {
+  // Closes the last remaining gap from docs/ebnf-conformance.md. flatc has
+  // always accepted hex floats (verified on flatc 2.0.8 and 25.12.19); our
+  // grammar previously rejected them at the lexer. The closure adds a
+  // HEX_FLOAT_LITERAL token to the ANTLR lexer + a hexFloatScalar alt to
+  // the scalar rule, and mirrors both in the hand-rolled lexer.
+  //
+  // Forms pinned:
+  //   - `mantissa.fraction p exponent` (`0x1.8p3`)
+  //   - `mantissa p exponent`           (`0x1p0`)
+  //   - `.fraction p exponent`          (`0x.8p4`)
+  //   - uppercase prefixes/exponents:  `0X1.8P+3`
+  //   - explicit + on exponent, negative exponent: `p+3`, `p-3`
+  //   - leading - on the whole value: `-0x1.8p3`
+  const canonical = readCorpus("23-hex-floats.fbs");
+  assert.equal(format(canonical), canonical, "fixture is canonical");
+  assert.match(canonical, /a: double = 0x1\.8p3;/, "fraction + exponent");
+  assert.match(canonical, /b: double = 0X1\.8P\+3;/, "uppercase + explicit + on exponent");
+  assert.match(canonical, /c: double = 0x1\.8p-3;/, "negative exponent");
+  assert.match(canonical, /d: double = 0x1p0;/, "mantissa-only");
+  assert.match(canonical, /e: double = 0x\.8p4;/, "fraction-only (no integer mantissa)");
+  assert.match(canonical, /f: float = -0x1\.8p3;/, "negated value");
+});
+
+test("hex floats: lexer does NOT eat a trailing `.` without a binary exponent", () => {
+  // Defensive: `0x1.` (hex int followed by a dot) must not be lexed as a
+  // hex float, because hex floats require the binary-exponent suffix
+  // `[pP][+-]?digits`. The lookahead in the hand-rolled lexer and the
+  // alternative ordering in the ANTLR grammar should both keep `0x1.`
+  // parsing as `0x1` (int) + an orphan dot. We don't have a syntactic
+  // construct where that combination is valid in a scalar position, so
+  // both engines should error rather than silently consuming.
+  assert.throws(
+    () => format(`table T { a: int = 0x1.; }`),
+    /token|recogni|expected|expecting/i,
+    "0x1. (no exponent) must NOT lex as hex float",
+  );
+});
+
+test("hex floats: bare `0x` with no digits is rejected", () => {
+  // `0xp3` is a malformed input: a hex-float lexer rule must require at
+  // least one hex digit before OR after the dot. Both engines should
+  // reject — not silently lex `0x` + `p3` as a valid token sequence.
+  assert.throws(
+    () => format(`table T { a: double = 0xp3; }`),
+    /token|recogni|expected|expecting/i,
+    "0xp3 (no digits) must NOT lex as hex float",
+  );
+});
+
 test("corpus 21: offset64 / vector64 metadata attrs round-trip", () => {
   // 64-bit-offset metadata attributes (added in flatc 23.5.x). These ride
   // on the generic `metadata` production — no grammar change was needed —

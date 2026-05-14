@@ -192,7 +192,7 @@ addressed (verified with `test/crosscheck.sh` on a 16-file corpus):
 | `native_include "x.h";` | **Fixed**: `includeDecl : (INCLUDE \| NATIVE_INCLUDE) STRING_LITERAL ';'`. |
 | `table T { enum: int; }` — keyword as name | **Fixed**: keywords promoted to named tokens + `identifier : IDENT \| keywordAsIdent`. |
 | `inf` / `nan` floats | **Already worked**: lexed as `IDENT`, accepted as identifier scalar. |
-| `field: 0x1.8p3;` — hex float | Still rejected. Rare enough we left it. |
+| `field: 0x1.8p3;` — hex float | **Fixed** on 2026-05-14. Both engines lex C99-style hex floats: `0x` prefix, optional `.hex`, mandatory `pP[+-]?digits` exponent. Pinned by `test/corpus/23-hex-floats.fbs`. |
 
 Both formatters were updated together — the [hand-rolled
 sibling](../../flatbuffers-formatter-handrolled) closed the same gaps

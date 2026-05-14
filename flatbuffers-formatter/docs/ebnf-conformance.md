@@ -63,9 +63,9 @@ below.
 | 24 | `hex_integer_constant` | `INT_LITERAL` (alt) | yes | `0[xX][0-9a-fA-F]+`. |
 | 25 | `integer_constant` | `INT_LITERAL` + parser sign in `scalar` | yes | Decimal or hex; sign lives in `scalar`. Same accepted language. |
 | 26 | `dec_float_constant` | `FLOAT_LITERAL` | yes | `[0-9]+ '.' [0-9]* EXP?`, `'.' [0-9]+ EXP?`, or `[0-9]+ EXP`. Sign in `scalar`. |
-| 27 | `hex_float_constant` | — | **gap** | Upstream allows hex float literals (`0x1.8p3`). We do not. Already flagged in [`grammar-comparison.md`](./grammar-comparison.md) as "rare enough we left it." |
+| 27 | `hex_float_constant` | `HEX_FLOAT_LITERAL` + `hexFloatScalar` | yes | Upstream allows hex float literals (`0x1.8p3`). Closed on 2026-05-14 — both engines lex `0x[hex]+(.[hex]*)?[pP][+-]?[0-9]+` and round-trip the value verbatim. Pinned by `test/corpus/23-hex-floats.fbs`. |
 | 28 | `special_float_constant` | `identifier` via `scalar` | yes | `inf`, `infinity`, `nan` are lexed as `IDENT` and accepted in scalar position. Sign handled by `scalar`'s `('+' \| '-')?` prefix. |
-| 29 | `float_constant` | `FLOAT_LITERAL` + `identifier` in `scalar` | partial | Decimal floats and special floats covered; hex floats are the gap (row 27). |
+| 29 | `float_constant` | `FLOAT_LITERAL` + `HEX_FLOAT_LITERAL` + `identifier` in `scalar` | yes | Decimal, hex, and special floats (`inf`/`nan`) all covered. Hex floats closed in row 27. |
 | 30 | `boolean_constant` | `identifier` via `scalar` | yes | `true` / `false` lex as `IDENT` and are accepted in scalar position. We don't restrict to literally `true`/`false`; any identifier is valid here, which is the same looseness as type names (row 11). |
 
 ## Deliberate extensions
@@ -102,19 +102,20 @@ describes, because `flatc` and real-world `.fbs` files in the wild do.
 
 ## Known gaps
 
-Places we reject input the EBNF accepts.
+None as of 2026-05-14 — every production in the upstream EBNF has
+either a matching rule, a documented extension, or a closed-on-this-date
+note in the table above.
 
-1. **Hex float constants** (`hex_float_constant`, row 27) — `0x1.8p3`
-   and similar do not parse. Already flagged in
-   [`grammar-comparison.md`](./grammar-comparison.md). No fixture in
-   the corpus exercises this; closing the gap is a lexer-only change.
+The following were closed in this audit cycle:
 
-Per-enum-value metadata (formerly listed here) was closed on
-2026-05-14 — see row 12. Both the ANTLR grammar and the hand-rolled
-sibling parser accept it; corpus fixture `20-enum-value-metadata.fbs`
-pins the behavior.
-
-No other gaps were found in the row-by-row audit.
+- **Per-enum-value metadata** (row 12) — closed 2026-05-14, pinned by
+  `test/corpus/20-enum-value-metadata.fbs`.
+- **Hex float constants** (row 27) — closed 2026-05-14, pinned by
+  `test/corpus/23-hex-floats.fbs`. Both lexers now accept the C99-style
+  form `0x[hex]+(.[hex]*)?[pP][+-]?[0-9]+` (and the `.fraction`-only
+  variant).
+- **Union with explicit underlying type** (row 6) — closed 2026-05-14,
+  pinned by `test/corpus/22-union-underlying-type.fbs`.
 
 ## Verification protocol
 
