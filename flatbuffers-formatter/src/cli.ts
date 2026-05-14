@@ -1,7 +1,6 @@
 #!/usr/bin/env node
-// CLI wrapper around `format()`. Node-only — the core stays in
-// src/index.ts and src/{lexer,parser,printer}.ts so it can run in a
-// browser.
+// Node-only CLI. Mirrors the sibling `flatbuffers-format` so users
+// can swap one binary for the other.
 
 import { readFileSync, writeFileSync, statSync, readdirSync, existsSync } from "node:fs";
 import { join, resolve, extname } from "node:path";
@@ -11,14 +10,14 @@ import { format } from "./index.js";
 
 type Mode = "stdout" | "write" | "check";
 
-const USAGE = `flatbuffers-format — FlatBuffers (.fbs) schema formatter
+const USAGE = `flatbuffers-format-antlr — FlatBuffers (.fbs) formatter (ANTLR-backed)
 
 Usage:
-  flatbuffers-format [options] <file-or-dir...>   # print formatted output to stdout
-  flatbuffers-format --write <file-or-dir...>     # rewrite files in place
-  flatbuffers-format --check <file-or-dir...>     # exit non-zero if any file is unformatted
-  flatbuffers-format fix <file-or-dir...>         # alias for --write
-  cat foo.fbs | flatbuffers-format -              # read source from stdin
+  flatbuffers-format-antlr [options] <file-or-dir...>   # print formatted output to stdout
+  flatbuffers-format-antlr --write <file-or-dir...>     # rewrite files in place
+  flatbuffers-format-antlr --check <file-or-dir...>     # exit non-zero if any file is unformatted
+  flatbuffers-format-antlr fix <file-or-dir...>         # alias for --write
+  cat foo.fbs | flatbuffers-format-antlr -              # read source from stdin
 
 Options:
   -w, --write           Rewrite files in place
@@ -34,12 +33,10 @@ dist, build, out, .next, .turbo, .cache, .hg, .svn are skipped
 automatically.`;
 
 function die(msg: string, code = 2): never {
-  console.error(`flatbuffers-format: ${msg}`);
+  console.error(`flatbuffers-format-antlr: ${msg}`);
   process.exit(code);
 }
 
-// Directories to skip when recursing — anything that's clearly not
-// a place users keep source `.fbs` files. Symlinks are not followed.
 const SKIP_DIRS = new Set([
   "node_modules",
   ".git",
@@ -58,7 +55,7 @@ function walk(dir: string, out: string[]) {
   try {
     entries = readdirSync(dir, { withFileTypes: true });
   } catch {
-    return; // unreadable directory; skip silently
+    return;
   }
   for (const entry of entries) {
     const full = join(dir, entry.name);
@@ -71,9 +68,6 @@ function walk(dir: string, out: string[]) {
   }
 }
 
-// When the directory is inside a git work tree, ask git itself which
-// files are not ignored. Returns null if `dir` isn't in a repo or git
-// isn't available — caller should fall back to `walk()`.
 function gitListFbs(dir: string): string[] | null {
   try {
     const stdout = execFileSync(
@@ -86,7 +80,7 @@ function gitListFbs(dir: string): string[] | null {
       .split("\0")
       .filter((f) => f && extname(f) === ".fbs")
       .map((f) => resolve(dir, f))
-      .filter(existsSync); // skip staged-deleted files
+      .filter(existsSync);
   } catch {
     return null;
   }
@@ -107,8 +101,6 @@ function expandPaths(paths: string[], useGitignore: boolean): string[] {
       if (fromGit) out.push(...fromGit);
       else walk(abs, out);
     } else if (st.isFile()) {
-      // Explicit file paths always processed — gitignore only filters
-      // directory walks.
       out.push(abs);
     }
   }
@@ -165,9 +157,6 @@ async function main() {
   }
   const opts = { indent };
 
-  // Positional handling: `-` means stdin, `fix` is an alias for
-  // --write when it appears as the first positional, everything else
-  // is a path.
   let fromStdin = false;
   const paths: string[] = [];
   for (const p of positionals) {
@@ -204,7 +193,7 @@ async function main() {
     try {
       out = format(src, opts);
     } catch (err) {
-      console.error(`flatbuffers-format: ${file}: ${(err as Error).message}`);
+      console.error(`flatbuffers-format-antlr: ${file}: ${(err as Error).message}`);
       failed++;
       continue;
     }
@@ -229,6 +218,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error(`flatbuffers-format: ${err.stack || err}`);
+  console.error(`flatbuffers-format-antlr: ${err.stack || err}`);
   process.exit(1);
 });
