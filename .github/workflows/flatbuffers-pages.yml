@@ -1,0 +1,163 @@
+name: Pages (live demo + API docs)
+
+# Publishes a small GitHub Pages site assembled from
+# projects/flatbuffers-formatter/. Three things are deployed:
+#
+#   /                 — minimal landing page (this workflow writes it inline)
+#   /playground/      — the existing web/index.html, unmodified
+#   /api/             — TypeDoc-rendered API reference for src/index.ts
+#
+# Why the site directory matches the local layout: web/index.html resolves
+# both `../dist/src/index.js` and `../node_modules/antlr4ng/dist/index.mjs`
+# relative to its own location. We mirror that exact relative shape into
+# site-out/ (site-out/playground/, site-out/dist/, site-out/node_modules/)
+# so the file is byte-identical to the local one — no fork, no vendor
+# rewrite step. The maintainer must enable Pages in repo settings
+# (Settings → Pages → Source: GitHub Actions) once before the first run.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Queue, don't cancel — losing a deploy mid-flight can leave the site in a
+# half-published state.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: build site
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: projects/flatbuffers-formatter
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: projects/flatbuffers-formatter/package-lock.json
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      - name: Build (codegen + tsc)
+        run: npm run build
+
+      - name: Install TypeDoc (ephemeral, not saved to package.json)
+        run: npm install --no-save --no-audit --no-fund typedoc
+
+      - name: Assemble site
+        run: |
+          set -euo pipefail
+          rm -rf site-out
+          mkdir -p site-out
+
+          # Playground: copy web/ as-is so its ../dist and ../node_modules
+          # references resolve against site-out/playground/'s parent.
+          cp -R web site-out/playground
+
+          # Mirror the runtime tree the playground's import-map expects.
+          # dist/ contains both src/ (compiled TS) and generated/ (the
+          # ANTLR parser) — dist/src/index.js imports from ../generated/,
+          # so both halves must come along.
+          mkdir -p site-out/dist
+          cp -R dist/. site-out/dist/
+
+          mkdir -p site-out/node_modules/antlr4ng/dist
+          cp node_modules/antlr4ng/dist/index.mjs site-out/node_modules/antlr4ng/dist/index.mjs
+
+          # API reference. TypeDoc config kept inline — it's only used here.
+          npx typedoc \
+            --entryPoints src/index.ts \
+            --out site-out/api \
+            --readme README.md \
+            --excludeInternal \
+            --excludePrivate \
+            --excludeProtected \
+            --hideGenerator \
+            --gitRevision ${{ github.sha }} \
+            --name "flatbuffers-format API"
+
+      - name: Write landing page
+        run: |
+          cat > site-out/index.html <<'HTML'
+          <!doctype html>
+          <html lang="en">
+            <head>
+              <meta charset="utf-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1" />
+              <title>flatbuffers-format</title>
+              <style>
+                :root {
+                  color-scheme: light dark;
+                  --bg: #fafafa; --fg: #111; --muted: #666;
+                  --accent: #ad6b00; --border: #ddd; --card: #fff;
+                }
+                @media (prefers-color-scheme: dark) {
+                  :root {
+                    --bg: #14161a; --fg: #eaeaea; --muted: #999;
+                    --accent: #f0b860; --border: #2a2d33; --card: #1c1f24;
+                  }
+                }
+                * { box-sizing: border-box; }
+                body { margin: 0; min-height: 100dvh; font: 15px/1.55 system-ui, -apple-system, Segoe UI, sans-serif; background: var(--bg); color: var(--fg); display: flex; align-items: center; justify-content: center; padding: 2rem 1rem; }
+                main { max-width: 640px; width: 100%; }
+                h1 { margin: 0 0 0.25rem; font-size: 1.6rem; }
+                .tag { color: var(--muted); margin: 0 0 1.5rem; }
+                p { margin: 0 0 1.5rem; }
+                .cta { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin: 0 0 1.5rem; }
+                .cta a { display: block; text-align: center; padding: 0.9rem 1rem; background: var(--accent); color: white; text-decoration: none; border-radius: 6px; font-weight: 600; }
+                .cta a.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+                .links { display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.9rem; color: var(--muted); }
+                .links a { color: var(--accent); text-decoration: none; }
+                code { background: var(--card); padding: 0.1rem 0.35rem; border-radius: 3px; border: 1px solid var(--border); font: 0.9em ui-monospace, Menlo, Consolas, monospace; }
+                @media (max-width: 480px) { .cta { grid-template-columns: 1fr; } }
+              </style>
+            </head>
+            <body>
+              <main>
+                <h1>flatbuffers-format</h1>
+                <p class="tag">Opinionated formatter for FlatBuffers <code>.fbs</code> schemas.</p>
+                <p>
+                  Pure-TypeScript, runs in Node and the browser, no JVM. Ships a CLI
+                  (<code>npx flatbuffers-format</code>) and a programmatic API.
+                  This page hosts a live in-browser playground and the auto-generated API reference.
+                </p>
+                <div class="cta">
+                  <a href="./playground/">Open playground</a>
+                  <a href="./api/" class="secondary">API docs</a>
+                </div>
+                <div class="links">
+                  <a href="https://www.npmjs.com/package/flatbuffers-format">npm</a>
+                  <a href="https://github.com/emindeniz99/playground/tree/main/projects/flatbuffers-formatter">GitHub</a>
+                  <a href="https://github.com/emindeniz99/playground/blob/main/projects/flatbuffers-formatter/docs/cookbook.md">Cookbook</a>
+                </div>
+              </main>
+            </body>
+          </html>
+          HTML
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: projects/flatbuffers-formatter/site-out
+
+  deploy:
+    name: deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

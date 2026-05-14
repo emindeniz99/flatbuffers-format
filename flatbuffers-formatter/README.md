@@ -3,6 +3,8 @@
 [![npm](https://img.shields.io/npm/v/flatbuffers-format.svg)](https://www.npmjs.com/package/flatbuffers-format)
 [![CI](https://github.com/emindeniz99/playground/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/emindeniz99/playground/actions/workflows/ci.yml)
 
+> **Try it online:** live playground + API docs at <https://emindeniz99.github.io/playground/> — no install needed.
+
 Opinionated formatter for [FlatBuffers](https://flatbuffers.dev) schema files
 (`.fbs`). Built on an **ANTLR4 grammar** and the pure-TypeScript
 [`antlr4ng`](https://github.com/mike-lischke/antlr4ng) runtime — no JVM
@@ -134,9 +136,14 @@ vim.api.nvim_create_autocmd("BufWritePost", {
 
 ### Browser
 
-`src/index.ts` and the generated parser only depend on `antlr4ng`,
-which ships an ES-module build. After `npm run build`, serve the
-project root statically and open `web/index.html`:
+A hosted playground is available at
+<https://emindeniz99.github.io/playground/playground/> — paste a schema
+and watch it format live, no install needed.
+
+To run the same page locally: `src/index.ts` and the generated parser
+only depend on `antlr4ng`, which ships an ES-module build. After
+`npm run build`, serve the project root statically and open
+`web/index.html`:
 
 ```bash
 npx http-server -p 8080 .
