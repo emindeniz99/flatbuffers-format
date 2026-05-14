@@ -30,6 +30,7 @@ migration tips.
 
 ## Contents
 
+- [Why](#why)
 - [What it does](#what-it-does)
 - [CLI](#cli)
 - [Install](#install)
@@ -39,7 +40,12 @@ migration tips.
 - [Formatting rules](#formatting-rules)
 - [Standards conformance](#standards-conformance)
 - [Build from source](#build-from-source)
+- [Tests](#tests)
 - [Releases](#releases)
+- [Compatibility](#compatibility)
+- [Versioning policy](#versioning-policy)
+- [Roadmap](#roadmap)
+- [Architecture](#architecture)
 - [Notes / learnings](#notes--learnings)
 
 ## Why
@@ -338,6 +344,63 @@ Both suites use the built-in `node --test` runner — no extra test deps.
 ## Releases
 
 Releases are automated via [release-please](https://github.com/googleapis/release-please). The CHANGELOG is generated from Conventional Commits on `main`.
+
+## Compatibility
+
+| Runtime | Status | Notes |
+|---|---|---|
+| **Node.js 20.x** | ✅ supported | Minimum supported version (`engines.node: ">=20"`). |
+| **Node.js 22.x** | ✅ supported | CI matrix runs against both 20 and 22. |
+| **Node.js 24.x** | ✅ expected to work | Not in CI yet; the package uses only stable Node APIs. |
+| **Modern browsers** | ✅ supported | ESM-only. The core (`src/index.ts`) has zero Node imports; the CLI is the only Node-only entry. |
+| **Bun** | ✅ supported | Installs from npm via `bun add flatbuffers-format`; the ESM entry resolves natively. |
+| **Deno** | ✅ supported | Installs from npm via `npm:flatbuffers-format` or `deno add npm:flatbuffers-format`. |
+| **Cloudflare Workers** | ✅ supported | ESM + zero Node imports in the core. |
+| **OS** | ✅ Linux / macOS / Windows | All three covered in CI (Node 20 + 22 × ubuntu + macos + windows). |
+
+## Versioning policy
+
+Standard [semver](https://semver.org). Before `1.0`, the API surface is
+*experimental*: minor versions may include small breaking changes
+(noted in `CHANGELOG.md` and the release notes).
+
+The "public API" — the surface where the semver promise applies once we
+reach `1.0` — is exactly the named exports of
+[`src/index.ts`](src/index.ts) (`format`, `check`, `FormatError`,
+`FormatOptions`) and the CLI's documented flags. Everything else
+(internal printer/lexer/parser classes, the generated parser, the
+trivia helpers, the `scripts/` directory) is implementation detail
+and may change in any release.
+
+## Roadmap
+
+No firm dates; this is a side project. The order below reflects what's
+likely to land next, not a commitment.
+
+**0.1.x (current)** — bugfixes, more corpus fixtures as real-world
+schemas surface in the wild, minor CLI ergonomics polish. No breaking
+changes.
+
+**0.2.x** — under consideration:
+
+- VS Code extension wrapping the CLI (format-on-save without a third-party "Run on Save" extension)
+- A second editor-grammar binding (tree-sitter) for Neovim / Helix / Zed syntax highlighting
+- Performance: experiment with parallel parsing for multi-file `--write` / `--check` runs
+
+**1.0** — when:
+
+- The 0.x API has been stable for two consecutive minors without changes
+- The public-API surface has had time to attract real-world feedback
+- A documented [`docs/migrating-to-1.0.md`](docs/migrating-to-1.0.md) exists for any breaking changes between the last 0.x and 1.0
+
+Contributions targeting any roadmap item are welcome — open an issue
+first so we can discuss design before you spend time on a PR.
+
+## Architecture
+
+See [`docs/architecture.md`](docs/architecture.md) for a tour of how
+the parts fit together — lexer → ANTLR parser → printer, plus the
+trivia-attachment pipeline that makes comments round-trip cleanly.
 
 ## Notes / learnings
 
