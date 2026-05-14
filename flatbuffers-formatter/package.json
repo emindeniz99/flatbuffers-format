@@ -1,67 +1,37 @@
 {
-  "name": "flatbuffers-format",
+  "name": "flatbuffers-format-handrolled",
   "version": "0.1.0",
-  "description": "Opinionated FlatBuffers (.fbs) schema formatter, built on an ANTLR4 grammar. Pure TypeScript runtime (antlr4ng) — no JVM, no codegen at install time. Runs in Node and the browser, ships a CLI.",
-  "keywords": [
-    "flatbuffers",
-    "fbs",
-    "formatter",
-    "schema",
-    "pretty-printer",
-    "cli",
-    "antlr",
-    "antlr4",
-    "antlr4ng"
-  ],
+  "private": true,
+  "description": "Hand-rolled recursive-descent FlatBuffers (.fbs) formatter. Kept as a differential oracle for the published flatbuffers-format (ANTLR-backed) — not published to npm.",
   "license": "MIT",
   "author": "emindeniz99",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/emindeniz99/playground.git",
-    "directory": "projects/flatbuffers-formatter-antlr"
-  },
-  "homepage": "https://github.com/emindeniz99/playground/tree/main/projects/flatbuffers-formatter-antlr#readme",
-  "bugs": {
-    "url": "https://github.com/emindeniz99/playground/issues"
+    "directory": "projects/flatbuffers-formatter"
   },
   "type": "module",
-  "main": "./dist/src/index.js",
-  "types": "./dist/src/index.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/src/index.d.ts",
-      "import": "./dist/src/index.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     }
   },
   "bin": {
-    "flatbuffers-format": "./dist/src/cli.js"
+    "flatbuffers-format-handrolled": "./dist/cli.js"
   },
-  "files": [
-    "dist",
-    "src",
-    "generated",
-    "grammar",
-    "README.md",
-    "LICENSE"
-  ],
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "generate": "antlr-ng -Dlanguage=TypeScript -o generated grammar/FlatBuffers.g4",
-    "build": "npm run generate && tsc",
-    "fmt": "node dist/src/cli.js",
-    "test": "npm run generate && tsc -p tsconfig.test.json && node --test dist-test/test/*.test.js",
-    "build:sibling": "cd ../flatbuffers-formatter && npm ci --no-audit --no-fund && npm run build",
-    "test:crosscheck": "bash test/crosscheck.sh",
-    "prepublishOnly": "npm run build && npm test && npm run build:sibling && npm run test:crosscheck"
-  },
-  "dependencies": {
-    "antlr4ng": "^3.0.16"
+    "build": "tsc",
+    "fmt": "node dist/cli.js",
+    "test": "tsc -p tsconfig.test.json && node --test dist-test/test/*.test.js"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
-    "antlr-ng": "^1.0.10",
     "typescript": "^5.6.0"
   }
 }
