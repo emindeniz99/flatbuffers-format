@@ -22,7 +22,7 @@ npx flatbuffers-format --check src/
 ## What it does
 
 - A canonical FlatBuffers schema grammar lives in
-  [`grammar/FlatBuffers.fbs`](grammar/FlatBuffers.g4) (~155 lines of
+  [`grammar/FlatBuffers.g4`](grammar/FlatBuffers.g4) (~155 lines of
   ANTLR4 EBNF, mirrors the
   [official grammar](https://flatbuffers.dev/flatbuffers_grammar.html)).
 - [`antlr-ng`](https://github.com/mike-lischke/antlr-ng) — a pure-TS

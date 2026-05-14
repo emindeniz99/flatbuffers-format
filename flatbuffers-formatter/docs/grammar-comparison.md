@@ -195,5 +195,6 @@ addressed (verified with `test/crosscheck.sh` on a 16-file corpus):
 | `field: 0x1.8p3;` — hex float | Still rejected. Rare enough we left it. |
 
 Both formatters were updated together — the [hand-rolled
-sibling](../../flatbuffers-formatter) closed the same gaps in its
-parser. They still produce byte-identical output on every fixture.
+sibling](../../flatbuffers-formatter-handrolled) closed the same gaps
+in its parser. They still produce byte-identical output on every
+fixture.
