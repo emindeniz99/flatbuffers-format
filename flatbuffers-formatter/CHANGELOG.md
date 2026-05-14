@@ -55,3 +55,5 @@ No known grammar gaps remain at release time.
   (2 skipped: intentional formatter edge cases)
 - 19/19 corpus fixtures accepted by Ubuntu/Debian system flatc 2.0.8
   (5 skipped: 2 formatter edge cases + 3 fixtures that need flatc ≥ 23)
+
+<!-- Future entries below this line are managed by release-please. -->

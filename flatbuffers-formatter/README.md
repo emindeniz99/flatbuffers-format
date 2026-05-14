@@ -271,6 +271,10 @@ npm run test:crosscheck # differential check vs hand-rolled sibling
 
 Both suites use the built-in `node --test` runner — no extra test deps.
 
+## Releases
+
+Releases are automated via [release-please](https://github.com/googleapis/release-please). The CHANGELOG is generated from Conventional Commits on `main`.
+
 ## Notes / learnings
 
 - `antlr-ng` is a pure-TypeScript reimplementation of the ANTLR tool;
