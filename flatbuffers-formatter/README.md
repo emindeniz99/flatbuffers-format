@@ -64,10 +64,18 @@ Options:
 | Flag | Meaning |
 |---|---|
 | `-w`, `--write` | Rewrite files in place |
-| `-c`, `--check` | Check formatting; exit 1 on diff |
+| `-c`, `--check` | Check formatting; exit 1 on diff (silent) |
+| `-d`, `--diff` | Print unified diff for each file that would change; exit 1 if any |
 | `--indent <n>` | Spaces per indent level (default: 2) |
 | `--no-gitignore` | Don't consult `.gitignore` when walking directories |
+| `-V`, `--version` | Print version and exit |
 | `-h`, `--help` | Show help |
+
+On a parse error, the CLI emits an IDE-link-friendly report
+(`path:line:col: …`) with a source-snippet and a caret under the
+offending column, so editors that auto-link compiler diagnostics
+(VS Code's terminal, neovim's `:cw`, IntelliJ's run console) jump
+straight to the problem.
 
 Directories are walked recursively. **Inside a git repository**,
 `.gitignore` is respected via `git ls-files` — pass `--no-gitignore`

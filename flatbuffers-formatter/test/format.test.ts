@@ -3,7 +3,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { format, check } from "../src/index.js";
+import { spawnSync } from "node:child_process";
+import { format, check, FormatError } from "../src/index.js";
+import { unifiedDiff } from "../src/diff.js";
+import { renderParseError } from "../src/error-render.js";
 
 // Resolve the test/corpus directory regardless of where the compiled
 // test bundle ends up (dist-test/ vs source). The Node test runner runs
@@ -11,6 +14,8 @@ import { format, check } from "../src/index.js";
 const here = dirname(fileURLToPath(import.meta.url));
 const corpusDir = join(here, "..", "..", "test", "corpus");
 const readCorpus = (name: string) => readFileSync(join(corpusDir, name), "utf8");
+// Resolve the built CLI for the integration tests below.
+const cliPath = join(here, "..", "src", "cli.js");
 
 test("formats a basic table declaration", () => {
   const input = `table Foo{x:int;y:string=  "hi";}`;
@@ -503,4 +508,132 @@ test("malformed input: signed inf/nan rejected (only bare inf/nan are supported)
   // Signed forms must continue to fail:
   assert.throws(() => format(`table T { a: float = -inf; }`));
   assert.throws(() => format(`table T { a: float = +inf; }`));
+});
+
+// ---------------------------------------------------------------------------
+// CLI UX: --version, --diff, error rendering, diff helper.
+// ---------------------------------------------------------------------------
+
+test("unifiedDiff: identical inputs produce empty output", () => {
+  // Property: diff(x, x) === "". Caller branches on this to decide
+  // whether to print anything / set an exit code.
+  assert.equal(unifiedDiff("a/x", "b/x", "table T { x: int; }\n", "table T { x: int; }\n"), "");
+});
+
+test("unifiedDiff: changed line emits a hunk with - / + and headers", () => {
+  // Smallest possible case: one-line file, one-line replacement.
+  // Pin every part of the unified-diff header so a future "regenerate
+  // diffs differently" change doesn't silently shift the output shape.
+  const a = "table T{x:int;}\n";
+  const b = "table T {\n  x: int;\n}\n";
+  const out = unifiedDiff("a/<stdin>", "b/<stdin>", a, b);
+  assert.match(out, /^--- a\/<stdin>$/m, "old-path header");
+  assert.match(out, /^\+\+\+ b\/<stdin>$/m, "new-path header");
+  assert.match(out, /^@@ -1 \+1,3 @@$/m, "hunk header with computed ranges");
+  assert.match(out, /^-table T\{x:int;\}$/m, "deleted line marked with -");
+  assert.match(out, /^\+table T \{$/m, "first added line marked with +");
+});
+
+test("renderParseError: snippet has caret pointing at the right column", () => {
+  // Use a real FormatError construction with a known line/col, render
+  // it, and check the marker line: the caret must land directly under
+  // the offending character.
+  const source = "table T {\n  foo bar baz;\n  x: int;\n}\n";
+  const err = new FormatError("missing ':' at 'bar'", 2, 6); // 0-based col 6 → "bar" starts at display col 7
+  const out = renderParseError("test.fbs", source, err);
+
+  // Header has IDE-link form path:line:col with 1-based col.
+  assert.match(out, /^flatbuffers-format: test\.fbs:2:7: missing ':' at 'bar'$/m);
+  // The offending line shows up marked with '>'. The source line is
+  // "  foo bar baz;" (2 spaces of indent) and the renderer adds one
+  // separator space after `|`, giving 3 spaces before `foo`.
+  assert.match(out, /^ > 2 \| {3}foo bar baz;$/m);
+  // Caret line indent puts the ^ at the bar's `b`.
+  // Format: "   | " gutter + (col1 - 1) spaces + "^". Two spaces of
+  // leading-indent in the source line ("  foo bar baz;") plus 4 to
+  // reach `b` (after "foo ").
+  const lines = out.split("\n");
+  const caretLine = lines.find((l) => l.includes("^"))!;
+  // The "^" position relative to the start of the caret line should
+  // align with the bar's "b" in the offending line.
+  const offendingLine = lines.find((l) => l.startsWith(" > 2 |"))!;
+  // The "|" is at the same column in both lines, so the offset of "^"
+  // past "|" must match the offset of "b" past "|" in the offending line.
+  const caretOffset = caretLine.indexOf("^") - caretLine.indexOf("|");
+  const charOffset = offendingLine.indexOf("bar") - offendingLine.indexOf("|");
+  assert.equal(caretOffset, charOffset, "caret aligns with 'b' of 'bar'");
+});
+
+test("renderParseError: clamps context window at file edges", () => {
+  // Error on the first line of a single-line file. Should not crash
+  // or produce phantom context lines.
+  const source = "table T{}\n";
+  const err = new FormatError("expecting '{'", 1, 8);
+  const out = renderParseError("oneliner.fbs", source, err);
+  // The offending line is on display, and only one context line below
+  // (the implicit trailing empty line, which we render as "").
+  assert.match(out, /^ > 1 \| table T\{\}$/m);
+  // We should NOT have a "> 0 |" or any line numbered 0.
+  assert.equal(out.includes(" 0 |"), false);
+});
+
+test("CLI --version prints package version and exits 0", () => {
+  // Spawn the built CLI so we exercise the same artifact users run.
+  // Both --version and -V are tested.
+  for (const flag of ["--version", "-V"]) {
+    const r = spawnSync(process.execPath, [cliPath, flag], { encoding: "utf8" });
+    assert.equal(r.status, 0, `${flag} exit 0`);
+    assert.match(r.stdout, /^flatbuffers-format \d+\.\d+\.\d+/m, `${flag} prints version line`);
+  }
+});
+
+test("CLI --diff exits 1 on diff with unified-diff output, exits 0 when content matches", () => {
+  const ugly = "table T{x:int;}\n";
+  const r1 = spawnSync(process.execPath, [cliPath, "--diff", "-"], {
+    input: ugly,
+    encoding: "utf8",
+  });
+  assert.equal(r1.status, 1, "ugly input → exit 1");
+  assert.match(r1.stdout, /^--- a\/<stdin>$/m);
+  assert.match(r1.stdout, /^-table T\{x:int;\}$/m);
+  assert.match(r1.stdout, /^\+table T \{$/m);
+
+  const clean = "table T {\n  x: int;\n}\n";
+  const r2 = spawnSync(process.execPath, [cliPath, "--diff", "-"], {
+    input: clean,
+    encoding: "utf8",
+  });
+  assert.equal(r2.status, 0, "canonical input → exit 0");
+  assert.equal(r2.stdout, "", "canonical input → no diff output");
+});
+
+test("CLI rejects mutually-exclusive mode flags with exit 2", () => {
+  for (const combo of [
+    ["--write", "--check"],
+    ["--write", "--diff"],
+    ["--check", "--diff"],
+    ["--write", "--check", "--diff"],
+  ]) {
+    const r = spawnSync(process.execPath, [cliPath, ...combo, "/dev/null"], {
+      encoding: "utf8",
+    });
+    assert.equal(r.status, 2, `${combo.join(" ")} → exit 2`);
+    assert.match(r.stderr, /mutually exclusive/);
+  }
+});
+
+test("CLI on parse error emits a snippet with caret to stderr and exits 1", () => {
+  // End-to-end check: a broken schema piped to stdin produces the
+  // pretty error report (not just bare "line N:M message").
+  const r = spawnSync(process.execPath, [cliPath, "-"], {
+    input: "table T { foo bar }\n",
+    encoding: "utf8",
+  });
+  assert.equal(r.status, 1);
+  // Header line uses path:line:col form.
+  assert.match(r.stderr, /^flatbuffers-format: <stdin>:1:\d+:/m);
+  // Source-snippet body contains the offending line marked with ">".
+  assert.match(r.stderr, /^ > 1 \| table T \{ foo bar \}$/m);
+  // Caret on the next line.
+  assert.match(r.stderr, /\^/);
 });
