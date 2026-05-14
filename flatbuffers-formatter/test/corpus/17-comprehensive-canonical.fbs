@@ -1,0 +1,241 @@
+// Comprehensive integration fixture for the flatbuffers-format
+// formatter. Every section in this file is annotated with the grammar
+// production it exercises and the formatter rule it stresses.
+//
+// References (used as a feature checklist, not copied):
+//   - Official FlatBuffers grammar:
+//     https://flatbuffers.dev/flatbuffers_grammar.html
+//   - Upstream FlatBuffers test schema:
+//     https://github.com/google/flatbuffers/blob/master/tests/monster_test.fbs
+//
+// This file is an original composition for this corpus. It is paired
+// with 18-comprehensive-ugly.fbs, which holds the same logical schema
+// with deliberately destructive whitespace, indentation, and blank-line
+// patterns. Both files must produce byte-identical output through both
+// the ANTLR-backed and the hand-rolled engines — see test/crosscheck.sh.
+// It is also required to be accepted by `flatc` (see
+// scripts/flatc-conform.sh).
+
+// --- native_include ----------------------------------------------------
+// Grammar: native_include_decl.
+// Formatter: single space after the keyword, string literal verbatim,
+// trailing semicolon, one decl per line.
+native_include "comprehensive_extra.h";
+
+// --- main namespace ----------------------------------------------------
+// Grammar: namespace_decl with a dotted path.
+// Formatter: dots between segments carry no surrounding whitespace.
+namespace Example.Comprehensive;
+
+// --- attribute declarations -------------------------------------------
+// Grammar: attribute_decl. Declares custom attribute names so they can
+// appear on fields below without flatc warnings.
+attribute "priority";
+attribute "validator";
+
+// --- enums ------------------------------------------------------------
+
+/// Bit-flags enum. Exercises:
+///   - explicit underlying type (`: uint`)
+///   - the (bit_flags) attribute on the enum header
+///   - doc comment that must stay attached to the enum
+///   - members with no explicit value (auto-assigned)
+enum Color: uint (bit_flags) {
+  Red,
+  Green,
+  Blue,
+  Alpha
+}
+
+/// Plain enum with explicit signed values. Exercises:
+///   - negative integer values
+///   - decimal positive values
+///   - default-by-omission (Mid)
+enum Priority: byte {
+  Low = -1,
+  Mid,
+  High = 10
+}
+
+// Comment-only header (// not ///), no doc-comment attachment.
+// Tests that ordinary comments above an enum stay above without being
+// promoted to doc trivia.
+enum Tag: ubyte {
+  None,
+  First,
+  Second,
+  Third
+}
+
+// --- structs ----------------------------------------------------------
+
+/// Fixed-layout scalar struct. Exercises struct field grammar.
+struct Vec3 {
+  x: float;
+  y: float;
+  z: float;
+}
+
+/// Struct with a fixed-size array field. Exercises `[T:N]` grammar.
+struct Matrix3 {
+  data: [float:9];
+}
+
+/// Struct-of-structs. Exercises struct-typed fields inside a struct.
+struct Ray {
+  origin: Vec3;
+  direction: Vec3;
+}
+
+// --- tables referenced by the union (forward refs are legal) ---------
+
+table PrimarySword {
+  name: string;
+  damage: short;
+}
+
+table BowAttack {
+  name: string;
+  range: int = 100;
+  damage: short;
+}
+
+table MagicSpell {
+  name: string;
+  mana_cost: int;
+  /* Multi-line block comment between fields. Stresses block-comment
+     trivia that lives in the gap between two fields. */
+  damage: short;
+}
+
+// --- union ------------------------------------------------------------
+
+// Union with mixed plain and aliased variants. Exercises:
+//   - the `Alias: Type` member form
+//   - the bare `Type` member form
+//   - multiple variants separated by commas
+union Attack {
+  Melee: PrimarySword,
+  Ranged: BowAttack,
+  MagicSpell
+}
+
+// --- namespace re-open: drop into External.Ref to declare Anchor -----
+// Grammar: a second namespace_decl in the same file.
+// Formatter: each namespace re-open is its own top-level declaration
+// with a blank line separating it from neighbours.
+namespace External.Ref;
+
+/// Anchor — referenced from the main namespace via the fully-qualified
+/// path `External.Ref.Anchor`. Lives in this re-opened namespace so the
+/// reference below resolves under flatc's semantic check.
+table Anchor {
+  label: string;
+  pos: Example.Comprehensive.Vec3;
+}
+
+// --- namespace re-open: back to Example.Comprehensive for Monster ---
+namespace Example.Comprehensive;
+
+// --- the everything-bag table ----------------------------------------
+
+/// Comprehensive table. Each field exercises a specific formatter rule
+/// or grammar production — called out in the trailing line comment.
+table Monster {
+  // --- scalar fields with various default kinds ---
+  hp: short = 100; // signed decimal default
+  level: ubyte = 1; // unsigned decimal default
+  experience: uint = 0; // explicit zero default
+  scale: float = 1.5; // float with mantissa
+  density: float = inf; // float +infinity literal
+  nan_check: float = nan; // float NaN literal
+  hex_id: uint = 0xDEADBEEF; // hex-literal default (uint)
+  enabled: bool = true; // bool default
+  cooldown: float = 1.5e-3; // exponent-form float
+
+  // --- string + required ---
+  name: string (required); // (required) metadata
+
+  // --- deprecated ---
+  old_score: int (deprecated); // (deprecated) metadata
+
+  // --- key for vector-of-table lookup ---
+  uid: ulong (key); // (key) metadata
+
+  // --- custom user attribute (declared at top of file) ---
+  rating: int (priority: 5); // custom key:value metadata
+
+  // --- multiple metadata items on one field ---
+  internal: string (deprecated, priority: 0); // comma-separated metadata
+
+  // --- collections ---
+  inventory: [ubyte]; // vector of scalar
+  tags: [string]; // vector of strings
+  trail: [Vec3]; // vector of struct
+  loot: [PrimarySword]; // vector of table
+  abilities: [Attack]; // vector of union
+
+  // --- enum reference defaults ---
+  primary_color: Color = Red; // enum value as default
+  flag_mask: Color = 5; // bit_flags numeric default
+
+  // --- nested struct / table / union fields ---
+  position: Vec3; // single struct field
+  primary_weapon: PrimarySword; // single table field
+  weapon: Attack; // single union field
+
+  // --- namespaced type reference ---
+  spawn_at: External.Ref.Anchor; // dotted type reference
+
+  // --- keyword as field name ---
+  enum: int; // reserved word as ident
+
+  /// Doc-style comment attached to the next field. The formatter must
+  /// keep this doc comment glued to hp_max — never floated up by a
+  /// blank line, never demoted to a regular `//` comment.
+  hp_max: short;
+}
+
+// --- supporting tables for RPC ---------------------------------------
+
+table Stat {
+  count: int;
+  message: string;
+}
+
+table MonsterRequest {
+  filter: string;
+}
+
+// --- RPC service -----------------------------------------------------
+
+/// RPC service. Exercises all four streaming variants flatc recognizes
+/// (none / server / client / bidi), plus an extra `idempotent` flag on
+/// one call.
+rpc_service MonsterStorage {
+  Store(Monster): Stat;
+  Retrieve(MonsterRequest): Stat (streaming: "server");
+  Push(Stat): Stat (streaming: "client");
+  Bidi(Stat): Stat (streaming: "bidi", idempotent);
+}
+
+// --- file metadata + root --------------------------------------------
+
+root_type Monster;
+file_identifier "COMP";
+file_extension "comp";
+
+// --- object literal --------------------------------------------------
+// Grammar: object_literal_decl.
+// Stresses the JSON-ish sample-data form that flatc accepts at the end
+// of a schema. Single-line nested object inside; the formatter keeps
+// it on its own line.
+{
+  name: "Sample",
+  hp: 250,
+  position: {
+    x: 1.0,
+    y: 2.0,
+    z: 3.0
+  }
+}

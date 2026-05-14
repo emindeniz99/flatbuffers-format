@@ -1,0 +1,23 @@
+// Exercises the `(id: N)` field metadata that pins a field to a
+// specific vtable slot. flatc enforces an all-or-nothing rule: either
+// every field on the table carries `(id: N)`, or none do — so this
+// fixture lives in its own file rather than in 17-comprehensive,
+// which would otherwise need explicit ids on all ~30 fields.
+//
+// Coverage:
+//   - field metadata with key:value form
+//   - id values must be non-negative, contiguous, and unique
+//   - every field annotated, satisfying the flatc all-or-nothing rule
+
+namespace VtableIds;
+
+table Pinned {
+  /// First field — vtable slot 0.
+  a: int (id: 0);
+  b: string (id: 1);
+  c: float = 1.5 (id: 2);
+  /// Optional fields keep their slot even if added later.
+  d: [ubyte] (id: 3);
+}
+
+root_type Pinned;

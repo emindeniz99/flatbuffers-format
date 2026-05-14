@@ -1,0 +1,12 @@
+// Stub include target referenced by 15-native-include.fbs.
+//
+// flatc resolves `include "other_schema.fbs"` relative to the .fbs
+// file's directory, so this file has to sit next to 15 in the corpus.
+// Globbed into both the formatter cross-check and flatc-conform, so it
+// must itself be a valid (if minimal) FlatBuffers schema.
+
+namespace Other;
+
+table Stub {
+  x: int;
+}
