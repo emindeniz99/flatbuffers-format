@@ -2,13 +2,13 @@
 // parser, both of which work in browsers.
 
 import {
-  ATNSimulator,
+  type ATNSimulator,
   BaseErrorListener,
   CharStream,
   CommonTokenStream,
-  RecognitionException,
-  Recognizer,
-  Token,
+  type RecognitionException,
+  type Recognizer,
+  type Token,
 } from "antlr4ng";
 import { FlatBuffersLexer } from "../generated/FlatBuffersLexer.js";
 import { FlatBuffersParser } from "../generated/FlatBuffersParser.js";

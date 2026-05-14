@@ -52,6 +52,9 @@
     "generate": "antlr-ng -Dlanguage=TypeScript -o generated grammar/FlatBuffers.g4",
     "build": "npm run generate && tsc",
     "fmt": "node dist/src/cli.js",
+    "lint": "biome lint src test",
+    "lint:fix": "biome check --write src test",
+    "format:src": "biome format --write src test",
     "test": "npm run generate && tsc -p tsconfig.test.json && node scripts/run-tests.mjs",
     "build:sibling": "cd ../flatbuffers-formatter-handrolled && npm ci --no-audit --no-fund && npm run build",
     "test:crosscheck": "bash test/crosscheck.sh",
@@ -62,6 +65,7 @@
     "antlr4ng": "^3.0.16"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.15",
     "@types/node": "^22.10.0",
     "antlr-ng": "^1.0.10",
     "typescript": "^5.6.0"

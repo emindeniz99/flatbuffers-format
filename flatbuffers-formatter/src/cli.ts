@@ -2,7 +2,15 @@
 // Node-only CLI. The `format()` core in ./index.ts is browser-safe;
 // this file adds filesystem/stdin handling on top.
 
-import { readFileSync, writeFileSync, statSync, readdirSync, existsSync } from "node:fs";
+import {
+  readFileSync,
+  writeFileSync,
+  statSync,
+  readdirSync,
+  existsSync,
+  type Dirent,
+  type Stats,
+} from "node:fs";
 import { join, resolve, extname } from "node:path";
 import { parseArgs } from "node:util";
 import { execFileSync } from "node:child_process";
@@ -51,7 +59,7 @@ const SKIP_DIRS = new Set([
 ]);
 
 function walk(dir: string, out: string[]) {
-  let entries;
+  let entries: Dirent[];
   try {
     entries = readdirSync(dir, { withFileTypes: true });
   } catch {
@@ -90,7 +98,7 @@ function expandPaths(paths: string[], useGitignore: boolean): string[] {
   const out: string[] = [];
   for (const p of paths) {
     const abs = resolve(p);
-    let st;
+    let st: Stats;
     try {
       st = statSync(abs);
     } catch {

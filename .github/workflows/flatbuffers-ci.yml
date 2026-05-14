@@ -11,7 +11,27 @@ on:
 jobs:
   # The two unit-test jobs run on a 2-D matrix (OS x Node) so the published
   # package is verified cross-platform. `crosscheck` and `flatc-conform`
-  # stay Linux-only on purpose — see comments on those jobs below.
+  # stay Linux-only on purpose — see comments on those jobs below. The
+  # `flatbuffers-format-lint` job below uses Biome and only needs one
+  # OS/Node combo (Biome's rules don't vary by platform).
+  flatbuffers-format-lint:
+    name: flatbuffers-format / lint (biome)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: projects/flatbuffers-formatter
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: projects/flatbuffers-formatter/package-lock.json
+      - name: Install
+        run: npm ci --no-audit --no-fund
+      - name: Lint
+        run: npm run lint
+
   flatbuffers-format-test:
     name: flatbuffers-format / ${{ matrix.os }} / node ${{ matrix.node-version }}
     runs-on: ${{ matrix.os }}
