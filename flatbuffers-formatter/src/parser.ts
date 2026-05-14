@@ -45,7 +45,10 @@ class Parser {
     while (!this.atEnd()) {
       items.push(this.parseTopLevel());
     }
-    return { kind: "schema", items };
+    // The EOF token carries any trailing trivia (file-tail comments,
+    // blank lines). Hand it to the schema so the printer can emit it.
+    const eof = this.peek();
+    return { kind: "schema", items, tail: eof.leading };
   }
 
   // -----------------------------------------------------------------

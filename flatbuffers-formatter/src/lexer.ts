@@ -211,11 +211,16 @@ export function tokenize(source: string): Token[] {
     if (c === "/" && peek(1) === "/") {
       const t = readLineComment();
       if (!tryAttachTrailing(t)) pushTrivia(t);
+      // A comment breaks any run of newlines we were counting:
+      // `\n /// foo \n bar` is one blank-separator on each side
+      // of the comment, not a combined two-newline blank line.
+      consecutiveNewlines = 0;
       continue;
     }
     if (c === "/" && peek(1) === "*") {
       const t = readBlockComment();
       if (!tryAttachTrailing(t)) pushTrivia(t);
+      consecutiveNewlines = 0;
       continue;
     }
     if (c === "\"") {

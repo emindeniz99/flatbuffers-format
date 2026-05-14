@@ -50,6 +50,10 @@ export type Token = {
 export type Schema = {
   kind: "schema";
   items: TopLevel[];
+  // Trivia that appears after the last declaration but before EOF.
+  // Lets comments-only files round-trip, and preserves comments that
+  // trail the final declaration.
+  tail: Trivia[];
 };
 
 export type TopLevel =
