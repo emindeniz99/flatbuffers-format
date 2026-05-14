@@ -97,6 +97,7 @@ class Parser {
     if (t.kind === "ident") {
       switch (t.value) {
         case "include":
+        case "native_include":
           return this.parseInclude();
         case "namespace":
           return this.parseNamespace();
@@ -133,6 +134,7 @@ class Parser {
     return {
       kind: "include",
       path: str.value,
+      native: kw.value === "native_include",
       leading: kw.leading,
       trailing: lastTrailing(kw, str, this.lastSemi()),
     };
@@ -287,11 +289,21 @@ class Parser {
   private parseType(): TypeRef {
     if (this.match("lbracket")) {
       const element = this.parseType();
+      // Fixed-size array: `[T:N]` (used in struct fields).
+      let size: string | undefined;
+      if (this.match("colon")) {
+        size = this.expect("int").value;
+      }
       this.expect("rbracket");
-      return { kind: "vector", element };
+      return size === undefined
+        ? { kind: "vector", element }
+        : { kind: "vector", element, size };
     }
-    const t = this.expect("ident");
-    return { kind: "named", name: t.value };
+    // Namespaced ident: `a.b.Foo` (the official grammar uses
+    // `ns_ident` in every type-bearing position).
+    const parts = [this.expect("ident").value];
+    while (this.match("dot")) parts.push(this.expect("ident").value);
+    return { kind: "named", name: parts.join(".") };
   }
 
   // -----------------------------------------------------------------
@@ -368,13 +380,21 @@ class Parser {
 
   private parseUnionValue(): UnionValueDecl {
     const first = this.expect("ident");
+    // Could be `Type`, `a.b.Type`, or `Alias: a.b.Type`.
+    const firstParts = [first.value];
+    while (this.peek().kind === "dot" && this.peek(1).kind === "ident") {
+      this.advance(); // dot
+      firstParts.push(this.expect("ident").value);
+    }
     let alias: string | undefined;
     let type: string;
     if (this.match("colon")) {
-      alias = first.value;
-      type = this.expect("ident").value;
+      alias = firstParts.join(".");
+      const typeParts = [this.expect("ident").value];
+      while (this.match("dot")) typeParts.push(this.expect("ident").value);
+      type = typeParts.join(".");
     } else {
-      type = first.value;
+      type = firstParts.join(".");
     }
     return {
       alias,
@@ -408,10 +428,10 @@ class Parser {
   private parseRpcMethod(): RpcMethodDecl {
     const nameTok = this.expect("ident");
     this.expect("lparen");
-    const request = this.expect("ident").value;
+    const request = this.parseNsIdent();
     this.expect("rparen");
     this.expect("colon");
-    const response = this.expect("ident").value;
+    const response = this.parseNsIdent();
     const metadata = this.tryParseMetadata();
     this.expect("semi");
     return {
@@ -422,6 +442,12 @@ class Parser {
       leading: nameTok.leading,
       trailing: this.lastSemi().trailing,
     };
+  }
+
+  private parseNsIdent(): string {
+    const parts = [this.expect("ident").value];
+    while (this.match("dot")) parts.push(this.expect("ident").value);
+    return parts.join(".");
   }
 
   // -----------------------------------------------------------------

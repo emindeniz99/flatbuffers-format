@@ -78,6 +78,9 @@ export type WithTrivia = {
 export type IncludeDecl = WithTrivia & {
   kind: "include";
   path: string; // string literal, without surrounding quotes
+  // `native_include` (FlatBuffers extension for native types) vs
+  // plain `include` for schema files.
+  native?: boolean;
 };
 
 export type NamespaceDecl = WithTrivia & {
@@ -139,8 +142,8 @@ export type FieldDecl = WithTrivia & {
 };
 
 export type TypeRef =
-  | { kind: "named"; name: string } // includes built-ins like `int`, `string`
-  | { kind: "vector"; element: TypeRef };
+  | { kind: "named"; name: string } // includes built-ins like `int`, `string`; supports `a.b.Foo`
+  | { kind: "vector"; element: TypeRef; size?: string }; // size = fixed-length array `[T:N]`
 
 export type EnumDecl = WithTrivia & {
   kind: "enum";

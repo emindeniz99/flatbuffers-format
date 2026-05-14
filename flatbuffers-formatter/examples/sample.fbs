@@ -1,4 +1,4 @@
-// Example FlatBuffers schema. Run `fbs-fmt examples/sample.fbs` to see
+// Example FlatBuffers schema. Run `flatbuffers-format examples/sample.fbs` to see
 // the formatted output. Original spacing is deliberately ugly.
 
 include   "other.fbs"  ;
