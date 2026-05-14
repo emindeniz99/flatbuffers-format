@@ -51,6 +51,25 @@ fi
 echo "flatc-conform: using $(flatc --version)"
 echo "flatc-conform: corpus = ${CORPUS_DIR}"
 
+# --- skip list ---
+# Each entry is a corpus file basename that intentionally exercises a
+# formatter edge case that flatc rejects on grounds unrelated to the
+# formatter's correctness. Adding to this list is a deliberate choice
+# — every entry must have a one-line rationale.
+declare -A SKIP_REASON=(
+  # flatc requires at least one declaration; this fixture is intentionally
+  # comments-only to exercise blank-/comment-only input through the formatter.
+  ["02-comments-only.fbs"]="intentionally comments-only; flatc rejects empty input"
+  # `[[ubyte]]` is grammar-legal in upstream FlatBuffers BNF; flatc's
+  # semantic layer forbids it ("wrap in table first"). Keep as a formatter
+  # over-acceptance test.
+  ["04-vectors.fbs"]="nested vector types are grammar-legal but flatc-rejected"
+  # flatc 2.0.8 — the version Debian/Ubuntu currently packages — rejects
+  # fixed-size arrays inside structs. Newer flatc (>= 23.x) accepts them
+  # and this file becomes flatc-clean. Revisit when system flatc updates.
+  ["14-fixed-arrays.fbs"]="flatc 2.0.8 doesn't support struct fixed arrays; newer flatc does"
+)
+
 shopt -s nullglob
 files=("${CORPUS_DIR}"/*.fbs)
 shopt -u nullglob
@@ -62,9 +81,16 @@ fi
 
 pass=0
 fail=0
+skip=0
 failed_files=()
 
 for f in "${files[@]}"; do
+  base="$(basename "${f}")"
+  if [[ -n "${SKIP_REASON[$base]:-}" ]]; then
+    skip=$((skip + 1))
+    echo "SKIP: ${base} — ${SKIP_REASON[$base]}"
+    continue
+  fi
   # `flatc -b --schema -o <dir> <file>` parses the .fbs and emits a binary
   # schema (.bfbs). It's the lightest invocation that exercises the full
   # parser without generating language bindings. --no-warnings keeps the
@@ -75,14 +101,15 @@ for f in "${files[@]}"; do
     fail=$((fail + 1))
     failed_files+=("${f}")
     echo "---"
-    echo "FAIL: $(basename "${f}")"
+    echo "FAIL: ${base}"
     echo "${err}" | sed 's/^/    /'
   fi
 done
 
-total=$((pass + fail))
+checked=$((pass + fail))
+total=$((checked + skip))
 echo "---"
-echo "Summary: ${pass}/${total} files accepted by flatc"
+echo "Summary: ${pass}/${checked} checked files accepted by flatc (${skip} skipped, ${total} total)"
 
 if [[ ${fail} -gt 0 ]]; then
   echo "Failed files:"
