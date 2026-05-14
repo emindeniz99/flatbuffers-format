@@ -1,6 +1,7 @@
 # flatbuffers-format
 
 [![npm](https://img.shields.io/npm/v/flatbuffers-format.svg)](https://www.npmjs.com/package/flatbuffers-format)
+[![CI](https://github.com/emindeniz99/playground/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/emindeniz99/playground/actions/workflows/ci.yml)
 
 Opinionated formatter for [FlatBuffers](https://flatbuffers.dev) schema files
 (`.fbs`). Built on an **ANTLR4 grammar** and the pure-TypeScript

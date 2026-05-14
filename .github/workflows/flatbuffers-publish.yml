@@ -1,0 +1,46 @@
+name: flatbuffers-format publish (dry-run)
+
+# Manual-only. This workflow builds, tests, and runs `npm publish --dry-run`
+# against `projects/flatbuffers-formatter/` so we can sanity-check the
+# tarball contents on demand. It does NOT actually publish.
+#
+# Real publishes are still manual for now: run `npm publish` locally from
+# `projects/flatbuffers-formatter/` after `prepublishOnly` passes. We can
+# wire up automated publishing later once an `NPM_TOKEN` secret has been
+# configured on the repo and the maintainer has explicitly opted in.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  dry-run:
+    name: build + test + npm publish --dry-run
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: projects/flatbuffers-formatter
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: projects/flatbuffers-formatter/package-lock.json
+          registry-url: https://registry.npmjs.org
+      - name: Install
+        run: npm ci --no-audit --no-fund
+      - name: Build
+        run: npm run build
+      - name: Test
+        run: npm test
+      - name: Build sibling (handrolled) for crosscheck
+        working-directory: projects/flatbuffers-formatter-handrolled
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Cross-check
+        run: bash test/crosscheck.sh
+      - name: npm publish --dry-run
+        run: npm publish --dry-run
+      - name: List tarball contents
+        run: npm pack --dry-run

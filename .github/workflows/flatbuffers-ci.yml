@@ -1,0 +1,130 @@
+name: flatbuffers-format CI
+
+on:
+  push:
+    branches:
+      - main
+      - "claude/**"
+  pull_request:
+    branches: [main]
+
+jobs:
+  flatbuffers-format-test:
+    name: flatbuffers-format / node ${{ matrix.node-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20, 22]
+    defaults:
+      run:
+        working-directory: projects/flatbuffers-formatter
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+          cache-dependency-path: projects/flatbuffers-formatter/package-lock.json
+      - name: Install
+        run: npm ci --no-audit --no-fund
+      - name: Build
+        run: npm run build
+      - name: Test
+        run: npm test
+
+  flatbuffers-format-handrolled-test:
+    name: flatbuffers-format-handrolled / node ${{ matrix.node-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20, 22]
+    defaults:
+      run:
+        working-directory: projects/flatbuffers-formatter-handrolled
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+          cache-dependency-path: projects/flatbuffers-formatter-handrolled/package-lock.json
+      - name: Install
+        run: npm ci --no-audit --no-fund
+      - name: Build
+        run: npm run build
+      - name: Test
+        run: npm test
+
+  crosscheck:
+    name: crosscheck (antlr vs hand-rolled, byte-identical)
+    runs-on: ubuntu-latest
+    needs: [flatbuffers-format-test, flatbuffers-format-handrolled-test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install + build flatbuffers-formatter
+        working-directory: projects/flatbuffers-formatter
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Install + build flatbuffers-formatter-handrolled
+        working-directory: projects/flatbuffers-formatter-handrolled
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Cross-check (byte-identical, idempotent)
+        run: bash projects/flatbuffers-formatter/test/crosscheck.sh
+
+  flatc-conform:
+    name: flatc-conform (corpus accepted by upstream flatc)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Resolve latest flatc release tag
+        id: flatc
+        run: |
+          # Cheap one-shot tag resolution via the redirect on /releases/latest.
+          # Avoids needing a GITHUB_TOKEN for the API and is rate-limit-safe.
+          tag=$(curl -fsSLI -o /dev/null -w '%{url_effective}' \
+                  https://github.com/google/flatbuffers/releases/latest \
+                | sed 's#.*/tag/##')
+          if [ -z "$tag" ]; then
+            echo "Failed to resolve latest flatc tag" >&2
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "Latest flatc tag: $tag"
+      - name: Cache flatc binary
+        id: flatc-cache
+        uses: actions/cache@v4
+        with:
+          path: tools/flatc
+          key: flatc-linux-gcc-${{ steps.flatc.outputs.tag }}
+      - name: Download flatc
+        if: steps.flatc-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p tools/flatc
+          tag="${{ steps.flatc.outputs.tag }}"
+          url="https://github.com/google/flatbuffers/releases/download/${tag}/Linux.flatc.binary.g++-13.zip"
+          echo "Downloading $url"
+          curl -fsSL -o /tmp/flatc.zip "$url"
+          unzip -o /tmp/flatc.zip -d tools/flatc
+          chmod +x tools/flatc/flatc
+      - name: Prepend flatc to PATH
+        run: echo "${{ github.workspace }}/tools/flatc" >> "$GITHUB_PATH"
+      - name: Verify flatc on PATH
+        run: flatc --version
+      - name: Install + build flatbuffers-formatter
+        working-directory: projects/flatbuffers-formatter
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: flatc-conform
+        run: bash projects/flatbuffers-formatter/scripts/flatc-conform.sh
