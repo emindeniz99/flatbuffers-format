@@ -1,80 +1,45 @@
 #!/usr/bin/env node
-// Node-only CLI; mirrors the API of the sibling project (fbs-fmt)
-// so users can swap one binary for the other.
+// CLI wrapper around `format()`. Node-only — the core stays in
+// src/index.ts and src/{lexer,parser,printer}.ts so it can run in a
+// browser.
 
-import { readFileSync, writeFileSync, statSync, readdirSync } from "node:fs";
+import { readFileSync, writeFileSync, statSync, readdirSync, existsSync } from "node:fs";
 import { join, resolve, extname } from "node:path";
+import { parseArgs } from "node:util";
+import { execFileSync } from "node:child_process";
 import { format } from "./index.js";
 
 type Mode = "stdout" | "write" | "check";
 
-type Args = {
-  mode: Mode;
-  indent: number;
-  paths: string[];
-  fromStdin: boolean;
-};
-
-const USAGE = `flatbuffers-format-antlr — FlatBuffers (.fbs) formatter (ANTLR-backed)
+const USAGE = `flatbuffers-format — FlatBuffers (.fbs) schema formatter
 
 Usage:
-  flatbuffers-format-antlr [options] <file...>      # print formatted output to stdout
-  flatbuffers-format-antlr --write <file...>        # rewrite files in place
-  flatbuffers-format-antlr --check <file...>        # exit non-zero if any file is unformatted
-  flatbuffers-format-antlr fix <file...>            # alias for --write
-  cat foo.fbs | flatbuffers-format-antlr -          # read source from stdin
+  flatbuffers-format [options] <file-or-dir...>   # print formatted output to stdout
+  flatbuffers-format --write <file-or-dir...>     # rewrite files in place
+  flatbuffers-format --check <file-or-dir...>     # exit non-zero if any file is unformatted
+  flatbuffers-format fix <file-or-dir...>         # alias for --write
+  cat foo.fbs | flatbuffers-format -              # read source from stdin
 
 Options:
   -w, --write           Rewrite files in place
   -c, --check           Check formatting; exit 1 on diff
       --indent <n>      Spaces per indent level (default: 2)
-  -h, --help            Show this message`;
+      --no-gitignore    Don't consult .gitignore when walking directories
+  -h, --help            Show this message
 
-function parseArgs(argv: string[]): Args {
-  const args: Args = { mode: "stdout", indent: 2, paths: [], fromStdin: false };
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i]!;
-    if (a === "-h" || a === "--help") {
-      console.log(USAGE);
-      process.exit(0);
-    } else if (a === "-w" || a === "--write" || a === "fix") {
-      args.mode = "write";
-    } else if (a === "-c" || a === "--check") {
-      args.mode = "check";
-    } else if (a === "--indent") {
-      const n = Number(argv[++i]);
-      if (!Number.isInteger(n) || n < 0) {
-        console.error(`flatbuffers-format-antlr: --indent expects a non-negative integer`);
-        process.exit(2);
-      }
-      args.indent = n;
-    } else if (a === "-") {
-      args.fromStdin = true;
-    } else if (a.startsWith("-")) {
-      console.error(`flatbuffers-format-antlr: unknown option '${a}'`);
-      process.exit(2);
-    } else {
-      args.paths.push(a);
-    }
-  }
-  return args;
+Directories are recursed; only files ending in .fbs are processed.
+Inside a git repository, .gitignore is respected via \`git ls-files\`
+(pass --no-gitignore to disable). Outside a repo, node_modules, .git,
+dist, build, out, .next, .turbo, .cache, .hg, .svn are skipped
+automatically.`;
+
+function die(msg: string, code = 2): never {
+  console.error(`flatbuffers-format: ${msg}`);
+  process.exit(code);
 }
 
-function expandPaths(paths: string[]): string[] {
-  const out: string[] = [];
-  for (const p of paths) {
-    const abs = resolve(p);
-    let st;
-    try { st = statSync(abs); } catch {
-      console.error(`flatbuffers-format-antlr: cannot stat '${p}'`);
-      process.exit(2);
-    }
-    if (st.isDirectory()) walk(abs, out);
-    else if (st.isFile()) out.push(abs);
-  }
-  return out;
-}
-
+// Directories to skip when recursing — anything that's clearly not
+// a place users keep source `.fbs` files. Symlinks are not followed.
 const SKIP_DIRS = new Set([
   "node_modules",
   ".git",
@@ -93,10 +58,9 @@ function walk(dir: string, out: string[]) {
   try {
     entries = readdirSync(dir, { withFileTypes: true });
   } catch {
-    return;
+    return; // unreadable directory; skip silently
   }
   for (const entry of entries) {
-    if (entry.name.startsWith(".") && SKIP_DIRS.has(entry.name)) continue;
     const full = join(dir, entry.name);
     if (entry.isDirectory()) {
       if (SKIP_DIRS.has(entry.name)) continue;
@@ -107,6 +71,50 @@ function walk(dir: string, out: string[]) {
   }
 }
 
+// When the directory is inside a git work tree, ask git itself which
+// files are not ignored. Returns null if `dir` isn't in a repo or git
+// isn't available — caller should fall back to `walk()`.
+function gitListFbs(dir: string): string[] | null {
+  try {
+    const stdout = execFileSync(
+      "git",
+      ["-C", dir, "ls-files", "-z",
+       "--cached", "--others", "--exclude-standard"],
+      { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
+    );
+    return stdout
+      .split("\0")
+      .filter((f) => f && extname(f) === ".fbs")
+      .map((f) => resolve(dir, f))
+      .filter(existsSync); // skip staged-deleted files
+  } catch {
+    return null;
+  }
+}
+
+function expandPaths(paths: string[], useGitignore: boolean): string[] {
+  const out: string[] = [];
+  for (const p of paths) {
+    const abs = resolve(p);
+    let st;
+    try {
+      st = statSync(abs);
+    } catch {
+      die(`cannot stat '${p}'`);
+    }
+    if (st.isDirectory()) {
+      const fromGit = useGitignore ? gitListFbs(abs) : null;
+      if (fromGit) out.push(...fromGit);
+      else walk(abs, out);
+    } else if (st.isFile()) {
+      // Explicit file paths always processed — gitignore only filters
+      // directory walks.
+      out.push(abs);
+    }
+  }
+  return out;
+}
+
 async function readStdin(): Promise<string> {
   const chunks: Buffer[] = [];
   for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
@@ -114,38 +122,113 @@ async function readStdin(): Promise<string> {
 }
 
 async function main() {
-  const args = parseArgs(process.argv.slice(2));
-  const opts = { indent: args.indent };
+  let values: {
+    write?: boolean;
+    check?: boolean;
+    indent?: string;
+    help?: boolean;
+    "no-gitignore"?: boolean;
+  };
+  let positionals: string[];
+  try {
+    ({ values, positionals } = parseArgs({
+      args: process.argv.slice(2),
+      options: {
+        write: { type: "boolean", short: "w" },
+        check: { type: "boolean", short: "c" },
+        indent: { type: "string" },
+        help: { type: "boolean", short: "h" },
+        "no-gitignore": { type: "boolean" },
+      },
+      allowPositionals: true,
+    }));
+  } catch (err) {
+    die((err as Error).message);
+  }
 
-  if (args.fromStdin) {
+  if (values.help) {
+    console.log(USAGE);
+    process.exit(0);
+  }
+
+  if (values.write && values.check) {
+    die("--write and --check are mutually exclusive");
+  }
+
+  let mode: Mode = "stdout";
+  if (values.write) mode = "write";
+  else if (values.check) mode = "check";
+
+  const indent = values.indent !== undefined ? Number(values.indent) : 2;
+  if (!Number.isInteger(indent) || indent < 0) {
+    die("--indent expects a non-negative integer");
+  }
+  const opts = { indent };
+
+  // Positional handling: `-` means stdin, `fix` is an alias for
+  // --write when it appears as the first positional, everything else
+  // is a path.
+  let fromStdin = false;
+  const paths: string[] = [];
+  for (const p of positionals) {
+    if (p === "-") fromStdin = true;
+    else if (p === "fix" && paths.length === 0 && mode === "stdout") mode = "write";
+    else paths.push(p);
+  }
+
+  if (fromStdin) {
     const src = await readStdin();
-    try { process.stdout.write(format(src, opts)); }
-    catch (err) { console.error(`flatbuffers-format-antlr: ${(err as Error).message}`); process.exit(1); }
+    try {
+      process.stdout.write(format(src, opts));
+    } catch (err) {
+      die((err as Error).message, 1);
+    }
     return;
   }
 
-  if (args.paths.length === 0) { console.error(USAGE); process.exit(2); }
+  if (paths.length === 0) {
+    console.error(USAGE);
+    process.exit(2);
+  }
 
-  const files = expandPaths(args.paths);
-  if (files.length === 0) { console.error(`flatbuffers-format-antlr: no .fbs files found`); process.exit(2); }
+  const useGitignore = !values["no-gitignore"];
+  const files = expandPaths(paths, useGitignore);
+  if (files.length === 0) die("no .fbs files found");
 
-  let unformatted = 0, failed = 0;
+  let unformatted = 0;
+  let failed = 0;
+
   for (const file of files) {
     const src = readFileSync(file, "utf8");
     let out: string;
-    try { out = format(src, opts); }
-    catch (err) { console.error(`flatbuffers-format-antlr: ${file}: ${(err as Error).message}`); failed++; continue; }
+    try {
+      out = format(src, opts);
+    } catch (err) {
+      console.error(`flatbuffers-format: ${file}: ${(err as Error).message}`);
+      failed++;
+      continue;
+    }
 
-    if (args.mode === "stdout") process.stdout.write(out);
-    else if (args.mode === "write") {
-      if (out !== src) { writeFileSync(file, out); console.error(`formatted ${file}`); }
-    } else if (args.mode === "check") {
-      if (out !== src) { console.error(`unformatted: ${file}`); unformatted++; }
+    if (mode === "stdout") {
+      process.stdout.write(out);
+    } else if (mode === "write") {
+      if (out !== src) {
+        writeFileSync(file, out);
+        console.error(`formatted ${file}`);
+      }
+    } else if (mode === "check") {
+      if (out !== src) {
+        console.error(`unformatted: ${file}`);
+        unformatted++;
+      }
     }
   }
 
   if (failed > 0) process.exit(1);
-  if (args.mode === "check" && unformatted > 0) process.exit(1);
+  if (mode === "check" && unformatted > 0) process.exit(1);
 }
 
-main().catch((err) => { console.error(`flatbuffers-format-antlr: ${err.stack || err}`); process.exit(1); });
+main().catch((err) => {
+  console.error(`flatbuffers-format: ${err.stack || err}`);
+  process.exit(1);
+});
