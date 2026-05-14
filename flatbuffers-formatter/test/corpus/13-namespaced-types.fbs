@@ -1,4 +1,24 @@
+namespace App.Auth;
+
+table User { id: ulong; name: string; }
+
+namespace App.Catalog;
+
+table Item { sku: string; price: int; }
+
+namespace App.Pay;
+
+table Card { number: string; }
+table BankTransfer { iban: string; }
+
 namespace App.Domain;
+
+enum OrderStatus : byte { Pending = 0, Shipped = 1, Delivered = 2 }
+
+table OrderRequest { items: [string]; }
+table OrderResponse { ok: bool; }
+table CancelRequest { order_id: ulong; }
+table CancelResponse { refunded: bool; }
 
 table Order {
   user: App.Auth.User;

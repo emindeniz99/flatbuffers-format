@@ -1,11 +1,11 @@
-enum Implicit { A, B, C }
+enum Implicit : byte { A, B, C }
 
 enum Explicit:byte { Red=1, Green=2, Blue=4 }
 
 enum Big : long {
   X = 0,
   Y = 0x100,
-  Z = -1,
+  Z = -1
 }
 
 enum WithMeta : ubyte (bit_flags) {

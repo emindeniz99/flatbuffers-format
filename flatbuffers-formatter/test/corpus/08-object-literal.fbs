@@ -1,5 +1,7 @@
 table Config { a:int; b:string; c:[int]; }
 
+root_type Config;
+
 {
   a: 1,
   b: "hello",

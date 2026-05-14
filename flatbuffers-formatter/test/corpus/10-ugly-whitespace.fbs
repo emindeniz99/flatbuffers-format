@@ -1,1 +1,1 @@
-namespace   N   ;table     T   (   a , b : "x"  )   {   foo:int=42(deprecated);bar:[ubyte];}enum   E:byte{A=1,B=2,}union U{T}root_type T;file_identifier"WXYZ";
+attribute"a";attribute"b";namespace   N   ;table     T   (   a , b : "x"  )   {   foo:int=42(deprecated);bar:[ubyte];}enum   E:byte{A=1,B=2}union U{T}root_type T;file_identifier"WXYZ";

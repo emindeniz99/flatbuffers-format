@@ -3,7 +3,7 @@ table N {
   b: int = -1;
   c: int = +42;
   d: int = 0xFF;
-  e: int = 0xdeadbeef;
+  e: uint = 0xdeadbeef;
   f: float = 1.5;
   g: float = -1.5;
   h: float = 1.5e10;
