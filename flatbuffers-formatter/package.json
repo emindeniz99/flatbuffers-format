@@ -52,7 +52,7 @@
     "generate": "antlr-ng -Dlanguage=TypeScript -o generated grammar/FlatBuffers.g4",
     "build": "npm run generate && tsc",
     "fmt": "node dist/src/cli.js",
-    "test": "npm run generate && tsc -p tsconfig.test.json && node --test dist-test/test/*.test.js",
+    "test": "npm run generate && tsc -p tsconfig.test.json && node scripts/run-tests.mjs",
     "build:sibling": "cd ../flatbuffers-formatter-handrolled && npm ci --no-audit --no-fund && npm run build",
     "test:crosscheck": "bash test/crosscheck.sh",
     "test:flatc-conform": "bash scripts/flatc-conform.sh",
