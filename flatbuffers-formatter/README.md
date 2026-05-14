@@ -1,15 +1,15 @@
 # flatbuffers-format
 
+**The opinionated, zero-config formatter for FlatBuffers (`.fbs`) schemas — fast, byte-stable, type-safe, runs anywhere.**
+
 [![npm](https://img.shields.io/npm/v/flatbuffers-format.svg)](https://www.npmjs.com/package/flatbuffers-format)
 [![CI](https://github.com/emindeniz99/playground/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/emindeniz99/playground/actions/workflows/ci.yml)
+[![License](https://img.shields.io/npm/l/flatbuffers-format.svg)](LICENSE)
+[![Node](https://img.shields.io/node/v/flatbuffers-format.svg)](package.json)
+[![Types](https://img.shields.io/badge/types-included-blue.svg)](dist/src/index.d.ts)
+[![Bundle](https://img.shields.io/bundlephobia/minzip/flatbuffers-format.svg?label=min%2Bgzip)](https://bundlephobia.com/package/flatbuffers-format)
 
-> **Try it online:** live playground + API docs at <https://emindeniz99.github.io/playground/> — no install needed.
-
-Opinionated formatter for [FlatBuffers](https://flatbuffers.dev) schema files
-(`.fbs`). Built on an **ANTLR4 grammar** and the pure-TypeScript
-[`antlr4ng`](https://github.com/mike-lischke/antlr4ng) runtime — no JVM
-required, no codegen at install time. Runs in Node and the browser.
-Ships a CLI.
+> **▸ [Try it in your browser](https://emindeniz99.github.io/playground/)** — no install. Paste a `.fbs`, see canonical output as you type. API docs at the same URL.
 
 ```bash
 # Format a single file (prints to stdout)
@@ -18,9 +18,42 @@ npx flatbuffers-format schema.fbs
 # Fix a tree in place — recurses; skips node_modules / .git / dist
 npx flatbuffers-format --write src/
 
-# Use as a CI check
+# Use as a CI check (silent / diff / version)
 npx flatbuffers-format --check src/
+npx flatbuffers-format --diff  src/
+npx flatbuffers-format --version
 ```
+
+See [`docs/cookbook.md`](docs/cookbook.md) for 8 copy-paste recipes — CI gates,
+pre-commit hooks, programmatic Node/browser use, Prettier integration, repo
+migration tips.
+
+## Contents
+
+- [What it does](#what-it-does)
+- [CLI](#cli)
+- [Install](#install)
+- [Editor integration](#editor-integration)
+- [API](#api)
+- [Performance](#performance)
+- [Formatting rules](#formatting-rules)
+- [Standards conformance](#standards-conformance)
+- [Build from source](#build-from-source)
+- [Releases](#releases)
+- [Notes / learnings](#notes--learnings)
+
+## Why
+
+A FlatBuffers schema is a small declarative DSL — like Protobuf, Cap'n Proto,
+or Thrift. Unlike Protobuf and the rest, there's no official formatter. Schemas
+drift into per-author whitespace styles, code-review noise from "whitespace
+only" PRs accumulates, and CI has no `--check`-style gate. `flatbuffers-format`
+fixes that: one binary, zero config, deterministic output, exit-code semantics
+that drop straight into existing CI patterns.
+
+Opinionated for the same reason `gofmt` and `rustfmt` are opinionated — the
+formatter's value is in *not* relitigating style. Two knobs (indent width,
+newline) and that's it.
 
 ## What it does
 
@@ -188,6 +221,29 @@ type FormatOptions = {
 
 Both `format` and `check` throw `FormatError` (with `.line` and
 `.column`) on invalid input.
+
+## Performance
+
+Measured against the 24-file test corpus (22.6 kB total) on a modern Linux
+laptop; reproduce with `node scripts/bench.mjs` after `npm run build`.
+
+| | Measurement |
+|---|---|
+| In-process throughput | **3,164 files/sec**, ~316 µs/file |
+| Cold-start CLI (single small file, includes Node startup) | **~164 ms** median, ~155 ms min |
+| Browser bundle (`esbuild --bundle --minify`, includes `antlr4ng` runtime) | **234 kB** min · **58 kB** min+gz |
+
+What this means in practice:
+
+- **Pre-commit hook** on a repo with a few `.fbs` files: cost is dominated by
+  Node startup; you're paying ~160 ms regardless of file count. Once warm in a
+  watcher process, formatting a typical schema is sub-millisecond.
+- **CI `--check`** gate: a 100-file `.fbs` repo formats in well under a second
+  of wall-clock plus Node startup. Cheap to wire into every PR.
+- **Browser usage**: 58 kB gzipped includes the entire ANTLR4 runtime. The
+  hand-rolled sibling (kept in this repo as a differential oracle, not
+  published) bundles to ~4 kB gzip if you ever need a lighter alternative —
+  see [`docs/grammar-comparison.md`](docs/grammar-comparison.md).
 
 ## Formatting rules
 
