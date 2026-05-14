@@ -1,77 +1,194 @@
-# flatbuffers-format-antlr
+# flatbuffers-format
 
-[![npm](https://img.shields.io/npm/v/flatbuffers-format-antlr.svg)](https://www.npmjs.com/package/flatbuffers-format-antlr)
+[![npm](https://img.shields.io/npm/v/flatbuffers-format.svg)](https://www.npmjs.com/package/flatbuffers-format)
 
-FlatBuffers (`.fbs`) schema formatter built on an **ANTLR4-generated
-parser**. Sibling of [`flatbuffers-format`](../flatbuffers-formatter)
-(hand-rolled). Same CLI surface, same output, different engine —
-useful if you'd rather depend on a real parser generator.
+Opinionated formatter for [FlatBuffers](https://flatbuffers.dev) schema files
+(`.fbs`). Pure TypeScript, **zero runtime dependencies**, runs in Node and the
+browser. Ships a CLI.
 
 ```bash
-npx flatbuffers-format-antlr schema.fbs           # to stdout
-npx flatbuffers-format-antlr --write src/         # rewrite recursively
-npx flatbuffers-format-antlr --check src/         # CI gate
+# Format a single file (prints to stdout)
+npx flatbuffers-format schema.fbs
+
+# Fix a tree in place — recurses; skips node_modules / .git / dist
+npx flatbuffers-format --write src/
+
+# Use as a CI check
+npx flatbuffers-format --check src/
 ```
 
 ## What it does
 
-- A `.g4` grammar in `grammar/FlatBuffers.g4` describes the FlatBuffers
-  schema language.
-- [`antlr-ng`](https://github.com/mike-lischke/antlr-ng) — a pure-TS
-  port of the ANTLR tool — generates `FlatBuffersLexer.ts`,
-  `FlatBuffersParser.ts`, and `FlatBuffersListener.ts` into
-  `generated/`. **No Java required at any point**.
-- `src/printer.ts` walks the ANTLR parse tree (`SchemaContext`,
-  `TableDeclContext`, etc.) and emits formatted source.
-- `src/trivia.ts` extracts comments and blank lines from ANTLR's
-  hidden channel via `BufferedTokenStream.getHiddenTokensToLeft / Right`.
+- Lexes `.fbs` source into a token stream with attached trivia
+  (comments, blank lines).
+- Parses tokens into an AST via hand-rolled recursive descent.
+- Pretty-prints the AST back to canonical, deterministic source.
+- Preserves doc comments (`///`), line comments (`//`), block
+  comments (`/* */`), and paragraph breaks between top-level
+  declarations.
+- `format(source)` is a fixed point: running it twice gives the same
+  output as running it once.
 
-## Install
+### Supported FlatBuffers features
 
-```bash
-npm i -D flatbuffers-format-antlr     # local dev dep
-npm i -g flatbuffers-format-antlr     # global CLI
-npx flatbuffers-format-antlr ...      # one-shot, no install
-```
+- `table`, `struct`, `enum`, `union`, `rpc_service` declarations
+- Namespaced type references (`field: a.b.Foo;`)
+- Fixed-size arrays (`pts: [float:3];`)
+- `native_include` directives
+- Keywords as field names (`table T { enum: int; }`)
+- Object literals (the `flatc` text format)
+- All metadata: `(deprecated)`, `(key: "value")`, etc.
+
+### A note on parser generators
+
+The MIT 6.005 lecture on
+[parser generators](https://web.mit.edu/6.005/www/fa15/classes/18-parser-generators/)
+walks through the case for tools like ANTLR. They shine on big,
+evolving grammars. FlatBuffers schema is small and stable enough
+([grammar](https://flatbuffers.dev/flatbuffers_grammar.html)) that
+hand-written recursive descent is a better fit here: no codegen step,
+no runtime dependency, easy to keep comments and trivia attached to
+the right AST nodes for a faithful pretty-printer. See the
+[sibling project](../flatbuffers-formatter-antlr) for the
+ANTLR-backed variant.
 
 ## CLI
 
 ```bash
-flatbuffers-format-antlr [options] <file-or-dir...>   # stdout
-flatbuffers-format-antlr --write   <file-or-dir...>   # rewrite in place
-flatbuffers-format-antlr --check   <file-or-dir...>   # CI gate (exit 1)
-flatbuffers-format-antlr fix       <file-or-dir...>   # alias for --write
-cat foo.fbs | flatbuffers-format-antlr -              # stdin
+flatbuffers-format [options] <file-or-dir...>   # print formatted output to stdout
+flatbuffers-format --write   <file-or-dir...>   # rewrite files in place
+flatbuffers-format --check   <file-or-dir...>   # exit 1 if any file is unformatted
+flatbuffers-format fix       <file-or-dir...>   # alias for --write
+cat foo.fbs | flatbuffers-format -              # read source from stdin
 ```
 
-Directories are walked recursively. Inside a git repository,
+Options:
+
+| Flag | Meaning |
+|---|---|
+| `-w`, `--write` | Rewrite files in place |
+| `-c`, `--check` | Check formatting; exit 1 on diff |
+| `--indent <n>` | Spaces per indent level (default: 2) |
+| `--no-gitignore` | Don't consult `.gitignore` when walking directories |
+| `-h`, `--help` | Show help |
+
+Directories are walked recursively. **Inside a git repository**,
 `.gitignore` is respected via `git ls-files` — pass `--no-gitignore`
-to disable. Outside a repo (or if `git` isn't in `PATH`),
+to disable. **Outside a repo** (or if `git` isn't in `PATH`),
 `node_modules`, `.git`, `dist`, `build`, `out`, `.next`, `.turbo`,
 `.cache`, `.hg`, and `.svn` are skipped automatically.
 
-## Local build
+## Install
 
 ```bash
-cd projects/flatbuffers-formatter-antlr
-npm install
-npm run build         # generate parser + tsc
-node dist/src/cli.js examples/sample.fbs
+npm i -D flatbuffers-format         # local dev dep
+npm i -g flatbuffers-format         # global CLI
+npx flatbuffers-format ...          # one-shot, no install
+```
+
+## Editor integration
+
+There's no dedicated editor plugin yet. Until there is, run the CLI from
+your editor's "format on save" or "run command" hook.
+
+**VS Code** — install
+[emeraldwalk.runonsave](https://marketplace.visualstudio.com/items?itemName=emeraldwalk.RunOnSave)
+and add to `.vscode/settings.json`:
+
+```json
+{
+  "emeraldwalk.runonsave": {
+    "commands": [
+      {
+        "match": "\\.fbs$",
+        "cmd": "npx flatbuffers-format --write ${file}"
+      }
+    ]
+  }
+}
+```
+
+**Neovim** — drop in an autocmd:
+
+```lua
+vim.api.nvim_create_autocmd("BufWritePost", {
+  pattern = "*.fbs",
+  callback = function(args)
+    vim.fn.jobstart({ "npx", "flatbuffers-format", "--write", args.file })
+  end,
+})
+```
+
+**Pre-commit hook** (with [lint-staged](https://github.com/lint-staged/lint-staged)):
+
+```json
+{
+  "lint-staged": {
+    "*.fbs": "flatbuffers-format --write"
+  }
+}
+```
+
+**GitHub Actions** — fail the build on unformatted `.fbs`:
+
+```yaml
+- run: npx flatbuffers-format --check .
 ```
 
 ### Browser
 
-`src/index.ts` and the generated parser only depend on `antlr4ng`,
-which ships an ES-module build. After `npm run build`, serve the
-project root statically and open `web/index.html`:
+The core module (`src/index.ts`) has zero Node imports. After
+`npm run build`, serve the project directory statically and open
+`web/index.html`:
 
 ```bash
 npx http-server -p 8080 .
-# http://localhost:8080/web/
+# then open http://localhost:8080/web/
 ```
 
-The page resolves `antlr4ng` via an import map pointing at
-`node_modules/antlr4ng/dist/index.mjs`.
+The page imports `../dist/index.js` directly as an ES module and
+formats input live as you type.
+
+You can also embed the formatter in your own page:
+
+```html
+<script type="module">
+  import { format } from "./dist/index.js";
+  document.getElementById("out").textContent = format(src);
+</script>
+```
+
+## API
+
+```ts
+import { format, check, parse, print } from "flatbuffers-format";
+
+format(source: string, opts?: FormatOptions): string
+check(source: string, opts?: FormatOptions): boolean   // true if already formatted
+parse(source: string): Schema
+print(schema: Schema, opts?: FormatOptions): string
+
+type FormatOptions = {
+  indent?: number;        // default 2
+  newline?: "\n" | "\r\n"; // default "\n"
+};
+```
+
+`parse` throws `ParseError` on invalid input; `tokenize` throws
+`LexError`. Both errors carry line/column info.
+
+## Formatting rules
+
+| Construct | Rule |
+|---|---|
+| Top-level | One blank line between block declarations (table/struct/enum/union/rpc_service). Single statements collapse together. |
+| Fields | `name:Type` (no space before colon, one space after type). Defaults: ` = value`. Metadata: ` (key, key: value)`. Trailing `;`. |
+| Enum values | One per line, comma-separated, no trailing comma. |
+| Union variants | Same as enum values. Aliases written as `Alias: Type`. |
+| Metadata | Always inline: `(deprecated, key: "x")`. |
+| Comments | `//`, `///`, `/* */` all preserved. Doc comments stay attached to the following declaration; trailing comments stay on their owning line. |
+| Indent | 2 spaces (configurable). |
+| Newlines | LF, single trailing newline at EOF. |
 
 ## Tests
 
@@ -79,66 +196,21 @@ The page resolves `antlr4ng` via an import map pointing at
 npm test
 ```
 
-Compiles and runs 13 tests with the built-in `node --test` runner.
-The same suite as the hand-rolled sibling project — both formatters
-pass it.
-
-## ANTLR vs. hand-rolled — apples to apples
-
-| | `flatbuffers-formatter` (hand-rolled) | `flatbuffers-formatter-antlr` (this) |
-|---|---|---|
-| Source files (formatter logic) | `lexer.ts`, `parser.ts`, `printer.ts`, `types.ts` (~900 LOC) | `printer.ts`, `trivia.ts`, `index.ts` (~450 LOC) |
-| Generated code | none | `generated/FlatBuffers{Lexer,Parser,Listener}.ts` (~2,700 LOC) |
-| Build steps | `tsc` | `antlr-ng` → `tsc` |
-| Runtime dependencies | none | `antlr4ng` (~150 KB min+gz) |
-| Dev dependencies | `typescript`, `@types/node` | + `antlr-ng` |
-| Grammar source of truth | TypeScript code | `grammar/FlatBuffers.g4` (~80 LOC, declarative) |
-| Adding a new construct | edit lexer + parser + AST + printer | edit `.g4` + regen + add a printer case |
-| Error recovery | manual `throw` on first error | ANTLR's built-in error recovery + listener |
-| Comment preservation | trivia attached to tokens during lex | trivia recovered from `HIDDEN` channel via token-index lookups |
-| Cold-start parse cost | ~0 — direct functions | ANTLR builds an ATN simulator on first parse |
-| Output on `examples/sample.fbs` | identical | identical |
-
-The two were checked byte-for-byte against the same input:
-
-```bash
-diff <(node ../flatbuffers-formatter/dist/cli.js examples/sample.fbs) \
-     <(node dist/src/cli.js examples/sample.fbs)
-# (empty — they match exactly)
-```
-
-### Why pick one over the other?
-
-- **ANTLR** wins when the grammar is large, evolving, or shared
-  across multiple language targets — `flatc` itself, code generators,
-  IDE tooling. The `.g4` is the single source of truth and you get
-  a Java / Python / C# / Go parser for free.
-- **Hand-rolled** wins when the grammar is small, stable, and you
-  care about zero runtime deps, fast cold start, and full control
-  over error messages and trivia handling. The whole formatter fits
-  in your head.
-
-For a tiny DSL like FlatBuffers schema (~12 keywords), the hand-rolled
-version is arguably the better fit — but this project exists so the
-two can be compared on the same task.
+Compiles tests + sources to `dist-test/` and runs them with the
+built-in `node --test` runner — no extra test deps.
 
 ## Notes / learnings
 
-- `antlr-ng` is a pure-TypeScript reimplementation of the ANTLR tool.
-  Generated parsers use the `antlr4ng` runtime, which is the
-  TypeScript successor to `antlr4ts`. The whole pipeline is JS, no JVM.
-- ANTLR routes whitespace and comments to a hidden channel; recovering
-  them is straightforward but **deduping is tricky**. A trailing
-  comment after `;` is also a leading hidden token of the next decl —
-  if you don't filter, comments get emitted twice. Fix in
-  `src/trivia.ts`: only treat hidden tokens *before the first newline*
-  as already-claimed by the previous node.
-- ANTLR's `INT_LITERAL` / `FLOAT_LITERAL` tokens are scoped per lexer
-  rule, so you can't easily share a `NUMBER` rule between them.
-  Keeping them separate matches `flatc`'s lexer and makes the parser
-  rules read more naturally (`('+' | '-')? INT_LITERAL`).
-- The grammar uses inline string literals (`'table'`, `'struct'`,
-  `':'`, …) so ANTLR generates anonymous `T__0`, `T__1`, … tokens.
-  That's fine for parsing but means the generated `.tokens` file
-  isn't human-readable — a named lexer pass (`TABLE: 'table';`) would
-  be the polished move if you need cross-language reuse.
+- The grammar is small (~12 top-level keywords) so the parser fits in
+  one file at ~400 lines. The trickiest part wasn't parsing, it was
+  faithfully round-tripping trivia: line vs. doc vs. block comments,
+  blank lines as paragraph separators, and "trailing" comments that
+  must stay on the same line as the token they follow.
+- We deliberately do **not** try to be `flatc`-compatible at the
+  validator level — unknown attributes, weird default expressions,
+  etc. parse fine, since the goal is to format what the user wrote,
+  not police it.
+- Object literals (the JSON-shaped form used in `flatc`'s
+  text-to-binary mode) are supported, but pretty-printed multi-line
+  rather than reformatted aggressively — the upstream parser is
+  itself lenient there.
