@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Node-only CLI. Mirrors the sibling `flatbuffers-format` so users
-// can swap one binary for the other.
+// Node-only CLI. The `format()` core in ./index.ts is browser-safe;
+// this file adds filesystem/stdin handling on top.
 
 import { readFileSync, writeFileSync, statSync, readdirSync, existsSync } from "node:fs";
 import { join, resolve, extname } from "node:path";
@@ -10,14 +10,14 @@ import { format } from "./index.js";
 
 type Mode = "stdout" | "write" | "check";
 
-const USAGE = `flatbuffers-format-antlr — FlatBuffers (.fbs) formatter (ANTLR-backed)
+const USAGE = `flatbuffers-format — FlatBuffers (.fbs) schema formatter (ANTLR-backed)
 
 Usage:
-  flatbuffers-format-antlr [options] <file-or-dir...>   # print formatted output to stdout
-  flatbuffers-format-antlr --write <file-or-dir...>     # rewrite files in place
-  flatbuffers-format-antlr --check <file-or-dir...>     # exit non-zero if any file is unformatted
-  flatbuffers-format-antlr fix <file-or-dir...>         # alias for --write
-  cat foo.fbs | flatbuffers-format-antlr -              # read source from stdin
+  flatbuffers-format [options] <file-or-dir...>   # print formatted output to stdout
+  flatbuffers-format --write <file-or-dir...>     # rewrite files in place
+  flatbuffers-format --check <file-or-dir...>     # exit non-zero if any file is unformatted
+  flatbuffers-format fix <file-or-dir...>         # alias for --write
+  cat foo.fbs | flatbuffers-format -              # read source from stdin
 
 Options:
   -w, --write           Rewrite files in place
@@ -33,7 +33,7 @@ dist, build, out, .next, .turbo, .cache, .hg, .svn are skipped
 automatically.`;
 
 function die(msg: string, code = 2): never {
-  console.error(`flatbuffers-format-antlr: ${msg}`);
+  console.error(`flatbuffers-format: ${msg}`);
   process.exit(code);
 }
 
@@ -193,7 +193,7 @@ async function main() {
     try {
       out = format(src, opts);
     } catch (err) {
-      console.error(`flatbuffers-format-antlr: ${file}: ${(err as Error).message}`);
+      console.error(`flatbuffers-format: ${file}: ${(err as Error).message}`);
       failed++;
       continue;
     }
@@ -218,6 +218,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error(`flatbuffers-format-antlr: ${err.stack || err}`);
+  console.error(`flatbuffers-format: ${err.stack || err}`);
   process.exit(1);
 });

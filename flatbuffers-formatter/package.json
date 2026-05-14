@@ -1,17 +1,17 @@
 {
-  "name": "flatbuffers-format-antlr",
+  "name": "flatbuffers-format",
   "version": "0.1.0",
-  "description": "FlatBuffers (.fbs) schema formatter built on an ANTLR4-generated parser. Sibling of flatbuffers-format with the same output and CLI surface.",
+  "description": "Opinionated FlatBuffers (.fbs) schema formatter, built on an ANTLR4 grammar. Pure TypeScript runtime (antlr4ng) — no JVM, no codegen at install time. Runs in Node and the browser, ships a CLI.",
   "keywords": [
     "flatbuffers",
     "fbs",
     "formatter",
     "schema",
+    "pretty-printer",
+    "cli",
     "antlr",
     "antlr4",
-    "antlr4ng",
-    "pretty-printer",
-    "cli"
+    "antlr4ng"
   ],
   "license": "MIT",
   "author": "emindeniz99",
@@ -34,7 +34,7 @@
     }
   },
   "bin": {
-    "flatbuffers-format-antlr": "./dist/src/cli.js"
+    "flatbuffers-format": "./dist/src/cli.js"
   },
   "files": [
     "dist",
@@ -52,7 +52,9 @@
     "build": "npm run generate && tsc",
     "fmt": "node dist/src/cli.js",
     "test": "npm run generate && tsc -p tsconfig.test.json && node --test dist-test/test/*.test.js",
-    "prepublishOnly": "npm run build && npm test"
+    "build:sibling": "cd ../flatbuffers-formatter && npm ci --no-audit --no-fund && npm run build",
+    "test:crosscheck": "bash test/crosscheck.sh",
+    "prepublishOnly": "npm run build && npm test && npm run build:sibling && npm run test:crosscheck"
   },
   "dependencies": {
     "antlr4ng": "^3.0.16"
