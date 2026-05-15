@@ -1,0 +1,189 @@
+# Manual "republish" workflow — useful when a release-please-triggered
+# publish job fails transiently (npm 5xx, vsce flake, expired token,
+# etc.) and you want to re-run the publish for an already-tagged
+# version without going through release-please again.
+#
+# This workflow does NOT bump versions, does NOT touch CHANGELOG.md,
+# does NOT open a PR. It just re-runs the publish path for whichever
+# package you pick, using whatever version is currently committed on
+# `main`. If that version is already live in the registry, the publish
+# will fail (npm refuses overwrites; vsce refuses same-version
+# republish). That failure is intentional — it stops you from
+# accidentally shipping an inconsistent build.
+#
+# Same secrets as release-please.yml: NPM_TOKEN (3 packages), VSCE_PAT
+# + optional OVSX_PAT (vscode-flatbuffers). See CONTRIBUTING.md.
+
+name: republish
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: Which package to republish
+        required: true
+        type: choice
+        options:
+          - flatbuffers-format
+          - prettier-plugin-flatbuffers
+          - tree-sitter-flatbuffers
+          - vscode-flatbuffers
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  republish-flatbuffers-format:
+    name: npm publish flatbuffers-format
+    if: ${{ inputs.package == 'flatbuffers-format' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: projects/flatbuffers-formatter
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: projects/flatbuffers-formatter/package-lock.json
+          registry-url: https://registry.npmjs.org
+      - name: Install
+        run: npm ci --no-audit --no-fund
+      - name: Build
+        run: npm run build
+      - name: Publish to npm with provenance
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  republish-prettier-plugin-flatbuffers:
+    name: npm publish prettier-plugin-flatbuffers
+    if: ${{ inputs.package == 'prettier-plugin-flatbuffers' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: projects/prettier-plugin-flatbuffers/package-lock.json
+          registry-url: https://registry.npmjs.org
+      - name: "Build sibling flatbuffers-format (file: dep)"
+        working-directory: projects/flatbuffers-formatter
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Install
+        working-directory: projects/prettier-plugin-flatbuffers
+        run: npm ci --no-audit --no-fund
+      - name: Build
+        working-directory: projects/prettier-plugin-flatbuffers
+        run: npm run build
+      - name: Rewrite file dep to npm version range
+        working-directory: projects/prettier-plugin-flatbuffers
+        run: |
+          engine_version=$(node -p "require('../../.release-please-manifest.json')['projects/flatbuffers-formatter']")
+          echo "Pinning flatbuffers-format to ^${engine_version}"
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.dependencies['flatbuffers-format'] = '^${engine_version}';
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+      - name: Publish to npm with provenance
+        working-directory: projects/prettier-plugin-flatbuffers
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  republish-tree-sitter-flatbuffers:
+    name: npm publish tree-sitter-flatbuffers
+    if: ${{ inputs.package == 'tree-sitter-flatbuffers' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: projects/tree-sitter-flatbuffers
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: projects/tree-sitter-flatbuffers/package-lock.json
+          registry-url: https://registry.npmjs.org
+      - name: Install
+        run: npm ci --no-audit --no-fund
+      - name: Publish to npm with provenance
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  republish-vscode-flatbuffers:
+    name: Marketplace publish vscode-flatbuffers
+    if: ${{ inputs.package == 'vscode-flatbuffers' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      OVSX_PAT: ${{ secrets.OVSX_PAT }}
+    steps:
+      - name: Fail fast if VSCE_PAT secret is missing
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          if [ -z "$VSCE_PAT" ]; then
+            echo "::error::VSCE_PAT secret is not configured. See CONTRIBUTING.md."
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: projects/vscode-flatbuffers/package-lock.json
+      - name: "Build sibling flatbuffers-format (file: dep)"
+        working-directory: projects/flatbuffers-formatter
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Install vscode-flatbuffers
+        working-directory: projects/vscode-flatbuffers
+        run: npm ci --no-audit --no-fund
+      - name: Build
+        working-directory: projects/vscode-flatbuffers
+        run: npm run build
+      - name: Rewrite file dep to npm version range
+        working-directory: projects/vscode-flatbuffers
+        run: |
+          engine_version=$(node -p "require('../../.release-please-manifest.json')['projects/flatbuffers-formatter']")
+          echo "Pinning flatbuffers-format to ^${engine_version}"
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.dependencies['flatbuffers-format'] = '^${engine_version}';
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+      - name: Package .vsix
+        working-directory: projects/vscode-flatbuffers
+        run: npx --yes @vscode/vsce package --out vscode-flatbuffers.vsix
+      - name: Publish to VS Code Marketplace
+        working-directory: projects/vscode-flatbuffers
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: npx --yes @vscode/vsce publish --packagePath vscode-flatbuffers.vsix
+      - name: Publish to Open VSX (optional)
+        if: ${{ env.OVSX_PAT != '' }}
+        continue-on-error: true
+        working-directory: projects/vscode-flatbuffers
+        run: npx --yes ovsx publish vscode-flatbuffers.vsix --pat "$OVSX_PAT"
