@@ -96,6 +96,16 @@ function walk(dir: string, out: string[]) {
   }
   for (const entry of entries) {
     const full = join(dir, entry.name);
+    // Skip symlinks: a directory walk should only touch tree-local
+    // files the user actually intended to include. A symlink could
+    // point outside the tree (or at /etc/passwd) — following it via
+    // entry.isFile()/isDirectory() (which DOES resolve the link)
+    // would let an attacker who can plant a symlink in a directory
+    // we --write into have that file rewritten. Skipping at the walk
+    // level matches gofmt / prettier behavior. User-provided paths
+    // (handled in expandPaths) still resolve symlinks because the
+    // user explicitly typed that path.
+    if (entry.isSymbolicLink()) continue;
     if (entry.isDirectory()) {
       if (SKIP_DIRS.has(entry.name)) continue;
       walk(full, out);
