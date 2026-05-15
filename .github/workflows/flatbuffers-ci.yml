@@ -122,34 +122,55 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Resolve latest flatc release tag
+      # ---------------------------------------------------------------------
+      # flatc binary install — pinned tag + SHA256-verified download.
+      #
+      # Why pinned, not "latest": the previous version of this job resolved
+      # `releases/latest` at run time and downloaded the asset without
+      # verifying its SHA256. That made the test gate pass through whatever
+      # the upstream tag pointed at on each run AND trusted the bytes
+      # implicitly. A compromise of GitHub release infrastructure (or
+      # someone successfully MITM-ing the runner) would silently land
+      # arbitrary code in the CI environment. Pinning + checksum makes
+      # both attacks observable: the SHA mismatch fails loudly.
+      #
+      # To bump:
+      #   1. Pick a new tag from https://github.com/google/flatbuffers/releases
+      #   2. curl -fsSL https://github.com/google/flatbuffers/releases/download/<tag>/Linux.flatc.binary.g++-13.zip | sha256sum
+      #   3. Update FLATC_TAG and FLATC_SHA256 below in the same commit.
+      # ---------------------------------------------------------------------
+      - name: Set flatc pin
         id: flatc
         run: |
-          # Cheap one-shot tag resolution via the redirect on /releases/latest.
-          # Avoids needing a GITHUB_TOKEN for the API and is rate-limit-safe.
-          tag=$(curl -fsSLI -o /dev/null -w '%{url_effective}' \
-                  https://github.com/google/flatbuffers/releases/latest \
-                | sed 's#.*/tag/##')
-          if [ -z "$tag" ]; then
-            echo "Failed to resolve latest flatc tag" >&2
-            exit 1
-          fi
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "Latest flatc tag: $tag"
+          # Update both values together when bumping flatc — see comment above.
+          echo "tag=v25.12.19" >> "$GITHUB_OUTPUT"
+          echo "sha256=9f87066dc5dfa7fe02090b55bab5f3e55df03e32c9b0cdf229004ade7d091039" >> "$GITHUB_OUTPUT"
       - name: Cache flatc binary
         id: flatc-cache
         uses: actions/cache@v4
         with:
           path: tools/flatc
-          key: flatc-linux-gcc-${{ steps.flatc.outputs.tag }}
-      - name: Download flatc
+          key: flatc-linux-gcc-${{ steps.flatc.outputs.tag }}-${{ steps.flatc.outputs.sha256 }}
+      - name: Download + verify flatc
         if: steps.flatc-cache.outputs.cache-hit != 'true'
         run: |
+          set -euo pipefail
           mkdir -p tools/flatc
           tag="${{ steps.flatc.outputs.tag }}"
+          expected_sha="${{ steps.flatc.outputs.sha256 }}"
           url="https://github.com/google/flatbuffers/releases/download/${tag}/Linux.flatc.binary.g++-13.zip"
           echo "Downloading $url"
           curl -fsSL -o /tmp/flatc.zip "$url"
+          actual_sha=$(sha256sum /tmp/flatc.zip | awk '{print $1}')
+          if [ "$actual_sha" != "$expected_sha" ]; then
+            echo "::error::flatc zip SHA256 mismatch."
+            echo "  expected: $expected_sha"
+            echo "  actual:   $actual_sha"
+            echo "  url:      $url"
+            echo "If you intentionally bumped FLATC_TAG, update FLATC_SHA256 in the same commit."
+            exit 1
+          fi
+          echo "flatc zip SHA256 verified: $actual_sha"
           unzip -o /tmp/flatc.zip -d tools/flatc
           chmod +x tools/flatc/flatc
       - name: Prepend flatc to PATH
