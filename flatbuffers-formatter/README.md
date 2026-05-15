@@ -105,7 +105,13 @@ Options:
 | `-w`, `--write` | Rewrite files in place |
 | `-c`, `--check` | Check formatting; exit 1 on diff (silent) |
 | `-d`, `--diff` | Print unified diff for each file that would change; exit 1 if any |
-| `--indent <n>` | Spaces per indent level (default: 2) |
+| `--indent <n>` | Spaces (or tabs, with `--use-tabs`) per indent level (default: 2) |
+| `--use-tabs` | Indent with tab characters instead of spaces |
+| `--line-width <n>` | Target column for compact/wrap decisions (default: 80) |
+| `--no-compact-single-line` | Disable single-line collapsing of small enum/union/single-field bodies |
+| `--max-blank-lines <n>` | Max consecutive blank lines kept between decls (default: 1) |
+| `--wrap-comments` | Reflow long line comments at whitespace |
+| `--comment-width <n>` | Wrap column for `--wrap-comments` (defaults to `--line-width`) |
 | `--no-gitignore` | Don't consult `.gitignore` when walking directories |
 | `-V`, `--version` | Print version and exit |
 | `-h`, `--help` | Show help |
@@ -220,8 +226,14 @@ format(source: string, opts?: FormatOptions): string
 check(source: string, opts?: FormatOptions): boolean   // true if already formatted
 
 type FormatOptions = {
-  indent?: number;        // default 2
-  newline?: "\n" | "\r\n"; // default "\n"
+  indent?: number;             // default 2
+  useTabs?: boolean;           // default false — tab char instead of spaces
+  newline?: "\n" | "\r\n";     // default "\n"
+  lineWidth?: number;          // default 80 — used by compactSingleLine and wrapComments
+  compactSingleLine?: boolean; // default true — collapse small enum/union/single-field bodies
+  maxBlankLines?: number;      // default 1 — cap on consecutive blank lines between decls
+  wrapComments?: boolean;      // default false — reflow long line comments
+  commentWidth?: number;       // default = lineWidth — wrap column for wrapComments
 };
 ```
 
@@ -253,16 +265,17 @@ What this means in practice:
 
 ## Formatting rules
 
-| Construct | Rule |
-|---|---|
-| Top-level | One blank line between block declarations (table/struct/enum/union/rpc_service). Single statements collapse together. |
-| Fields | `name:Type` (no space before colon, one space after type). Defaults: ` = value`. Metadata: ` (key, key: value)`. Trailing `;`. |
-| Enum values | One per line, comma-separated, no trailing comma. |
-| Union variants | Same as enum values. Aliases written as `Alias: Type`. |
-| Metadata | Always inline: `(deprecated, key: "x")`. |
-| Comments | `//`, `///`, `/* */` all preserved. Doc comments stay attached to the following declaration; trailing comments stay on their owning line. |
-| Indent | 2 spaces (configurable). |
-| Newlines | LF, single trailing newline at EOF. |
+| Construct | Rule | Configurable? |
+|---|---|---|
+| Top-level | One blank line between block declarations (table/struct/enum/union/rpc_service). Single statements collapse together. | `maxBlankLines` (default 1) |
+| Fields | `name:Type` (no space before colon, one space after type). Defaults: ` = value`. Metadata: ` (key, key: value)`. Trailing `;`. | fixed by design |
+| Enum/union/single-field bodies | Collapse to one line if the result fits in `lineWidth`; expand otherwise. Doc/block comments and per-value metadata force expansion. | `compactSingleLine` (default on), `lineWidth` (default 80) |
+| Enum values | One per line (when expanded), comma-separated, no trailing comma. | fixed by design |
+| Union variants | Same as enum values. Aliases written as `Alias: Type`. | fixed by design |
+| Metadata | Always inline: `(deprecated, key: "x")`. | fixed by design |
+| Comments | `//`, `///`, `/* */` all preserved. Doc comments stay attached to the following declaration; trailing comments stay on their owning line. Long `//` lines optionally reflowed. | `wrapComments` (default off), `commentWidth` (default = lineWidth) |
+| Indent | 2 spaces. | `indent` (count), `useTabs` (char) |
+| Newlines | LF, single trailing newline at EOF. | `newline` |
 
 ## Standards conformance
 

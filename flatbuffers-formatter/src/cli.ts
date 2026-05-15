@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join, resolve, extname } from "node:path";
 import { parseArgs } from "node:util";
 import { execFileSync } from "node:child_process";
-import { FormatError, format } from "./index.js";
+import { FormatError, format, type FormatOptions } from "./index.js";
 import { unifiedDiff } from "./diff.js";
 import { renderParseError } from "./error-render.js";
 
@@ -33,13 +33,20 @@ Usage:
   cat foo.fbs | flatbuffers-format -              # read source from stdin
 
 Options:
-  -w, --write           Rewrite files in place
-  -c, --check           Check formatting; exit 1 on diff (no output)
-  -d, --diff            Print a unified diff for each file that would change; exit 1 if any
-      --indent <n>      Spaces per indent level (default: 2)
-      --no-gitignore    Don't consult .gitignore when walking directories
-  -V, --version         Print version and exit
-  -h, --help            Show this message
+  -w, --write                 Rewrite files in place
+  -c, --check                 Check formatting; exit 1 on diff (no output)
+  -d, --diff                  Print a unified diff for each file that would change; exit 1 if any
+      --indent <n>            Spaces (or tabs, with --use-tabs) per indent level (default: 2)
+      --use-tabs              Indent with tab characters instead of spaces (default: off)
+      --line-width <n>        Target column for compact/wrap decisions (default: 80)
+      --no-compact-single-line
+                              Disable single-line collapsing of small enum/union/single-field bodies
+      --max-blank-lines <n>   Max consecutive blank lines kept between decls (default: 1)
+      --wrap-comments         Reflow long line comments at whitespace (default: off)
+      --comment-width <n>     Wrap column for --wrap-comments (defaults to --line-width)
+      --no-gitignore          Don't consult .gitignore when walking directories
+  -V, --version               Print version and exit
+  -h, --help                  Show this message
 
 Directories are recursed; only files ending in .fbs are processed.
 Inside a git repository, .gitignore is respected via \`git ls-files\`
@@ -169,6 +176,12 @@ async function main() {
     help?: boolean;
     version?: boolean;
     "no-gitignore"?: boolean;
+    "use-tabs"?: boolean;
+    "line-width"?: string;
+    "no-compact-single-line"?: boolean;
+    "max-blank-lines"?: string;
+    "wrap-comments"?: boolean;
+    "comment-width"?: string;
   };
   let positionals: string[];
   try {
@@ -182,6 +195,12 @@ async function main() {
         help: { type: "boolean", short: "h" },
         version: { type: "boolean", short: "V" },
         "no-gitignore": { type: "boolean" },
+        "use-tabs": { type: "boolean" },
+        "line-width": { type: "string" },
+        "no-compact-single-line": { type: "boolean" },
+        "max-blank-lines": { type: "string" },
+        "wrap-comments": { type: "boolean" },
+        "comment-width": { type: "string" },
       },
       allowPositionals: true,
     }));
@@ -213,7 +232,32 @@ async function main() {
   if (!Number.isInteger(indent) || indent < 0) {
     die("--indent expects a non-negative integer");
   }
-  const opts = { indent };
+
+  const opts: FormatOptions = { indent };
+
+  if (values["use-tabs"]) opts.useTabs = true;
+
+  if (values["line-width"] !== undefined) {
+    const n = Number(values["line-width"]);
+    if (!Number.isInteger(n) || n < 1) die("--line-width expects a positive integer");
+    opts.lineWidth = n;
+  }
+
+  if (values["no-compact-single-line"]) opts.compactSingleLine = false;
+
+  if (values["max-blank-lines"] !== undefined) {
+    const n = Number(values["max-blank-lines"]);
+    if (!Number.isInteger(n) || n < 0) die("--max-blank-lines expects a non-negative integer");
+    opts.maxBlankLines = n;
+  }
+
+  if (values["wrap-comments"]) opts.wrapComments = true;
+
+  if (values["comment-width"] !== undefined) {
+    const n = Number(values["comment-width"]);
+    if (!Number.isInteger(n) || n < 1) die("--comment-width expects a positive integer");
+    opts.commentWidth = n;
+  }
 
   let fromStdin = false;
   const paths: string[] = [];

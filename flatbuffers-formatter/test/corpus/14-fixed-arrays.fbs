@@ -3,14 +3,8 @@
 // Matrix3x3 so flatc's single-pass struct resolver sees the inner
 // type as a struct (not "unknown") when processing the outer.
 
-struct Vec3 {
-  values: [float:3];
-}
+struct Vec3 { values: [float:3]; }
 
-struct Matrix3x3 {
-  rows: [Vec3:3];
-}
+struct Matrix3x3 { rows: [Vec3:3]; }
 
-struct Color {
-  rgba: [ubyte:4];
-}
+struct Color { rgba: [ubyte:4]; }

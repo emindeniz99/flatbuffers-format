@@ -1,1 +1,1 @@
-table Hello { x:int; }
+table Hello { x: int; }

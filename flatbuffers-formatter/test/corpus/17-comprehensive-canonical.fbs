@@ -40,32 +40,18 @@ attribute "validator";
 ///   - the (bit_flags) attribute on the enum header
 ///   - doc comment that must stay attached to the enum
 ///   - members with no explicit value (auto-assigned)
-enum Color: uint (bit_flags) {
-  Red,
-  Green,
-  Blue,
-  Alpha
-}
+enum Color: uint (bit_flags) { Red, Green, Blue, Alpha }
 
 /// Plain enum with explicit signed values. Exercises:
 ///   - negative integer values
 ///   - decimal positive values
 ///   - default-by-omission (Mid)
-enum Priority: byte {
-  Low = -1,
-  Mid,
-  High = 10
-}
+enum Priority: byte { Low = -1, Mid, High = 10 }
 
 // Comment-only header (// not ///), no doc-comment attachment.
 // Tests that ordinary comments above an enum stay above without being
 // promoted to doc trivia.
-enum Tag: ubyte {
-  None,
-  First,
-  Second,
-  Third
-}
+enum Tag: ubyte { None, First, Second, Third }
 
 // --- structs ----------------------------------------------------------
 
@@ -77,9 +63,7 @@ struct Vec3 {
 }
 
 /// Struct with a fixed-size array field. Exercises `[T:N]` grammar.
-struct Matrix3 {
-  data: [float:9];
-}
+struct Matrix3 { data: [float:9]; }
 
 /// Struct-of-structs. Exercises struct-typed fields inside a struct.
 struct Ray {
@@ -114,11 +98,7 @@ table MagicSpell {
 //   - the `Alias: Type` member form
 //   - the bare `Type` member form
 //   - multiple variants separated by commas
-union Attack {
-  Melee: PrimarySword,
-  Ranged: BowAttack,
-  MagicSpell
-}
+union Attack { Melee: PrimarySword, Ranged: BowAttack, MagicSpell }
 
 // --- namespace re-open: drop into External.Ref to declare Anchor -----
 // Grammar: a second namespace_decl in the same file.
@@ -203,9 +183,7 @@ table Stat {
   message: string;
 }
 
-table MonsterRequest {
-  filter: string;
-}
+table MonsterRequest { filter: string; }
 
 // --- RPC service -----------------------------------------------------
 

@@ -50,12 +50,62 @@ import {
 import { leadingTrivia, trailingComment, tailTrivia, type Trivia } from "./trivia.js";
 
 export type FormatOptions = {
+  /**
+   * Spaces per indent level (or tabs per level when `useTabs` is true).
+   * Default: 2.
+   */
   indent?: number;
+  /**
+   * Use literal tab characters for indentation instead of spaces. When
+   * true, each indent level emits `indent` tab characters (so the
+   * combination `useTabs: true, indent: 1` is one tab per level — the
+   * usual setting; `useTabs: true, indent: 2` would emit two tabs per
+   * level). Default: false.
+   */
+  useTabs?: boolean;
+  /** Newline style at end of every emitted line. Default: "\n". */
   newline?: "\n" | "\r\n";
+  /**
+   * Target column for "does it fit on one line" decisions, used by
+   * `compactSingleLine` and `wrapComments`. Default: 80.
+   */
+  lineWidth?: number;
+  /**
+   * If true, enum/union bodies (and single-field table/struct bodies)
+   * that fit within `lineWidth` collapse onto one line. Doc comments,
+   * block comments, and per-value metadata always force expansion.
+   * Default: true.
+   */
+  compactSingleLine?: boolean;
+  /**
+   * Maximum consecutive blank lines preserved between top-level
+   * declarations. Runs of more newlines collapse to this many.
+   * Default: 1.
+   */
+  maxBlankLines?: number;
+  /**
+   * If true, line comments longer than `commentWidth` are reflowed at
+   * whitespace boundaries. URL-shaped tokens (`https://…`) are never
+   * split mid-token. Block comments and doc comments are not touched.
+   * Default: false.
+   */
+  wrapComments?: boolean;
+  /** Wrap column for `wrapComments`. Defaults to `lineWidth`. */
+  commentWidth?: number;
 };
 
-type Resolved = Required<FormatOptions>;
-const DEFAULTS: Resolved = { indent: 2, newline: "\n" };
+type Resolved = Required<Omit<FormatOptions, "commentWidth">> & {
+  commentWidth: number;
+};
+const DEFAULTS = {
+  indent: 2,
+  useTabs: false,
+  newline: "\n" as "\n" | "\r\n",
+  lineWidth: 80,
+  compactSingleLine: true,
+  maxBlankLines: 1,
+  wrapComments: false,
+};
 
 const BLOCK_DECL_RULES = new Set([
   "tableDecl",
@@ -70,7 +120,11 @@ export class Printer {
   private out: string[] = [];
   private readonly opts: Resolved;
   constructor(private readonly stream: BufferedTokenStream, opts: FormatOptions) {
-    this.opts = { ...DEFAULTS, ...opts };
+    const merged = { ...DEFAULTS, ...opts };
+    this.opts = {
+      ...merged,
+      commentWidth: opts.commentWidth ?? merged.lineWidth,
+    };
   }
 
   print(schema: SchemaContext): string {
@@ -85,8 +139,17 @@ export class Printer {
         const itemName = item.constructor.name;
         const wasBlock = isBlockCtxName(prevName);
         const isBlock = isBlockCtxName(itemName);
-        const had = hasBlankLine(leadingTrivia(item as any, this.stream));
-        if (wasBlock || isBlock || had) this.nl();
+        const blanks = countBlankLines(leadingTrivia(item as any, this.stream));
+        // Decl separator: at least one blank line around block decls
+        // or when the user had any blank line in the source; otherwise
+        // adjacent single-line decls (include / namespace / ...) stay
+        // glued together. The user's blank-line count, when present,
+        // is honoured up to `maxBlankLines`.
+        const forced = wasBlock || isBlock;
+        let want = 0;
+        if (forced && blanks === 0) want = 1;
+        else if (blanks > 0) want = Math.min(blanks, this.opts.maxBlankLines);
+        for (let k = 0; k < want; k++) this.nl();
       }
       this.printDeclItem(item as any);
       prev = d;
@@ -104,15 +167,63 @@ export class Printer {
 
   // ---------------------------------------------------------------
   private nl() { this.out.push(this.opts.newline); }
-  private indent(depth: number) { return " ".repeat(this.opts.indent * depth); }
+  private indent(depth: number) {
+    const ch = this.opts.useTabs ? "\t" : " ";
+    return ch.repeat(this.opts.indent * depth);
+  }
 
   private writeTrivia(trivia: Trivia[], depth: number) {
     const pad = this.indent(depth);
+    let blankRun = 0;
     for (const t of trivia) {
-      if (t.kind === "blank_line") { this.nl(); continue; }
-      if (t.kind === "line_comment")  this.out.push(`${pad}//${t.value}`);
-      if (t.kind === "doc_comment")   this.out.push(`${pad}///${t.value}`);
-      if (t.kind === "block_comment") this.out.push(`${pad}/*${t.value}*/`);
+      if (t.kind === "blank_line") {
+        // Cap consecutive blank lines at `maxBlankLines`. Each
+        // blank_line marker means "one blank line"; the lexer/trivia
+        // layer emits as many as the source had (up to a safety cap).
+        if (blankRun < this.opts.maxBlankLines) this.nl();
+        blankRun++;
+        continue;
+      }
+      blankRun = 0;
+      if (t.kind === "line_comment") {
+        this.writeLineComment(t.value, pad);
+      } else if (t.kind === "doc_comment") {
+        this.out.push(`${pad}///${t.value}`);
+        this.nl();
+      } else if (t.kind === "block_comment") {
+        this.out.push(`${pad}/*${t.value}*/`);
+        this.nl();
+      }
+    }
+  }
+
+  private writeLineComment(value: string, pad: string) {
+    if (!this.opts.wrapComments) {
+      this.out.push(`${pad}//${value}`);
+      this.nl();
+      return;
+    }
+    const rendered = `${pad}//${value}`;
+    if (rendered.length <= this.opts.commentWidth) {
+      this.out.push(rendered);
+      this.nl();
+      return;
+    }
+    // Wrap. The body's leading whitespace is treated as a normal
+    // single-space separator after `//` — continuation lines line up
+    // with the first content character.
+    const body = value.replace(/^\s+/, "");
+    const prefix = `${pad}// `;
+    const budget = Math.max(1, this.opts.commentWidth - prefix.length);
+    const tokens = splitForWrap(body);
+    const lines = packTokens(tokens, budget);
+    if (lines.length === 0) {
+      this.out.push(rendered);
+      this.nl();
+      return;
+    }
+    for (const line of lines) {
+      this.out.push(`${prefix}${line}`);
       this.nl();
     }
   }
@@ -187,13 +298,18 @@ export class Printer {
 
   private printTableLike(kw: "table" | "struct", ctx: TableDeclContext | StructDeclContext) {
     const name = ctx.identifier().getText();
-    this.out.push(`${kw} ${name}`);
+    let head = `${kw} ${name}`;
     const meta = ctx.metadata();
-    if (meta) this.out.push(" " + this.formatMetadata(meta));
-    this.out.push(" {");
-    this.nl();
-
+    if (meta) head += " " + this.formatMetadata(meta);
     const fields = ctx.fieldDecl();
+
+    // Try compact single-line form: only valid for SINGLE-field bodies,
+    // and only when no field has trivia / metadata and the result fits
+    // within lineWidth at the current indent.
+    if (this.opts.compactSingleLine && this.tryCompactTableLike(head, ctx, fields, 0)) return;
+
+    this.out.push(`${head} {`);
+    this.nl();
     fields.forEach((f, i) => {
       this.writeLeading(f, 1, i === 0);
       this.out.push(this.indent(1));
@@ -204,6 +320,39 @@ export class Printer {
     this.out.push("}");
     this.writeTrailing(ctx);
     this.nl();
+  }
+
+  private tryCompactTableLike(
+    head: string,
+    ctx: TableDeclContext | StructDeclContext,
+    fields: FieldDeclContext[],
+    depth: number,
+  ): boolean {
+    if (fields.length !== 1) return false;
+    const f = fields[0]!;
+    if (fieldHasBlockingTrivia(this, f)) return false;
+    // Comments / blanks before the single field block collapse — even
+    // stripped of leading blanks, any comment trivia means the user
+    // wanted commentary in the body, which we'd lose by collapsing.
+    const leading = this.leadingFor(f, true);
+    if (leading.length > 0) return false;
+    if (this.trailingFor(f)) return false;
+    if (this.trailingFor(ctx)) return false;
+    const body = this.formatField(f);
+    const candidate = `${this.indent(depth)}${head} { ${body} }`;
+    if (candidate.length > this.opts.lineWidth) return false;
+    this.out.push(candidate);
+    this.nl();
+    return true;
+  }
+
+  private leadingFor(ctx: any, stripBlank: boolean): Trivia[] {
+    let trivia = leadingTrivia(ctx, this.stream);
+    if (stripBlank) trivia = stripLeadingBlanks(trivia);
+    return trivia;
+  }
+  private trailingFor(ctx: any): Trivia | undefined {
+    return trailingComment(ctx, this.stream);
   }
 
   private formatField(ctx: FieldDeclContext): string {
@@ -273,12 +422,13 @@ export class Printer {
     const ids = ctx.identifier();
     let head = `enum ${ids[0]!.getText()}`;
     if (ids.length > 1) head += `: ${ids[1]!.getText()}`;
-    this.out.push(head);
     const meta = ctx.metadata();
-    if (meta) this.out.push(" " + this.formatMetadata(meta));
-    this.out.push(" {");
-    this.nl();
+    if (meta) head += " " + this.formatMetadata(meta);
     const values = ctx.enumValDecl();
+    if (this.opts.compactSingleLine && this.tryCompactEnumLike(head, ctx, values, 0)) return;
+
+    this.out.push(`${head} {`);
+    this.nl();
     values.forEach((v, i) => {
       this.writeLeading(v, 1, i === 0);
       this.out.push(this.indent(1));
@@ -290,6 +440,35 @@ export class Printer {
     this.out.push("}");
     this.writeTrailing(ctx);
     this.nl();
+  }
+
+  private tryCompactEnumLike(
+    head: string,
+    ctx: EnumDeclContext,
+    values: EnumValDeclContext[],
+    depth: number,
+  ): boolean {
+    if (values.length === 0) return false;
+    for (let i = 0; i < values.length; i++) {
+      const v = values[i]!;
+      if (v.metadata()) return false;
+      // First value: blank lines between `{` and the first value are
+      // cosmetic and stripped on expansion, so don't block compact form.
+      // Subsequent values: any non-stripped trivia (including blanks)
+      // blocks compaction so we don't lose paragraph breaks the user
+      // wrote between values.
+      const leading = this.leadingFor(v, i === 0);
+      if (leading.length > 0) return false;
+      if (this.trailingFor(v)) return false;
+    }
+    if (this.trailingFor(ctx)) return false;
+    const parts = values.map((v) => this.formatEnumVal(v));
+    const body = parts.join(", ");
+    const candidate = `${this.indent(depth)}${head} { ${body} }`;
+    if (candidate.length > this.opts.lineWidth) return false;
+    this.out.push(candidate);
+    this.nl();
+    return true;
   }
 
   private formatEnumVal(v: EnumValDeclContext): string {
@@ -305,12 +484,13 @@ export class Printer {
     const ids = ctx.identifier();
     let head = `union ${ids[0]!.getText()}`;
     if (ids.length > 1) head += `: ${ids[1]!.getText()}`;
-    this.out.push(head);
     const meta = ctx.metadata();
-    if (meta) this.out.push(" " + this.formatMetadata(meta));
-    this.out.push(" {");
-    this.nl();
+    if (meta) head += " " + this.formatMetadata(meta);
     const vals = ctx.unionValDecl();
+    if (this.opts.compactSingleLine && this.tryCompactUnion(head, ctx, vals, 0)) return;
+
+    this.out.push(`${head} {`);
+    this.nl();
     vals.forEach((v, i) => {
       this.writeLeading(v, 1, i === 0);
       this.out.push(this.indent(1));
@@ -322,6 +502,29 @@ export class Printer {
     this.out.push("}");
     this.writeTrailing(ctx);
     this.nl();
+  }
+
+  private tryCompactUnion(
+    head: string,
+    ctx: UnionDeclContext,
+    vals: UnionValDeclContext[],
+    depth: number,
+  ): boolean {
+    if (vals.length === 0) return false;
+    for (let i = 0; i < vals.length; i++) {
+      const v = vals[i]!;
+      const leading = this.leadingFor(v, i === 0);
+      if (leading.length > 0) return false;
+      if (this.trailingFor(v)) return false;
+    }
+    if (this.trailingFor(ctx)) return false;
+    const parts = vals.map((v) => this.formatUnionVal(v));
+    const body = parts.join(", ");
+    const candidate = `${this.indent(depth)}${head} { ${body} }`;
+    if (candidate.length > this.opts.lineWidth) return false;
+    this.out.push(candidate);
+    this.nl();
+    return true;
   }
 
   private formatUnionVal(v: UnionValDeclContext): string {
@@ -386,7 +589,7 @@ export class Printer {
       const allScalar = values.every((x) => x instanceof ScalarValueContext);
       if (allScalar) {
         const inline = `[${values.map((x) => this.formatObjectValue(x, depth)).join(", ")}]`;
-        if (inline.length + depth * this.opts.indent <= 80) return inline;
+        if (inline.length + depth * this.opts.indent <= this.opts.lineWidth) return inline;
       }
       const inner = this.indent(depth + 1);
       const close = this.indent(depth);
@@ -408,6 +611,23 @@ function hasBlankLine(trivia: Trivia[]): boolean {
   return trivia.some((t) => t.kind === "blank_line");
 }
 
+function countBlankLines(trivia: Trivia[]): number {
+  let n = 0;
+  for (const t of trivia) if (t.kind === "blank_line") n++;
+  return n;
+}
+
+void hasBlankLine;
+
+function fieldHasBlockingTrivia(
+  printer: Printer,
+  f: FieldDeclContext,
+): boolean {
+  void printer;
+  // Field metadata blocks compact form. Trivia checks happen at the call site.
+  return f.metadata() !== null;
+}
+
 function stripLeadingBlanks(trivia: Trivia[]): Trivia[] {
   let i = 0;
   while (i < trivia.length && trivia[i]!.kind === "blank_line") i++;
@@ -417,6 +637,49 @@ function stripLeadingBlanks(trivia: Trivia[]): Trivia[] {
 function isBlockCtxName(name: string): boolean {
   const rule = name.replace(/Context$/, "");
   return BLOCK_DECL_RULES.has(rule[0]!.toLowerCase() + rule.slice(1));
+}
+
+// Split a comment body into wrap tokens. URL-shaped tokens (`https://…`)
+// are kept intact; everything else is split on any whitespace run.
+function splitForWrap(body: string): string[] {
+  const out: string[] = [];
+  const urlRe = /(https?:\/\/\S+)/g;
+  let lastIdx = 0;
+  let m: RegExpExecArray | null;
+  while ((m = urlRe.exec(body)) !== null) {
+    if (m.index > lastIdx) {
+      const segment = body.slice(lastIdx, m.index);
+      for (const w of segment.split(/\s+/)) if (w) out.push(w);
+    }
+    out.push(m[0]);
+    lastIdx = m.index + m[0].length;
+  }
+  if (lastIdx < body.length) {
+    for (const w of body.slice(lastIdx).split(/\s+/)) if (w) out.push(w);
+  }
+  return out;
+}
+
+// Greedy packer: emit lines whose total width is at most `budget`.
+// A token longer than `budget` still gets its own line (no mid-token
+// splitting — that's the URL-safety guarantee, generalized).
+function packTokens(tokens: string[], budget: number): string[] {
+  const lines: string[] = [];
+  let cur = "";
+  for (const t of tokens) {
+    if (cur.length === 0) {
+      cur = t;
+      continue;
+    }
+    if (cur.length + 1 + t.length <= budget) {
+      cur += " " + t;
+    } else {
+      lines.push(cur);
+      cur = t;
+    }
+  }
+  if (cur.length > 0) lines.push(cur);
+  return lines;
 }
 
 // Mark the type as used so noUnusedLocals stays happy on the

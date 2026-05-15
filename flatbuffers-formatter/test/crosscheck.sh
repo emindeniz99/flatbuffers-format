@@ -63,4 +63,26 @@ done
 
 echo
 echo "Summary: $pass/$total OK, $fail mismatches, $parse_div parse-divergences"
-[ $fail -eq 0 ] && [ $parse_div -eq 0 ]
+
+# Second pass: a representative non-default option combo, just enough to
+# catch a divergence in the new layout knobs (useTabs / lineWidth /
+# compactSingleLine / maxBlankLines). If the default-options pass agrees
+# but this combo disagrees, the engines have drifted on one of the new
+# options' implementations.
+flags="--use-tabs --indent=1 --no-compact-single-line --max-blank-lines=2"
+combo_fail=0
+for f in "$CORPUS"/*.fbs; do
+  name=$(basename "$f")
+  h=$($HAND $flags "$f" 2>/dev/null);  h_st=$?
+  a=$($ANTL $flags "$f" 2>/dev/null);  a_st=$?
+  if [ $h_st -ne 0 ] && [ $a_st -ne 0 ]; then
+    continue
+  fi
+  if [ "$h" != "$a" ]; then
+    echo "  COMBO-MISMATCH $name"
+    combo_fail=$((combo_fail+1))
+  fi
+done
+echo "Non-default combo ($flags): $combo_fail mismatches"
+
+[ $fail -eq 0 ] && [ $parse_div -eq 0 ] && [ $combo_fail -eq 0 ]

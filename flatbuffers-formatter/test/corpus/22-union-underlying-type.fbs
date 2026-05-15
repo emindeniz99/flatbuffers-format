@@ -6,27 +6,17 @@
 
 namespace UnionBase;
 
-table Sword {
-  damage: short;
-}
+table Sword { damage: short; }
 
 table Axe {
   damage: short;
   cleave: bool = false;
 }
 
-table Wand {
-  spell: string;
-}
+table Wand { spell: string; }
 
-union Weapon: uint8 {
-  Sword,
-  Axe,
-  Wand
-}
+union Weapon: uint8 { Sword, Axe, Wand }
 
-table Hero {
-  primary: Weapon;
-}
+table Hero { primary: Weapon; }
 
 root_type Hero;

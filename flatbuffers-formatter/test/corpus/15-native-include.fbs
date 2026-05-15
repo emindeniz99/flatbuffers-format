@@ -3,6 +3,4 @@ include "other_schema.fbs";
 
 namespace App;
 
-table Wrapper {
-  x: int;
-}
+table Wrapper { x: int; }

@@ -97,6 +97,8 @@ root_type T;
 });
 
 test("metadata on a table and field", () => {
+  // Field-level metadata blocks the compactSingleLine collapse — we
+  // keep the expanded form so the field's metadata stays readable.
   const input = `table T (force_align: 8) { x:int (key); }`;
   const out = format(input);
   assert.equal(out, `table T (force_align: 8) {\n  x: int (key);\n}\n`);
@@ -109,15 +111,17 @@ test("vector and nested vector types", () => {
 });
 
 test("enum with base type and trailing comma in source is dropped", () => {
+  // Small enum collapses to one line under default compactSingleLine: true.
   const input = `enum Color : byte { Red = 0, Green, Blue = 2, }`;
   const out = format(input);
-  assert.equal(out, `enum Color: byte {\n  Red = 0,\n  Green,\n  Blue = 2\n}\n`);
+  assert.equal(out, `enum Color: byte { Red = 0, Green, Blue = 2 }\n`);
 });
 
 test("union with alias", () => {
+  // Small union collapses to one line under default compactSingleLine: true.
   const input = `union U{X,alias:Y}`;
   const out = format(input);
-  assert.equal(out, `union U {\n  X,\n  alias: Y\n}\n`);
+  assert.equal(out, `union U { X, alias: Y }\n`);
 });
 
 test("rpc_service formatting", () => {
@@ -146,7 +150,8 @@ file_extension "fbs";
 
 test("check() detects unformatted input", () => {
   assert.equal(check(`table T{x:int;}`), false);
-  assert.equal(check(`table T {\n  x: int;\n}\n`), true);
+  // Canonical for a single-field table under default compactSingleLine.
+  assert.equal(check(`table T { x: int; }\n`), true);
 });
 
 test("rejects malformed input with a useful error", () => {
@@ -246,10 +251,11 @@ test("corpus 17: feature checklist — every advertised grammar feature appears 
   assert.match(out, /data: \[float:9\];/, "struct fixed-size array field [T:N]");
   assert.match(out, /struct Ray \{/, "struct-of-structs");
 
-  // Union with mixed aliased and bare variants.
+  // Union with mixed aliased and bare variants. Under the default
+  // compactSingleLine: true, the union body now lives on a single line.
   assert.match(out, /union Attack \{/, "union declaration");
   assert.match(out, /Melee: PrimarySword,/, "aliased union variant");
-  assert.match(out, /MagicSpell$/m, "bare union variant");
+  assert.match(out, /MagicSpell \}/, "bare union variant (in compact form)");
 
   // Namespace re-opening (drop into External.Ref and back).
   const namespaceMatches = out.match(/^namespace /gm) ?? [];
@@ -379,7 +385,7 @@ test("block comments are NOT nestable — first */ closes (C-style behavior, doc
   // (whose body happens to contain `/*`), followed by the formatted table.
   assert.equal(
     format(`/* outer /* inner */ table T { x: int; }`),
-    `/* outer /* inner */\ntable T {\n  x: int;\n}\n`,
+    `/* outer /* inner */\ntable T { x: int; }\n`,
   );
 });
 
@@ -474,19 +480,24 @@ test("corpus 22: union with explicit underlying type round-trips on both engines
   //   - the round-trip is byte-stable
   const canonical = readCorpus("22-union-underlying-type.fbs");
   assert.equal(format(canonical), canonical, "fixture is canonical");
-  assert.match(canonical, /^union Weapon: uint8 \{$/m, "union underlying type spacing matches enumDecl");
+  // Under the default compactSingleLine the union body lives on one
+  // line, but the header spacing (`union NAME: TYPE {`) is what we
+  // care about here — it must mirror enumDecl regardless of body shape.
+  assert.match(canonical, /^union Weapon: uint8 \{ /m, "union underlying type spacing matches enumDecl");
 });
 
 test("union underlying type: accepts ugly input and lands on canonical", () => {
   // Independent of the corpus file: directly feed mangled spacing of the
-  // new syntax and verify normalization.
+  // new syntax and verify normalization. Small union collapses at the
+  // default compactSingleLine: true.
   const ugly = `union W   :   uint8 { A , B }`;
-  assert.equal(format(ugly), `union W: uint8 {\n  A,\n  B\n}\n`);
+  assert.equal(format(ugly), `union W: uint8 { A, B }\n`);
 });
 
 test("per-enum-value metadata accepts ugly input and lands on canonical form", () => {
   // Independent of the corpus file: feed deliberately mangled per-value
-  // metadata directly and confirm the formatter normalizes it.
+  // metadata directly and confirm the formatter normalizes it. Per-value
+  // metadata blocks compactSingleLine, so the enum stays expanded.
   const ugly = `enum E:byte{A=1   (   deprecated   ),B=2(  priority:5  )}`;
   const out = format(ugly);
   assert.equal(
@@ -500,7 +511,8 @@ test("malformed input: signed inf/nan rejected (only bare inf/nan are supported)
   // `inf` and `nan` as float defaults, but rejects `+inf`, `-inf`, `+nan`,
   // `-nan`. This test pins that behaviour so a future "feature add" doesn't
   // silently broaden the accepted dialect without an explicit decision.
-  // Bare forms must continue to work:
+  // Bare forms must continue to work: multi-field table → stays
+  // expanded under compactSingleLine: true.
   assert.equal(
     format(`table T { a: float = inf; b: float = nan; }`),
     `table T {\n  a: float = inf;\n  b: float = nan;\n}\n`,
@@ -508,6 +520,145 @@ test("malformed input: signed inf/nan rejected (only bare inf/nan are supported)
   // Signed forms must continue to fail:
   assert.throws(() => format(`table T { a: float = -inf; }`));
   assert.throws(() => format(`table T { a: float = +inf; }`));
+});
+
+// ---------------------------------------------------------------------------
+// FormatOptions: per-option coverage. Each new option gets a "default
+// behavior" test (pinning that the option has its documented default) and
+// an "explicit-value behavior" test (pinning that an override actually
+// changes output in the documented way).
+// ---------------------------------------------------------------------------
+
+test("FormatOptions.useTabs: default is spaces", () => {
+  const out = format(`table T { a:int; b:int; }`);
+  assert.ok(!out.includes("\t"), "default output must not contain tabs");
+  assert.match(out, /^  a: int;$/m, "default is 2-space indent");
+});
+
+test("FormatOptions.useTabs: true emits tab indentation", () => {
+  // indent:1 + useTabs:true → one tab per level (the usual setting).
+  const out = format(`table T { a:int; b:int; }`, { useTabs: true, indent: 1 });
+  assert.match(out, /^\ta: int;$/m, "one tab per indent level");
+  assert.match(out, /^\tb: int;$/m, "every field tab-indented");
+});
+
+test("FormatOptions.lineWidth: default 80 collapses a small enum", () => {
+  // 5-element enum fits well within 80 → collapses.
+  const out = format(`enum E:byte { A, B, C, D, F }`);
+  assert.equal(out, `enum E: byte { A, B, C, D, F }\n`);
+});
+
+test("FormatOptions.lineWidth: small value forces expansion", () => {
+  // The candidate compact line is wider than 30, so the formatter must
+  // fall back to the multi-line form.
+  const out = format(`enum E:byte { A, B, C, D, F }`, { lineWidth: 20 });
+  assert.equal(out, `enum E: byte {\n  A,\n  B,\n  C,\n  D,\n  F\n}\n`);
+});
+
+test("FormatOptions.compactSingleLine: default true collapses small enum", () => {
+  const out = format(`enum E:byte { A, B, C }`);
+  assert.equal(out, `enum E: byte { A, B, C }\n`);
+});
+
+test("FormatOptions.compactSingleLine: false keeps small enums expanded", () => {
+  const out = format(`enum E:byte { A, B, C }`, { compactSingleLine: false });
+  assert.equal(out, `enum E: byte {\n  A,\n  B,\n  C\n}\n`);
+});
+
+test("FormatOptions.maxBlankLines: default 1 collapses paragraph breaks", () => {
+  // Three source blank lines → cap to one in the output.
+  const out = format(`table T { x:int; y:int; }\n\n\n\ntable U { z:int; w:int; }`);
+  assert.equal(
+    out,
+    `table T {\n  x: int;\n  y: int;\n}\n\ntable U {\n  z: int;\n  w: int;\n}\n`,
+  );
+});
+
+test("FormatOptions.maxBlankLines: 2 preserves a double blank line", () => {
+  // Source has 2 blank lines between decls. With maxBlankLines: 2 we
+  // keep both.
+  const out = format(
+    `table T { x:int; y:int; }\n\n\ntable U { z:int; w:int; }`,
+    { maxBlankLines: 2 },
+  );
+  assert.equal(
+    out,
+    `table T {\n  x: int;\n  y: int;\n}\n\n\ntable U {\n  z: int;\n  w: int;\n}\n`,
+  );
+});
+
+test("FormatOptions.wrapComments: default off leaves long line comments alone", () => {
+  const longComment = "// " + "x".repeat(200);
+  const out = format(`${longComment}\ntable T { x: int; y: int; }`);
+  assert.match(out, new RegExp(`^// ${"x".repeat(200)}$`, "m"));
+});
+
+test("FormatOptions.wrapComments: true reflows a 150-char comment to lineWidth", () => {
+  const body = "Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua ut enim ad minim veniam quis nostrud";
+  const out = format(`// ${body}\ntable T { x: int; y: int; }`, { wrapComments: true });
+  // Every wrapped line must fit the default lineWidth of 80.
+  for (const line of out.split("\n")) {
+    if (line.startsWith("//")) assert.ok(line.length <= 80, `line over budget: ${line}`);
+  }
+});
+
+test("FormatOptions.commentWidth: 40 wraps at 40 instead of lineWidth", () => {
+  const body = "Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor";
+  const out = format(
+    `// ${body}\ntable T { x: int; y: int; }`,
+    { wrapComments: true, commentWidth: 40 },
+  );
+  let sawWrapped = false;
+  for (const line of out.split("\n")) {
+    if (line.startsWith("//")) {
+      assert.ok(line.length <= 40, `line over budget: ${line}`);
+      sawWrapped = true;
+    }
+  }
+  assert.ok(sawWrapped, "expected at least one wrapped comment line");
+});
+
+test("FormatOptions.wrapComments: URLs are never split mid-token", () => {
+  const url = "https://example.com/a/very/long/path/that/would/otherwise/exceed/the/width/budget";
+  const out = format(
+    `// see ${url} for context\ntable T { x: int; y: int; }`,
+    { wrapComments: true, commentWidth: 30 },
+  );
+  // The URL must appear intact on some line of the output, even though
+  // it's longer than commentWidth (30).
+  assert.ok(out.includes(url), `URL not preserved intact in: ${out}`);
+});
+
+test("compactSingleLine: per-value metadata blocks enum collapse", () => {
+  // The Active = 1 (priority: 0) value carries metadata → expansion.
+  const out = format(
+    `enum E:byte { Pending, Active = 1 (priority: 0) }`,
+  );
+  assert.equal(
+    out,
+    `enum E: byte {\n  Pending,\n  Active = 1 (priority: 0)\n}\n`,
+  );
+});
+
+test("compactSingleLine: doc comment between { and first value blocks collapse", () => {
+  const input = `enum E:byte {
+  /// pending state
+  Pending,
+  Active
+}`;
+  const out = format(input);
+  // Doc comment must survive on its own line; enum stays expanded.
+  assert.match(out, /\/\/\/ pending state\n  Pending,/);
+});
+
+test("compactSingleLine: single-field table collapses by default", () => {
+  const out = format(`table T { x: int; }`);
+  assert.equal(out, `table T { x: int; }\n`);
+});
+
+test("compactSingleLine: multi-field table stays expanded", () => {
+  const out = format(`table T { x: int; y: string; }`);
+  assert.equal(out, `table T {\n  x: int;\n  y: string;\n}\n`);
 });
 
 // ---------------------------------------------------------------------------
@@ -596,9 +747,10 @@ test("CLI --diff exits 1 on diff with unified-diff output, exits 0 when content 
   assert.equal(r1.status, 1, "ugly input → exit 1");
   assert.match(r1.stdout, /^--- a\/<stdin>$/m);
   assert.match(r1.stdout, /^-table T\{x:int;\}$/m);
-  assert.match(r1.stdout, /^\+table T \{$/m);
+  // Under default compactSingleLine the canonical form is one line.
+  assert.match(r1.stdout, /^\+table T \{ x: int; \}$/m);
 
-  const clean = "table T {\n  x: int;\n}\n";
+  const clean = "table T { x: int; }\n";
   const r2 = spawnSync(process.execPath, [cliPath, "--diff", "-"], {
     input: clean,
     encoding: "utf8",
@@ -636,4 +788,40 @@ test("CLI on parse error emits a snippet with caret to stderr and exits 1", () =
   assert.match(r.stderr, /^ > 1 \| table T \{ foo bar \}$/m);
   // Caret on the next line.
   assert.match(r.stderr, /\^/);
+});
+
+test("CLI: --use-tabs and --indent flow through to the engine", () => {
+  // Smoke test for the new CLI plumbing. We don't need to cover every
+  // option here — the engine has unit tests for those — just that the
+  // flag parser wires up correctly.
+  const r = spawnSync(process.execPath, [cliPath, "--use-tabs", "--indent=1", "-"], {
+    input: "table T { a: int; b: int; }\n",
+    encoding: "utf8",
+  });
+  assert.equal(r.status, 0);
+  assert.match(r.stdout, /^\ta: int;$/m, "expected tab indentation");
+});
+
+test("CLI: --no-compact-single-line keeps small enum expanded", () => {
+  const r = spawnSync(process.execPath, [cliPath, "--no-compact-single-line", "-"], {
+    input: "enum E: byte { A, B, C }\n",
+    encoding: "utf8",
+  });
+  assert.equal(r.status, 0);
+  assert.equal(r.stdout, "enum E: byte {\n  A,\n  B,\n  C\n}\n");
+});
+
+test("CLI: numeric flags reject non-integer or negative values", () => {
+  for (const args of [
+    ["--line-width=0"],
+    ["--line-width=-1"],
+    ["--max-blank-lines=-1"],
+    ["--comment-width=0"],
+  ]) {
+    const r = spawnSync(process.execPath, [cliPath, ...args, "-"], {
+      input: "table T { x: int; y: int; }\n",
+      encoding: "utf8",
+    });
+    assert.equal(r.status, 2, `${args.join(" ")} → exit 2`);
+  }
 });

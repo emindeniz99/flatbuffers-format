@@ -265,12 +265,6 @@ Bind it in `keybindings.json`:
 
 ## 6. Custom indent width
 
-Only `indent` and `newline` are configurable — by design. Everything
-else (spacing inside field declarations, blank lines between blocks,
-metadata layout, …) is opinionated. See the
-[Formatting rules table](../README.md#formatting-rules) in the README
-for the full list.
-
 CLI — 4-space indent:
 
 ```bash
@@ -299,6 +293,55 @@ To make 4 the project default for everyone, wrap the CLI in a script:
 There's no config-file lookup — by intent. The flag (or the
 `FormatOptions` argument) is the only source of truth, so a stale
 `.fbsformatrc` can't lie about how a repo is actually being formatted.
+
+### Configuring layout: indent, line width, blank lines
+
+`indent` is the most common knob, but the formatter also accepts a
+small set of layout options for projects that want tabs, wider lines,
+or a different compaction policy. Every option is optional and
+defaults to a value that matches the formatter's out-of-the-box
+behavior.
+
+```ts
+import { format } from "flatbuffers-format";
+
+const out = format(source, {
+  indent: 2,              // spaces (or tabs, see useTabs) per level
+  useTabs: false,         // true → indent with `\t` instead of spaces
+  newline: "\n",          // or "\r\n"
+  lineWidth: 80,          // target column for compact/wrap decisions
+  compactSingleLine: true, // collapse small enum/union/single-field bodies
+  maxBlankLines: 1,        // cap consecutive blank lines between decls
+  wrapComments: false,     // reflow long `//` lines at whitespace
+  commentWidth: 80,        // wrap column for wrapComments
+});
+```
+
+CLI equivalents:
+
+```bash
+flatbuffers-format \
+  --indent 2 \
+  --use-tabs \
+  --line-width 100 \
+  --no-compact-single-line \
+  --max-blank-lines 2 \
+  --wrap-comments \
+  --comment-width 100 \
+  --write src/
+```
+
+Notes:
+
+- `useTabs: true` emits one tab per `indent` level (so `useTabs: true,
+  indent: 1` is the usual "one tab per level" setting).
+- `compactSingleLine: true` is the default; it collapses enums, unions,
+  and single-field tables/structs that fit on one line. Doc/block
+  comments and per-value metadata always force the multi-line form.
+- `maxBlankLines` only ever shrinks blank-line runs — it never inserts
+  blank lines the source didn't have.
+- `wrapComments` is opt-in. Block comments (`/* … */`) and doc
+  comments (`///`) are never reflowed.
 
 ---
 

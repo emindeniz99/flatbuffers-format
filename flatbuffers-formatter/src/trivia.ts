@@ -23,6 +23,12 @@ const LINE = FlatBuffersLexer.LINE_COMMENT;
 const BLOCK = FlatBuffersLexer.BLOCK_COMMENT;
 const WS = FlatBuffersLexer.WS;
 
+// Lex-time cap on how many consecutive blank_line markers we emit. The
+// printer's `maxBlankLines` option caps further; this is just a safety
+// net so a pathological file with thousands of blank lines doesn't
+// blow up the trivia stream.
+const LEX_BLANK_CAP = 32;
+
 /**
  * Returns leading trivia for `ctx`: comments and blank lines that
  * appear in the source before the node's first token. Whitespace is
@@ -154,13 +160,16 @@ function toTrivia(tokens: Token[]): Trivia[] {
         out.push({ kind: "block_comment", value: stripWrap(text, "/*", "*/") });
         break;
       case WS: {
-        // Count newlines: a WS chunk with 2+ \n means at least one
-        // empty line between previous and next non-WS content.
+        // Count newlines: a WS chunk with N (>=2) newlines means N-1
+        // blank lines between the previous and next non-WS content.
+        // We emit one `blank_line` marker per source blank line up to
+        // a safety cap so the printer can honor `maxBlankLines` (the
+        // printer itself caps; the cap here only prevents pathological
+        // inputs from blowing memory).
         const newlines = (text.match(/\n/g) ?? []).length;
         if (newlines >= 2) {
-          if (out[out.length - 1]?.kind !== "blank_line") {
-            out.push({ kind: "blank_line" });
-          }
+          const blanks = Math.min(newlines - 1, LEX_BLANK_CAP);
+          for (let k = 0; k < blanks; k++) out.push({ kind: "blank_line" });
         }
         break;
       }

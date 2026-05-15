@@ -7,6 +7,4 @@
 
 namespace Other;
 
-table Stub {
-  x: int;
-}
+table Stub { x: int; }

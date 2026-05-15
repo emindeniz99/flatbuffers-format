@@ -15,8 +15,6 @@ enum Status: byte {
   Banned = 99 (deprecated, priority: -1)
 }
 
-table Holder {
-  s: Status = Pending;
-}
+table Holder { s: Status = Pending; }
 
 root_type Holder;
