@@ -381,11 +381,17 @@ likely to land next, not a commitment.
 schemas surface in the wild, minor CLI ergonomics polish. No breaking
 changes.
 
+**Landed during 0.1.x**:
+
+- ✅ Sibling [`prettier-plugin-flatbuffers`](../prettier-plugin-flatbuffers/) — drop into `.prettierrc` and `.fbs` files format alongside the rest of your codebase
+- ✅ Sibling [`vscode-flatbuffers`](../vscode-flatbuffers/) — TextMate syntax highlighting + native format-on-save via this engine, no third-party "Run on Save" needed
+- ✅ Sibling [`tree-sitter-flatbuffers`](../tree-sitter-flatbuffers/) — incremental-parse + highlights for Neovim, Helix, Zed, GitHub.com, and any tree-sitter consumer
+
 **0.2.x** — under consideration:
 
-- VS Code extension wrapping the CLI (format-on-save without a third-party "Run on Save" extension)
-- A second editor-grammar binding (tree-sitter) for Neovim / Helix / Zed syntax highlighting
 - Performance: experiment with parallel parsing for multi-file `--write` / `--check` runs
+- Real-world conformance: a curated list of public `.fbs` schemas fetched at CI time and validated against the formatter
+- A `--validate` mode that pipes through `flatc` (when installed) for semantic-layer checks beyond the grammar
 
 **1.0** — when:
 
