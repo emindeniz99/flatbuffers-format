@@ -1,0 +1,39 @@
+name: vscode-flatbuffers CI
+
+on:
+  push:
+    branches:
+      - main
+      - "claude/**"
+  pull_request:
+    branches: [main]
+
+jobs:
+  vscode-flatbuffers-test:
+    name: vscode-flatbuffers / node ${{ matrix.node-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+          cache-dependency-path: projects/vscode-flatbuffers/package-lock.json
+      - name: Build sibling flatbuffers-format (file: dependency)
+        working-directory: projects/flatbuffers-formatter
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Install vscode-flatbuffers
+        working-directory: projects/vscode-flatbuffers
+        run: npm install --no-audit --no-fund
+      - name: Build
+        working-directory: projects/vscode-flatbuffers
+        run: npm run build
+      - name: Test
+        working-directory: projects/vscode-flatbuffers
+        run: npm test
