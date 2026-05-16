@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  flatbuffers-format extension icon.
+  Original mark: stylized { } braces wrapping three short horizontal lines
+  (the canonical "formatted code body" visual), on a deep-teal rounded square.
+  Teal chosen to be distinct from common formatter brand colors (Prettier
+  pink, Biome orange, Black gray, gofmt blue).
+  Designed at 128x128 — Marketplace's expected icon size.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Background tile -->
+  <rect width="128" height="128" rx="24" ry="24" fill="#14746F"/>
+
+  <!-- Left brace { -->
+  <path d="M 46 32
+           Q 34 32 34 44
+           L 34 58
+           Q 34 64 26 64
+           Q 34 64 34 70
+           L 34 84
+           Q 34 96 46 96"
+        stroke="#FFFFFF"
+        stroke-width="5"
+        fill="none"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
+
+  <!-- Right brace } -->
+  <path d="M 82 32
+           Q 94 32 94 44
+           L 94 58
+           Q 94 64 102 64
+           Q 94 64 94 70
+           L 94 84
+           Q 94 96 82 96"
+        stroke="#FFFFFF"
+        stroke-width="5"
+        fill="none"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
+
+  <!-- Three horizontal "formatted body" lines, slightly varied width to
+       suggest real code rather than a generic stack of bars. -->
+  <rect x="50" y="54" width="28" height="3.5" rx="1.75" fill="#FFFFFF"/>
+  <rect x="50" y="62" width="20" height="3.5" rx="1.75" fill="#FFFFFF" opacity="0.85"/>
+  <rect x="50" y="70" width="24" height="3.5" rx="1.75" fill="#FFFFFF" opacity="0.95"/>
+</svg>

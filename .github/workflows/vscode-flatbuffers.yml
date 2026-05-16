@@ -22,18 +22,18 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
-          cache-dependency-path: projects/vscode-flatbuffers/package-lock.json
+          cache-dependency-path: projects/flatbuffers/vscode-flatbuffers/package-lock.json
       - name: Build sibling flatbuffers-format (file: dependency)
         working-directory: projects/flatbuffers-formatter
         run: |
           npm ci --no-audit --no-fund
           npm run build
       - name: Install vscode-flatbuffers
-        working-directory: projects/vscode-flatbuffers
+        working-directory: projects/flatbuffers/vscode-flatbuffers
         run: npm install --no-audit --no-fund
       - name: Build
-        working-directory: projects/vscode-flatbuffers
+        working-directory: projects/flatbuffers/vscode-flatbuffers
         run: npm run build
       - name: Test
-        working-directory: projects/vscode-flatbuffers
+        working-directory: projects/flatbuffers/vscode-flatbuffers
         run: npm test

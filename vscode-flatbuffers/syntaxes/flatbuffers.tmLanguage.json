@@ -1,0 +1,133 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "FlatBuffers",
+  "scopeName": "source.fbs",
+  "fileTypes": ["fbs"],
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#keywords" },
+    { "include": "#builtin-types" },
+    { "include": "#numbers" },
+    { "include": "#metadata" },
+    { "include": "#identifiers" },
+    { "include": "#punctuation" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.block.documentation.fbs",
+          "begin": "///",
+          "end": "$",
+          "captures": { "0": { "name": "punctuation.definition.comment.fbs" } }
+        },
+        {
+          "name": "comment.line.double-slash.fbs",
+          "begin": "//",
+          "end": "$",
+          "captures": { "0": { "name": "punctuation.definition.comment.fbs" } }
+        },
+        {
+          "name": "comment.block.fbs",
+          "begin": "/\\*",
+          "end": "\\*/",
+          "captures": { "0": { "name": "punctuation.definition.comment.fbs" } }
+        }
+      ]
+    },
+    "strings": {
+      "name": "string.quoted.double.fbs",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.fbs",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.declaration.fbs",
+          "match": "\\b(table|struct|enum|union|rpc_service|namespace)\\b"
+        },
+        {
+          "name": "keyword.directive.fbs",
+          "match": "\\b(include|native_include|attribute|root_type|file_identifier|file_extension)\\b"
+        },
+        {
+          "name": "constant.language.fbs",
+          "match": "\\b(true|false|null|inf|nan)\\b"
+        }
+      ]
+    },
+    "builtin-types": {
+      "name": "support.type.primitive.fbs",
+      "match": "\\b(bool|byte|ubyte|short|ushort|int|uint|long|ulong|float|double|int8|uint8|int16|uint16|int32|uint32|int64|uint64|float32|float64|string)\\b"
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.float.hex.fbs",
+          "match": "[+-]?0[xX][0-9a-fA-F]*\\.?[0-9a-fA-F]+[pP][+-]?[0-9]+"
+        },
+        {
+          "name": "constant.numeric.integer.hex.fbs",
+          "match": "[+-]?0[xX][0-9a-fA-F]+"
+        },
+        {
+          "name": "constant.numeric.float.fbs",
+          "match": "[+-]?(\\d+\\.\\d*|\\.\\d+|\\d+)([eE][+-]?\\d+)?"
+        },
+        {
+          "name": "constant.numeric.integer.fbs",
+          "match": "[+-]?\\d+"
+        }
+      ]
+    },
+    "metadata": {
+      "name": "meta.attribute.fbs",
+      "begin": "\\(",
+      "end": "\\)",
+      "beginCaptures": { "0": { "name": "punctuation.section.attribute.begin.fbs" } },
+      "endCaptures": { "0": { "name": "punctuation.section.attribute.end.fbs" } },
+      "patterns": [
+        { "include": "#strings" },
+        { "include": "#numbers" },
+        { "include": "#keywords" },
+        {
+          "name": "entity.other.attribute-name.fbs",
+          "match": "\\b[A-Za-z_][A-Za-z0-9_]*\\b"
+        },
+        {
+          "name": "punctuation.separator.attribute.fbs",
+          "match": "[,:]"
+        }
+      ]
+    },
+    "identifiers": {
+      "patterns": [
+        {
+          "name": "entity.name.type.fbs",
+          "match": "\\b[A-Z][A-Za-z0-9_]*\\b"
+        },
+        {
+          "name": "variable.other.fbs",
+          "match": "\\b[a-z_][A-Za-z0-9_]*\\b"
+        }
+      ]
+    },
+    "punctuation": {
+      "patterns": [
+        { "name": "punctuation.terminator.fbs", "match": ";" },
+        { "name": "punctuation.separator.fbs", "match": "[,.]" },
+        { "name": "punctuation.section.brackets.fbs", "match": "[\\[\\]]" },
+        { "name": "punctuation.section.braces.fbs", "match": "[{}]" },
+        { "name": "keyword.operator.assignment.fbs", "match": "=" },
+        { "name": "keyword.operator.colon.fbs", "match": ":" }
+      ]
+    }
+  }
+}

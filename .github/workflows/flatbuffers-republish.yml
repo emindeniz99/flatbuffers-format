@@ -153,20 +153,20 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: projects/vscode-flatbuffers/package-lock.json
+          cache-dependency-path: projects/flatbuffers/vscode-flatbuffers/package-lock.json
       - name: "Build sibling flatbuffers-format (file: dep)"
         working-directory: projects/flatbuffers-formatter
         run: |
           npm ci --no-audit --no-fund
           npm run build
       - name: Install vscode-flatbuffers
-        working-directory: projects/vscode-flatbuffers
+        working-directory: projects/flatbuffers/vscode-flatbuffers
         run: npm ci --no-audit --no-fund
       - name: Build
-        working-directory: projects/vscode-flatbuffers
+        working-directory: projects/flatbuffers/vscode-flatbuffers
         run: npm run build
       - name: Rewrite file dep to npm version range
-        working-directory: projects/vscode-flatbuffers
+        working-directory: projects/flatbuffers/vscode-flatbuffers
         run: |
           engine_version=$(node -p "require('../../.release-please-manifest.json')['projects/flatbuffers-formatter']")
           echo "Pinning flatbuffers-format to ^${engine_version}"
@@ -177,17 +177,17 @@ jobs:
             fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
           "
       - name: Package .vsix
-        working-directory: projects/vscode-flatbuffers
+        working-directory: projects/flatbuffers/vscode-flatbuffers
         run: npx --yes @vscode/vsce package --out vscode-flatbuffers.vsix
       - name: Publish to VS Code Marketplace
-        working-directory: projects/vscode-flatbuffers
+        working-directory: projects/flatbuffers/vscode-flatbuffers
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: npx --yes @vscode/vsce publish --packagePath vscode-flatbuffers.vsix
       - name: Publish to Open VSX (optional)
         if: ${{ env.OVSX_PAT != '' }}
         continue-on-error: true
-        working-directory: projects/vscode-flatbuffers
+        working-directory: projects/flatbuffers/vscode-flatbuffers
         run: npx --yes ovsx publish vscode-flatbuffers.vsix --pat "$OVSX_PAT"
 
   republish-intellij-flatbuffers:

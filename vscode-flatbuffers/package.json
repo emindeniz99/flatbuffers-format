@@ -1,0 +1,123 @@
+{
+  "name": "vscode-flatbuffers",
+  "displayName": "FlatBuffers",
+  "description": "Syntax highlighting and format-on-save for FlatBuffers (.fbs) schema files. Format provider delegates to the flatbuffers-format engine.",
+  "version": "0.1.0",
+  "icon": "icon.svg",
+  "license": "MIT",
+  "author": "emindeniz99",
+  "publisher": "emindeniz99",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/emindeniz99/playground.git",
+    "directory": "projects/flatbuffers/vscode-flatbuffers"
+  },
+  "homepage": "https://github.com/emindeniz99/playground/tree/main/projects/flatbuffers/vscode-flatbuffers#readme",
+  "bugs": {
+    "url": "https://github.com/emindeniz99/playground/issues"
+  },
+  "keywords": [
+    "flatbuffers",
+    "fbs",
+    "formatter",
+    "syntax",
+    "schema"
+  ],
+  "categories": [
+    "Programming Languages",
+    "Formatters"
+  ],
+  "engines": {
+    "vscode": "^1.94.0",
+    "node": ">=20"
+  },
+  "main": "./dist/src/extension.js",
+  "type": "module",
+  "activationEvents": [
+    "onLanguage:flatbuffers"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "flatbuffers",
+        "aliases": [
+          "FlatBuffers",
+          "fbs"
+        ],
+        "extensions": [
+          ".fbs"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "flatbuffers",
+        "scopeName": "source.fbs",
+        "path": "./syntaxes/flatbuffers.tmLanguage.json"
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "FlatBuffers",
+      "properties": {
+        "flatbuffers.format.indent": {
+          "type": "number",
+          "default": 2,
+          "minimum": 0,
+          "description": "Indent count per level. Forwarded to flatbuffers-format's `indent` option. With `useTabs`, this is the number of tabs per level."
+        },
+        "flatbuffers.format.useTabs": {
+          "type": "boolean",
+          "default": false,
+          "description": "Use literal tab characters for indentation instead of spaces."
+        },
+        "flatbuffers.format.lineWidth": {
+          "type": "number",
+          "default": 80,
+          "minimum": 1,
+          "description": "Target column for compact/wrap decisions. Drives the engine's `lineWidth` option."
+        },
+        "flatbuffers.format.compactSingleLine": {
+          "type": "boolean",
+          "default": true,
+          "description": "Collapse small enum/union/single-field bodies onto one line when they fit in `lineWidth`."
+        },
+        "flatbuffers.format.maxBlankLines": {
+          "type": "number",
+          "default": 1,
+          "minimum": 0,
+          "description": "Maximum consecutive blank lines preserved between top-level declarations."
+        },
+        "flatbuffers.format.wrapComments": {
+          "type": "boolean",
+          "default": false,
+          "description": "Reflow long line comments at whitespace boundaries. Block comments and doc comments are left untouched."
+        },
+        "flatbuffers.format.commentWidth": {
+          "type": "number",
+          "default": 80,
+          "minimum": 1,
+          "description": "Wrap column for `wrapComments`. Defaults to `lineWidth` when unset."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "biome lint src",
+    "test": "tsc -p tsconfig.test.json && node scripts/run-tests.mjs",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "dependencies": {
+    "flatbuffers-format": "file:../flatbuffers-formatter"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.15",
+    "@types/node": "^22.10.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.2.0",
+    "typescript": "^5.6.0"
+  }
+}
