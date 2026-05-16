@@ -51,14 +51,22 @@
 
     <h3>Prerequisites</h3>
     <p>
-      The plugin shells out to <code>flatbuffers-format</code> on
-      <code>PATH</code>. Install once:
+      The plugin shells out to <code>flatbuffers-format</code>. You have two ways to make it available:
     </p>
-    <pre>npm install -g flatbuffers-format</pre>
-    <p>
-      Then point the IDE at it (auto-detected on most systems; manual
-      override in the settings page).
-    </p>
+    <ul>
+      <li>
+        <b>Click "Download bundled engine"</b> on the settings page
+        (Preferences → Tools → FlatBuffers). The plugin fetches the
+        matching native binary from the engine's GitHub Release and
+        caches it under the IDE system directory. No Node, no npm
+        required.
+      </li>
+      <li>
+        <b>Or install via npm</b> if you prefer to manage updates
+        yourself: <code>npm install -g flatbuffers-format</code>.
+        Auto-detected on <code>PATH</code> after install.
+      </li>
+    </ul>
 
     <h3>Supported IDEs</h3>
     <p>

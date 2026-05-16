@@ -75,15 +75,30 @@ class FlatBuffersSettings : PersistentStateComponent<FlatBuffersSettings.State> 
 
     /**
      * Returns an absolute path to a usable `flatbuffers-format` binary,
-     * or null if none can be found. Honors the user-configured path
-     * first, then walks `PATH`. On Windows the npm wrapper is
-     * `flatbuffers-format.cmd`; we check both spellings.
+     * or null if none can be found. Resolution order:
+     *
+     *   1. User-configured path (Settings → Tools → FlatBuffers).
+     *   2. Native binary downloaded by the plugin's "Download
+     *      bundled engine" action (see [BundledEngine]).
+     *   3. `flatbuffers-format` on `PATH`. On Windows the npm
+     *      wrapper is `.cmd`; we check both spellings.
+     *
+     * The configured path wins so power users can override an
+     * accidentally-cached older engine. The bundled-engine cache
+     * wins over `PATH` so a user who downloaded via our settings
+     * page gets a predictable behaviour even if their `PATH`
+     * later changes.
      */
     fun resolveCliPath(): String? {
         if (state.cliPath.isNotBlank()) {
             val f = File(state.cliPath)
             if (f.exists() && f.canExecute()) return f.absolutePath
             return null
+        }
+        val cached = BundledEngine.cachedBinaryPath()
+        if (cached != null) {
+            val f = cached.toFile()
+            if (f.exists() && f.canExecute()) return f.absolutePath
         }
         return findOnPath("flatbuffers-format")
     }

@@ -25,6 +25,12 @@ do not hand-edit released entries.
   `flatbuffers-format` CLI.
 - Settings page under Preferences → Tools → FlatBuffers with binary
   path, extra CLI arguments, and a format-on-save toggle.
+- **Download bundled engine** action on the settings page — fetches
+  the matching native `flatbuffers-format` binary from the engine's
+  GitHub Release on demand and caches it under the IDE system
+  directory. Eliminates the need to `npm install -g flatbuffers-format`
+  separately. Supported platforms: linux-x64, linux-arm64,
+  macos-x64, macos-arm64, windows-x64.
 - Line/block comment toggle support
   (Ctrl/⌘ + / and Ctrl/⌘ + Shift + /).
 - Marketplace publish + GitHub Release `.zip` asset via the
