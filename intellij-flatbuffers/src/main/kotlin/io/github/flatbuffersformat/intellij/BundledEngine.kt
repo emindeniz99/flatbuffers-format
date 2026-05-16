@@ -119,9 +119,56 @@ object BundledEngine {
         val tmp = cached.resolveSibling("$asset.partial")
 
         try {
-            URI.create(url).toURL().openStream().use { input ->
-                Files.copy(input, tmp, StandardCopyOption.REPLACE_EXISTING)
+            // Download the SHA256 sidecar first. If it's missing we
+            // refuse to install — every release-cut binary ships with
+            // a sidecar, so a missing one means we're either pointing
+            // at a stale release that predates the sidecar policy or
+            // someone replaced the binary without its sidecar.
+            progress?.text = "Verifying flatbuffers-format engine $ENGINE_VERSION..."
+            val expectedSha = try {
+                URI.create("$url.sha256").toURL().openStream().use { it.readAllBytes() }
+                    .toString(Charsets.UTF_8)
+                    .trim()
+                    .substringBefore(' ')
+                    .lowercase()
+            } catch (t: Throwable) {
+                throw BundledEngineException(
+                    "Failed to fetch SHA256 sidecar from $url.sha256: " +
+                        "${t.message ?: t.javaClass.simpleName}. The plugin refuses to install " +
+                        "an unverified binary.",
+                    t,
+                )
             }
+            if (!expectedSha.matches(Regex("^[0-9a-f]{64}$"))) {
+                throw BundledEngineException(
+                    "Malformed SHA256 sidecar at $url.sha256: '$expectedSha'. " +
+                        "Expected 64 hex characters.",
+                )
+            }
+
+            // Download the binary itself + hash on the way through.
+            progress?.text = "Downloading flatbuffers-format engine $ENGINE_VERSION..."
+            progress?.text2 = url
+            val digest = java.security.MessageDigest.getInstance("SHA-256")
+            URI.create(url).toURL().openStream().use { input ->
+                java.security.DigestInputStream(input, digest).use { digesting ->
+                    Files.copy(digesting, tmp, StandardCopyOption.REPLACE_EXISTING)
+                }
+            }
+            val actualSha = digest.digest().joinToString("") { "%02x".format(it) }
+            if (actualSha != expectedSha) {
+                throw BundledEngineException(
+                    "SHA256 mismatch on downloaded $asset:\n" +
+                        "  expected: $expectedSha\n" +
+                        "  actual:   $actualSha\n" +
+                        "Refusing to install. The release artefact may have been tampered " +
+                        "with, or the network corrupted the download. Retry; if the failure " +
+                        "persists, file a SECURITY advisory at https://github.com/" +
+                        "emindeniz99/playground/security/advisories/new.",
+                )
+            }
+            LOG.info("SHA256 verified: $actualSha")
+
             // chmod +x on POSIX. No-op on Windows.
             if (isPosix()) {
                 Files.setPosixFilePermissions(
@@ -136,6 +183,7 @@ object BundledEngine {
             } catch (_: Throwable) {
                 // best-effort cleanup
             }
+            if (t is BundledEngineException) throw t
             throw BundledEngineException(
                 "Failed to download $url: ${t.message ?: t.javaClass.simpleName}",
                 t,

@@ -37,10 +37,23 @@
 //   --no-sign         Skip macOS codesign (the binary still runs, but
 //                     macOS Gatekeeper will quarantine downloaded
 //                     copies until manually approved).
+//   --developer-id "Developer ID Application: …"
+//                     macOS only. Sign with a proper Developer ID
+//                     Application certificate instead of the
+//                     default ad-hoc signature. Required for
+//                     Apple notarization (CI runs `xcrun
+//                     notarytool submit` after this script when
+//                     the secret is configured).
+//   --no-sha          Skip writing a .sha256 sidecar alongside the
+//                     binary. Sidecars are how the IntelliJ plugin
+//                     (and any downstream consumer) verifies the
+//                     downloaded binary matches what the release
+//                     pipeline produced.
 
 import { spawnSync } from "node:child_process";
 import { copyFileSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { join, dirname, resolve } from "node:path";
+import { createHash } from "node:crypto";
+import { join, dirname, resolve, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { platform, arch } from "node:os";
 
@@ -54,6 +67,11 @@ const outDir = (() => {
   return join(projectDir, "build", "native");
 })();
 const skipSign = args.includes("--no-sign");
+const skipSha = args.includes("--no-sha");
+const developerId = (() => {
+  const idx = args.indexOf("--developer-id");
+  return idx !== -1 && args[idx + 1] ? args[idx + 1] : null;
+})();
 
 const exeName = platform() === "win32" ? "flatbuffers-format.exe" : "flatbuffers-format";
 const exePath = join(outDir, exeName);
@@ -187,23 +205,72 @@ if (postjectRes.status !== 0) {
 }
 
 // --- 6. Sign (macOS) so Gatekeeper doesn't quarantine downloads -------------
-// `codesign --sign -` is the ad-hoc signature: enough for local use
-// and CI artifact upload. Real distribution wants a proper Developer
-// ID signature + notarization, which is out of scope for v0.1 and
-// needs paid Apple Developer Program enrollment.
+// Two modes:
+//
+//   (a) `--developer-id "Developer ID Application: <Name> (<TEAM>)"`
+//       provided → full Developer ID signing with hardened runtime
+//       (`--options=runtime`). Required for Apple notarization.
+//       The certificate must already be in the host keychain
+//       (the CI workflow imports it from a `p12` secret before
+//       calling this script).
+//
+//   (b) Otherwise → `codesign --sign -` ad-hoc signature. Enough for
+//       local use and to ship via "Install from disk" sideloading,
+//       but downloaded copies will be quarantined by Gatekeeper
+//       until `xattr -dr com.apple.quarantine`.
 
 if (platform() === "darwin" && !skipSign) {
-  console.log("Ad-hoc codesigning (macOS)...");
-  const signRes = spawnSync(
-    "codesign",
-    ["--sign", "-", "--force", "--timestamp=none", exePath],
-    { stdio: "inherit" },
-  );
-  if (signRes.status !== 0) {
-    console.warn(
-      "codesign failed; binary still runs locally but downloaded copies will be quarantined by Gatekeeper.",
+  if (developerId) {
+    console.log(`Codesigning with Developer ID: ${developerId}`);
+    const signRes = spawnSync(
+      "codesign",
+      [
+        "--sign", developerId,
+        "--force",
+        "--timestamp",
+        "--options", "runtime",
+        exePath,
+      ],
+      { stdio: "inherit" },
     );
+    if (signRes.status !== 0) {
+      console.error("Developer ID codesign failed — refusing to produce an unsigned/badly-signed binary.");
+      process.exit(signRes.status ?? 1);
+    }
+  } else {
+    console.log("Ad-hoc codesigning (macOS, --developer-id not provided)...");
+    const signRes = spawnSync(
+      "codesign",
+      ["--sign", "-", "--force", "--timestamp=none", exePath],
+      { stdio: "inherit" },
+    );
+    if (signRes.status !== 0) {
+      console.warn(
+        "codesign failed; binary still runs locally but downloaded copies will be quarantined by Gatekeeper.",
+      );
+    }
   }
+}
+
+// --- 7. Emit SHA256 sidecar -------------------------------------------------
+// Consumers (the IntelliJ plugin downloader, anyone curling the
+// binary) verify the bytes against this sidecar before trusting
+// them. The sidecar is plain `<sha256>  <filename>\n` — same format
+// `sha256sum` emits — so it round-trips with `sha256sum --check
+// <file>.sha256`.
+//
+// Note: the sidecar is a defense against tampering of the BINARY
+// during transit / storage. It is NOT itself signed; an attacker
+// who can replace the binary on GitHub Releases can also replace
+// the sidecar. The stronger guarantee comes from GitHub
+// attestations / cosign, which is a follow-up.
+
+if (!skipSha) {
+  const sha = createHash("sha256").update(readFileSync(exePath)).digest("hex");
+  const sidecarPath = `${exePath}.sha256`;
+  writeFileSync(sidecarPath, `${sha}  ${basename(exePath)}\n`);
+  console.log(`SHA256: ${sha}`);
+  console.log(`Sidecar: ${sidecarPath}`);
 }
 
 // --- 7. Report --------------------------------------------------------------

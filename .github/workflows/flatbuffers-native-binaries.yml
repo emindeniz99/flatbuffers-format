@@ -15,6 +15,16 @@
 #      via the `released` event — uploads signed binaries to the
 #      GitHub Release that release-please just created.
 #
+# Each platform binary ships with a `.sha256` sidecar. The IntelliJ
+# plugin's bundled-engine downloader verifies the bytes against that
+# sidecar before installing.
+#
+# macOS binaries are Developer-ID-signed and Apple-notarized when the
+# `APPLE_*` secrets (cert, password, Apple ID, app-specific password,
+# team ID) are configured. Without them the build falls back to an
+# ad-hoc signature and downloaded copies hit Gatekeeper quarantine
+# until the user clears it manually.
+#
 # We don't publish to a separate registry — the binaries are downloadable
 # directly from GitHub Releases. Doc'd in the engine README.
 
@@ -64,6 +74,11 @@ jobs:
             os: windows-2022
             artifact: flatbuffers-format-windows-x64.exe
     runs-on: ${{ matrix.os }}
+    # Hoist the Apple secrets to a job-level env so the `if:` on the
+    # notarization step can check "are credentials present?" without
+    # the disallowed `secrets.*` reference inside the conditional.
+    env:
+      HAS_APPLE_NOTARIZATION: ${{ secrets.APPLE_DEVELOPER_ID_CERT_P12_BASE64 != '' && 'true' || 'false' }}
     defaults:
       run:
         working-directory: projects/flatbuffers/flatbuffers-formatter
@@ -79,8 +94,89 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Build
         run: pnpm --filter flatbuffers-format build
-      - name: Build native binary
+
+      # ── macOS: import Developer ID certificate into a temporary keychain
+      #
+      # This is the standard 2024+ pattern: a one-shot keychain that
+      # lives only for the duration of this job. The certificate's
+      # private key is unlocked, codesign uses it, then the keychain
+      # is destroyed in the `Cleanup keychain` post-step. The
+      # `KEYCHAIN_PASSWORD` is ephemeral (a fresh random per run) so
+      # it doesn't need to be a secret.
+      - name: Import Developer ID certificate (macOS)
+        if: runner.os == 'macOS' && env.HAS_APPLE_NOTARIZATION == 'true'
+        env:
+          CERT_P12_BASE64: ${{ secrets.APPLE_DEVELOPER_ID_CERT_P12_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_CERT_PASSWORD }}
+        run: |
+          set -euo pipefail
+          # Decode the .p12 from the base64-encoded secret.
+          echo "$CERT_P12_BASE64" | base64 --decode > /tmp/cert.p12
+          # Ephemeral keychain — fresh password per run.
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 24)
+          echo "EPHEMERAL_KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD" >> "$GITHUB_ENV"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings -lut 21600 build.keychain
+          security import /tmp/cert.p12 \
+            -k build.keychain \
+            -P "$CERT_PASSWORD" \
+            -T /usr/bin/codesign
+          security set-key-partition-list \
+            -S apple-tool:,apple: \
+            -s -k "$KEYCHAIN_PASSWORD" \
+            build.keychain
+          rm -f /tmp/cert.p12
+          # Extract the Developer ID identity string for codesign.
+          identity=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application" | head -1 | sed -E 's/.*"(.+)"$/\1/')
+          if [ -z "$identity" ]; then
+            echo "::error::No 'Developer ID Application' identity found in imported certificate."
+            exit 1
+          fi
+          echo "Found identity: $identity"
+          echo "DEVELOPER_ID=$identity" >> "$GITHUB_ENV"
+
+      - name: Build native binary (signed)
+        if: runner.os == 'macOS' && env.HAS_APPLE_NOTARIZATION == 'true'
+        run: node scripts/build-native.mjs --developer-id "$DEVELOPER_ID"
+
+      - name: Build native binary (unsigned / ad-hoc)
+        if: runner.os != 'macOS' || env.HAS_APPLE_NOTARIZATION != 'true'
         run: node scripts/build-native.mjs
+
+      # ── macOS notarization
+      #
+      # `xcrun notarytool submit --wait` blocks until Apple's notary
+      # service finishes inspecting the bundle (~1-5 minutes
+      # typically). After success, `stapler staple` attaches the
+      # notarization ticket so the binary works offline (Gatekeeper
+      # can verify locally without an Apple server round-trip).
+      - name: Notarize + staple (macOS)
+        if: runner.os == 'macOS' && env.HAS_APPLE_NOTARIZATION == 'true'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          # notarytool only accepts .zip / .pkg / .dmg, not raw binaries.
+          # Zip the binary just for the submission.
+          ditto -c -k --keepParent build/native/flatbuffers-format /tmp/notarize.zip
+          xcrun notarytool submit /tmp/notarize.zip \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_ID_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+          # Stapling applies to the binary directly (not the zip).
+          # SEA binaries are Mach-O; `stapler staple` works on them
+          # because they're a valid signed bundle once codesigned
+          # with --options=runtime.
+          xcrun stapler staple build/native/flatbuffers-format || {
+            echo "::warning::Stapling failed — binary is still notarized but Gatekeeper will need network to verify."
+          }
+          rm -f /tmp/notarize.zip
+
       # Smoke-test the binary before upload — catches injection problems
       # (postject silently producing a corrupt SEA, etc.) early.
       - name: Smoke-test (Unix)
@@ -93,21 +189,41 @@ jobs:
         shell: pwsh
         run: |
           .\build\native\flatbuffers-format.exe --version
-      - name: Rename + collect artifact
+
+      - name: Rename + collect artifact + sidecar
         shell: bash
         run: |
+          set -euo pipefail
           mkdir -p ../../_native-artifacts
           if [ "${{ runner.os }}" = "Windows" ]; then
-            cp build/native/flatbuffers-format.exe ../../_native-artifacts/${{ matrix.artifact }}
+            src=build/native/flatbuffers-format.exe
           else
-            cp build/native/flatbuffers-format ../../_native-artifacts/${{ matrix.artifact }}
+            src=build/native/flatbuffers-format
           fi
+          dst="../../_native-artifacts/${{ matrix.artifact }}"
+          cp "$src" "$dst"
+          # Re-compute the SHA over the renamed file — that's what
+          # consumers download. The sidecar build-native.mjs emitted
+          # is over the bare-filename version and would have the
+          # wrong filename column for `sha256sum --check`.
+          (
+            cd ../../_native-artifacts
+            sha256sum "${{ matrix.artifact }}" > "${{ matrix.artifact }}.sha256"
+          )
+
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: _native-artifacts/${{ matrix.artifact }}
+          path: |
+            _native-artifacts/${{ matrix.artifact }}
+            _native-artifacts/${{ matrix.artifact }}.sha256
           if-no-files-found: error
           retention-days: 30
+
+      - name: Cleanup keychain (macOS)
+        if: always() && runner.os == 'macOS' && env.HAS_APPLE_NOTARIZATION == 'true'
+        run: |
+          security delete-keychain build.keychain || true
 
   upload-to-release:
     name: Upload binaries to GitHub Release
@@ -148,6 +264,7 @@ jobs:
             flatbuffers-format@*) ;;
             *) echo "Skipping: tag '$tag' is not a flatbuffers-format release"; exit 0 ;;
           esac
+          # Both the binary and its sidecar.
           for f in _native-artifacts/flatbuffers-format-*; do
             [ -f "$f" ] || continue
             echo "Uploading $f → $tag"
