@@ -1,0 +1,83 @@
+# Performance regression gate for flatbuffers-format.
+#
+# Runs scripts/bench.mjs --json --repeat 3 (median of 3 reduces runner noise),
+# compares against scripts/bench-baseline.json, posts a sticky Markdown
+# comment to the PR, and fails the job if any metric regresses beyond its
+# per-metric tolerance.
+#
+# To legitimately accept slower numbers (e.g. a correctness fix that costs
+# perf), the maintainer should re-baseline locally and commit the new
+# baseline in the same PR — preferably with a commit body explaining the
+# tradeoff:
+#
+#     cd projects/flatbuffers-formatter
+#     npm run bench -- --json --repeat 3 > scripts/bench-baseline.json
+#     # strip the `node` and `commit` fields — they're irrelevant in a baseline
+#     git commit scripts/bench-baseline.json -m "perf(flatbuffers-formatter): re-baseline bench — <reason>"
+
+name: flatbuffers-format perf regression
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  perf-regression:
+    name: bench + compare vs baseline
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: projects/flatbuffers-formatter
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: projects/flatbuffers-formatter/package-lock.json
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      - name: Build
+        run: npm run build
+
+      - name: Run bench (JSON, median of 3)
+        run: node scripts/bench.mjs --json --repeat 3 > bench-current.json
+
+      - name: Compare against baseline
+        id: compare
+        # Capture exit code so the comment can post FIRST, then we fail
+        # the job afterwards. set +e is required because the step would
+        # otherwise abort the moment bench-compare exits non-zero.
+        run: |
+          set +e
+          node scripts/bench-compare.mjs bench-current.json | tee bench-report.md
+          echo "exit_code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+        shell: bash
+
+      - name: Post sticky PR comment
+        if: github.event_name == 'pull_request'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          # The body marker on line 1 of bench-report.md lets
+          # create-or-update-comment find and update the previous
+          # report instead of spamming the PR each push.
+          body-path: projects/flatbuffers-formatter/bench-report.md
+          edit-mode: replace
+          # Match the marker emitted by bench-compare.mjs.
+          body-includes: "<!-- perf-regression-report -->"
+
+      - name: Fail job if any metric regressed
+        if: steps.compare.outputs.exit_code != '0'
+        run: |
+          echo "::error::Performance regression detected. See bench-report.md comment on the PR."
+          exit 1
