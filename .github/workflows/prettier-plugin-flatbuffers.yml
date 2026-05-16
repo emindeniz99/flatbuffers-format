@@ -14,24 +14,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: projects/flatbuffers/prettier-plugin-flatbuffers/package-lock.json
-      # The plugin depends on flatbuffers-format via `file:../flatbuffers-formatter`,
-      # so the sibling must be built before we install in the plugin directory.
-      - name: "Build flatbuffers-format (sibling, file: dep)"
-        working-directory: projects/flatbuffers/flatbuffers-formatter
-        run: |
-          npm ci --no-audit --no-fund
-          npm run build
-      - name: Install
-        working-directory: projects/flatbuffers/prettier-plugin-flatbuffers
-        run: npm ci --no-audit --no-fund
-      - name: Build
-        working-directory: projects/flatbuffers/prettier-plugin-flatbuffers
-        run: npm run build
+          cache: pnpm
+      - name: Install (workspace, hoists the workspace:^ engine dep)
+        run: pnpm install --frozen-lockfile
+      - name: Build engine + plugin
+        run: pnpm --filter flatbuffers-format --filter prettier-plugin-flatbuffers build
       - name: Test
-        working-directory: projects/flatbuffers/prettier-plugin-flatbuffers
-        run: npm test
+        run: pnpm --filter prettier-plugin-flatbuffers test

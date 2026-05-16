@@ -12,7 +12,9 @@
 # accidentally shipping an inconsistent build.
 #
 # Same secrets as release-please.yml: NPM_TOKEN (3 packages), VSCE_PAT
-# + optional OVSX_PAT (vscode-flatbuffers). See CONTRIBUTING.md.
+# + optional OVSX_PAT (vscode-flatbuffers), JETBRAINS_MARKETPLACE_TOKEN
+# + optional signing-key trio (intellij-flatbuffers). See
+# CONTRIBUTING.md.
 
 name: republish
 
@@ -43,23 +45,20 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    defaults:
-      run:
-        working-directory: projects/flatbuffers/flatbuffers-formatter
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: projects/flatbuffers/flatbuffers-formatter/package-lock.json
+          cache: pnpm
           registry-url: https://registry.npmjs.org
       - name: Install
-        run: npm ci --no-audit --no-fund
+        run: pnpm install --frozen-lockfile
       - name: Build
-        run: npm run build
+        run: pnpm --filter flatbuffers-format build
       - name: Publish to npm with provenance
-        run: npm publish --provenance --access public
+        run: pnpm --filter flatbuffers-format publish --no-git-checks --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -72,37 +71,18 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: projects/flatbuffers/prettier-plugin-flatbuffers/package-lock.json
+          cache: pnpm
           registry-url: https://registry.npmjs.org
-      - name: "Build sibling flatbuffers-format (file: dep)"
-        working-directory: projects/flatbuffers/flatbuffers-formatter
-        run: |
-          npm ci --no-audit --no-fund
-          npm run build
       - name: Install
-        working-directory: projects/flatbuffers/prettier-plugin-flatbuffers
-        run: npm ci --no-audit --no-fund
-      - name: Build
-        working-directory: projects/flatbuffers/prettier-plugin-flatbuffers
-        run: npm run build
-      - name: Rewrite file dep to npm version range
-        working-directory: projects/flatbuffers/prettier-plugin-flatbuffers
-        run: |
-          engine_version=$(node -p "require('../../.release-please-manifest.json')['projects/flatbuffers/flatbuffers-formatter']")
-          echo "Pinning flatbuffers-format to ^${engine_version}"
-          node -e "
-            const fs = require('fs');
-            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            pkg.dependencies['flatbuffers-format'] = '^${engine_version}';
-            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
-          "
+        run: pnpm install --frozen-lockfile
+      - name: Build engine + plugin
+        run: pnpm --filter flatbuffers-format --filter prettier-plugin-flatbuffers build
       - name: Publish to npm with provenance
-        working-directory: projects/flatbuffers/prettier-plugin-flatbuffers
-        run: npm publish --provenance --access public
+        run: pnpm --filter prettier-plugin-flatbuffers publish --no-git-checks --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -113,21 +93,18 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    defaults:
-      run:
-        working-directory: projects/flatbuffers/tree-sitter-flatbuffers
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: projects/flatbuffers/tree-sitter-flatbuffers/package-lock.json
+          cache: pnpm
           registry-url: https://registry.npmjs.org
       - name: Install
-        run: npm ci --no-audit --no-fund
+        run: pnpm install --frozen-lockfile
       - name: Publish to npm with provenance
-        run: npm publish --provenance --access public
+        run: pnpm --filter tree-sitter-flatbuffers publish --no-git-checks --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -149,45 +126,31 @@ jobs:
             exit 1
           fi
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: projects/flatbuffers/vscode-flatbuffers/package-lock.json
-      - name: "Build sibling flatbuffers-format (file: dep)"
-        working-directory: projects/flatbuffers/flatbuffers-formatter
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Build engine + extension
+        run: pnpm --filter flatbuffers-format --filter vscode-flatbuffers build
+      - name: Materialise deploy tree (pnpm deploy)
         run: |
-          npm ci --no-audit --no-fund
-          npm run build
-      - name: Install vscode-flatbuffers
-        working-directory: projects/flatbuffers/vscode-flatbuffers
-        run: npm ci --no-audit --no-fund
-      - name: Build
-        working-directory: projects/flatbuffers/vscode-flatbuffers
-        run: npm run build
-      - name: Rewrite file dep to npm version range
-        working-directory: projects/flatbuffers/vscode-flatbuffers
-        run: |
-          engine_version=$(node -p "require('../../.release-please-manifest.json')['projects/flatbuffers/flatbuffers-formatter']")
-          echo "Pinning flatbuffers-format to ^${engine_version}"
-          node -e "
-            const fs = require('fs');
-            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            pkg.dependencies['flatbuffers-format'] = '^${engine_version}';
-            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
-          "
+          rm -rf deploy/vscode
+          pnpm deploy --filter vscode-flatbuffers --prod --legacy deploy/vscode
       - name: Package .vsix
-        working-directory: projects/flatbuffers/vscode-flatbuffers
+        working-directory: deploy/vscode
         run: npx --yes @vscode/vsce package --out vscode-flatbuffers.vsix
       - name: Publish to VS Code Marketplace
-        working-directory: projects/flatbuffers/vscode-flatbuffers
+        working-directory: deploy/vscode
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: npx --yes @vscode/vsce publish --packagePath vscode-flatbuffers.vsix
       - name: Publish to Open VSX (optional)
         if: ${{ env.OVSX_PAT != '' }}
         continue-on-error: true
-        working-directory: projects/flatbuffers/vscode-flatbuffers
+        working-directory: deploy/vscode
         run: npx --yes ovsx publish vscode-flatbuffers.vsix --pat "$OVSX_PAT"
 
   republish-intellij-flatbuffers:
@@ -241,39 +204,17 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: projects/flatbuffers/flatbuffers-format-editors/package-lock.json
+          cache: pnpm
           registry-url: https://registry.npmjs.org
-      - name: "Build sibling flatbuffers-format (file: dep)"
-        working-directory: projects/flatbuffers/flatbuffers-formatter
-        run: |
-          npm ci --no-audit --no-fund
-          npm run build
       - name: Install
-        working-directory: projects/flatbuffers/flatbuffers-format-editors
-        run: npm ci --no-audit --no-fund
-      - name: Build
-        working-directory: projects/flatbuffers/flatbuffers-format-editors
-        run: npm run build
-      - name: Rewrite file dep to npm version range
-        working-directory: projects/flatbuffers/flatbuffers-format-editors
-        run: |
-          engine_version=$(node -p "require('../../.release-please-manifest.json')['projects/flatbuffers/flatbuffers-formatter']")
-          echo "Pinning flatbuffers-format to ^${engine_version}"
-          node -e "
-            const fs = require('fs');
-            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            if (pkg.peerDependencies && pkg.peerDependencies['flatbuffers-format'])
-              pkg.peerDependencies['flatbuffers-format'] = '^${engine_version}';
-            if (pkg.devDependencies && pkg.devDependencies['flatbuffers-format'])
-              pkg.devDependencies['flatbuffers-format'] = '^${engine_version}';
-            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
-          "
+        run: pnpm install --frozen-lockfile
+      - name: Build engine + editors
+        run: pnpm --filter flatbuffers-format --filter flatbuffers-format-editors build
       - name: Publish to npm with provenance
-        working-directory: projects/flatbuffers/flatbuffers-format-editors
-        run: npm publish --provenance --access public
+        run: pnpm --filter flatbuffers-format-editors publish --no-git-checks --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

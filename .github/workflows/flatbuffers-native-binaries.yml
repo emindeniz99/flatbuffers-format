@@ -69,15 +69,16 @@ jobs:
         working-directory: projects/flatbuffers/flatbuffers-formatter
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: projects/flatbuffers/flatbuffers-formatter/package-lock.json
+          cache: pnpm
       - name: Install
-        run: npm ci --no-audit --no-fund
+        working-directory: ${{ github.workspace }}
+        run: pnpm install --frozen-lockfile
       - name: Build
-        run: npm run build
+        run: pnpm --filter flatbuffers-format build
       - name: Build native binary
         run: node scripts/build-native.mjs
       # Smoke-test the binary before upload — catches injection problems

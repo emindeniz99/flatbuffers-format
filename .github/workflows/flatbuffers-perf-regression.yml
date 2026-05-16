@@ -11,7 +11,7 @@
 # tradeoff:
 #
 #     cd projects/flatbuffers/flatbuffers-formatter
-#     npm run bench -- --json --repeat 3 > scripts/bench-baseline.json
+#     pnpm bench --json --repeat 3 > scripts/bench-baseline.json
 #     # strip the `node` and `commit` fields — they're irrelevant in a baseline
 #     git commit scripts/bench-baseline.json -m "perf(flatbuffers-formatter): re-baseline bench — <reason>"
 
@@ -37,17 +37,18 @@ jobs:
         working-directory: projects/flatbuffers/flatbuffers-formatter
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: projects/flatbuffers/flatbuffers-formatter/package-lock.json
+          cache: pnpm
 
       - name: Install
-        run: npm ci --no-audit --no-fund
+        working-directory: ${{ github.workspace }}
+        run: pnpm install --frozen-lockfile
 
       - name: Build
-        run: npm run build
+        run: pnpm --filter flatbuffers-format build
 
       - name: Run bench (JSON, median of 3)
         run: node scripts/bench.mjs --json --repeat 3 > bench-current.json

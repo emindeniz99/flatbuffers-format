@@ -50,19 +50,19 @@
   },
   "scripts": {
     "generate": "antlr-ng -Dlanguage=TypeScript -o generated grammar/FlatBuffers.g4",
-    "build": "npm run generate && tsc",
+    "build": "pnpm run generate && tsc",
     "fmt": "node dist/src/cli.js",
     "lint": "biome lint src test",
     "lint:fix": "biome check --write src test",
     "format:src": "biome format --write src test",
-    "test": "npm run generate && tsc -p tsconfig.test.json && node scripts/run-tests.mjs",
-    "build:sibling": "cd ../flatbuffers-formatter-handrolled && npm ci --no-audit --no-fund && npm run build",
+    "test": "pnpm run generate && tsc -p tsconfig.test.json && node scripts/run-tests.mjs",
+    "build:sibling": "pnpm --filter flatbuffers-format-handrolled build",
     "test:crosscheck": "bash test/crosscheck.sh",
     "test:flatc-conform": "bash scripts/flatc-conform.sh",
     "bench": "node scripts/bench.mjs",
     "build:native": "node scripts/build-native.mjs",
     "build:wasm": "node scripts/build-wasm.mjs",
-    "prepublishOnly": "npm run build && npm test && npm run build:sibling && npm run test:crosscheck"
+    "prepublishOnly": "pnpm run build && pnpm test && pnpm run build:sibling && pnpm run test:crosscheck"
   },
   "dependencies": {
     "antlr4ng": "^3.0.16"

@@ -55,7 +55,7 @@
     "test": "tsc -p tsconfig.test.json && node scripts/run-tests.mjs",
     "lint": "biome lint src test",
     "format:src": "biome format --write src test",
-    "prepublishOnly": "npm run build && npm test"
+    "prepublishOnly": "pnpm run build && pnpm test"
   },
   "peerDependencies": {
     "@codemirror/language": "^6.0.0",

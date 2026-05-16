@@ -41,7 +41,7 @@
     "test": "tree-sitter test && node scripts/parse-corpus.mjs",
     "lint": "biome lint grammar.js bindings scripts",
     "lint:fix": "biome check --write grammar.js bindings scripts",
-    "prepublishOnly": "npm run generate && npm test"
+    "prepublishOnly": "pnpm run generate && pnpm test"
   },
   "peerDependencies": {
     "tree-sitter": "^0.21"

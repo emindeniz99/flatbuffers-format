@@ -14,21 +14,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: projects/flatbuffers/tree-sitter-flatbuffers/package-lock.json
+          cache: pnpm
       - name: Install
-        working-directory: projects/flatbuffers/tree-sitter-flatbuffers
-        run: npm ci --no-audit --no-fund
+        run: pnpm install --frozen-lockfile
       # Regenerate the parser from grammar.js to make sure the committed
       # src/parser.c matches the source. If it diverges, `tree-sitter
       # generate` will silently overwrite it; the test suite then runs
       # on the freshly-generated parser.
       - name: Generate
-        working-directory: projects/flatbuffers/tree-sitter-flatbuffers
-        run: npm run generate
+        run: pnpm --filter tree-sitter-flatbuffers generate
       - name: Test
-        working-directory: projects/flatbuffers/tree-sitter-flatbuffers
-        run: npm test
+        run: pnpm --filter tree-sitter-flatbuffers test

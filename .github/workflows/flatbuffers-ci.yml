@@ -17,20 +17,17 @@ jobs:
   flatbuffers-format-lint:
     name: flatbuffers-format / lint (biome)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: projects/flatbuffers/flatbuffers-formatter
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: projects/flatbuffers/flatbuffers-formatter/package-lock.json
+          cache: pnpm
       - name: Install
-        run: npm ci --no-audit --no-fund
+        run: pnpm install --frozen-lockfile
       - name: Lint
-        run: npm run lint
+        run: pnpm --filter flatbuffers-format lint
 
   flatbuffers-format-test:
     name: flatbuffers-format / ${{ matrix.os }} / node ${{ matrix.node-version }}
@@ -39,23 +36,25 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        node-version: [20, 22]
-    defaults:
-      run:
-        working-directory: projects/flatbuffers/flatbuffers-formatter
+        # All currently-supported LTS lines plus the current release.
+        # Node release cadence (as of 2026): 20 = maintenance LTS until
+        # Apr 2026; 22 = active LTS until Apr 2027; 24 = current LTS;
+        # 26 = current. Odd-numbered (21/23/25) are short-lived
+        # (six-month EOL) — intentionally skipped.
+        node-version: [20, 22, 24, 26]
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: npm
-          cache-dependency-path: projects/flatbuffers/flatbuffers-formatter/package-lock.json
+          cache: pnpm
       - name: Install
-        run: npm ci --no-audit --no-fund
+        run: pnpm install --frozen-lockfile
       - name: Build
-        run: npm run build
+        run: pnpm --filter flatbuffers-format build
       - name: Test
-        run: npm test
+        run: pnpm --filter flatbuffers-format test
 
   flatbuffers-format-handrolled-test:
     name: flatbuffers-format-handrolled / ${{ matrix.os }} / node ${{ matrix.node-version }}
@@ -64,23 +63,20 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        node-version: [20, 22]
-    defaults:
-      run:
-        working-directory: projects/flatbuffers/flatbuffers-formatter-handrolled
+        node-version: [20, 22, 24, 26]
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: npm
-          cache-dependency-path: projects/flatbuffers/flatbuffers-formatter-handrolled/package-lock.json
+          cache: pnpm
       - name: Install
-        run: npm ci --no-audit --no-fund
+        run: pnpm install --frozen-lockfile
       - name: Build
-        run: npm run build
+        run: pnpm --filter flatbuffers-format-handrolled build
       - name: Test
-        run: npm test
+        run: pnpm --filter flatbuffers-format-handrolled test
 
   # Linux-only by design. crosscheck.sh is a bash script and wiring up bash
   # on Windows runners (or porting to PowerShell/Node) isn't worth it for a
@@ -93,19 +89,15 @@ jobs:
     needs: [flatbuffers-format-test, flatbuffers-format-handrolled-test]
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-      - name: Install + build flatbuffers-formatter
-        working-directory: projects/flatbuffers/flatbuffers-formatter
-        run: |
-          npm ci --no-audit --no-fund
-          npm run build
-      - name: Install + build flatbuffers-formatter-handrolled
-        working-directory: projects/flatbuffers/flatbuffers-formatter-handrolled
-        run: |
-          npm ci --no-audit --no-fund
-          npm run build
+          node-version: 22
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Build both engines
+        run: pnpm --filter flatbuffers-format --filter flatbuffers-format-handrolled build
       - name: Cross-check (byte-identical, idempotent)
         run: bash projects/flatbuffers/flatbuffers-formatter/test/crosscheck.sh
 
@@ -119,9 +111,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
+          cache: pnpm
       # ---------------------------------------------------------------------
       # flatc binary install — pinned tag + SHA256-verified download.
       #
@@ -177,10 +171,9 @@ jobs:
         run: echo "${{ github.workspace }}/tools/flatc" >> "$GITHUB_PATH"
       - name: Verify flatc on PATH
         run: flatc --version
-      - name: Install + build flatbuffers-formatter
-        working-directory: projects/flatbuffers/flatbuffers-formatter
-        run: |
-          npm ci --no-audit --no-fund
-          npm run build
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Build engine
+        run: pnpm --filter flatbuffers-format build
       - name: flatc-conform
         run: bash projects/flatbuffers/flatbuffers-formatter/scripts/flatc-conform.sh

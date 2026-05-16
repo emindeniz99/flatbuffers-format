@@ -44,7 +44,7 @@
     "test": "tsc -p tsconfig.test.json && node scripts/run-tests.mjs",
     "lint": "biome lint src test",
     "lint:fix": "biome check --write src test",
-    "prepublishOnly": "npm run build && npm test"
+    "prepublishOnly": "pnpm run build && pnpm test"
   },
   "peerDependencies": {
     "prettier": ">=3"

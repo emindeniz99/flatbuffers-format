@@ -41,20 +41,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: projects/flatbuffers/flatbuffers-formatter/package-lock.json
+          cache: pnpm
 
       - name: Install
-        run: npm ci --no-audit --no-fund
+        working-directory: ${{ github.workspace }}
+        run: pnpm install --frozen-lockfile
 
       - name: Build (codegen + tsc)
-        run: npm run build
+        run: pnpm --filter flatbuffers-format build
 
-      - name: Install TypeDoc (ephemeral, not saved to package.json)
-        run: npm install --no-save --no-audit --no-fund typedoc
+      - name: Install TypeDoc (ephemeral, workspace-root, not saved)
+        working-directory: ${{ github.workspace }}
+        run: pnpm add -w --save-dev typedoc
 
       - name: Assemble site
         run: |
