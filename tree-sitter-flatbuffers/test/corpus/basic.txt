@@ -1,0 +1,258 @@
+==================
+Minimal table
+==================
+
+table Hello { x:int; }
+
+---
+
+(source_file
+  (table_decl
+    name: (identifier)
+    body: (table_body
+      (field_decl
+        name: (identifier)
+        type: (type_ref
+          (dotted_identifier
+            (identifier)))))))
+
+==================
+Enum with per-value metadata
+==================
+
+attribute "priority";
+enum Status: byte {
+  Pending,
+  Active = 1 (priority: 0),
+  Retired (deprecated)
+}
+
+---
+
+(source_file
+  (attribute_decl
+    name: (string_literal))
+  (enum_decl
+    name: (identifier)
+    underlying_type: (identifier)
+    (enum_value_decl
+      name: (identifier))
+    (enum_value_decl
+      name: (identifier)
+      value: (scalar
+        (int_literal))
+      metadata: (metadata
+        (metadata_entry
+          key: (identifier)
+          value: (scalar
+            (int_literal)))))
+    (enum_value_decl
+      name: (identifier)
+      metadata: (metadata
+        (metadata_entry
+          key: (identifier))))))
+
+==================
+Union with explicit underlying type
+==================
+
+union Weapon: uint8 {
+  Sword,
+  alias: Axe
+}
+
+---
+
+(source_file
+  (union_decl
+    name: (identifier)
+    underlying_type: (identifier)
+    (union_value_decl
+      type: (dotted_identifier
+        (identifier)))
+    (union_value_decl
+      alias: (identifier)
+      type: (dotted_identifier
+        (identifier)))))
+
+==================
+Namespace re-open
+==================
+
+namespace A.B;
+table T { x: int; }
+namespace A.B;
+
+---
+
+(source_file
+  (namespace_decl
+    name: (dotted_identifier
+      (identifier)
+      (identifier)))
+  (table_decl
+    name: (identifier)
+    body: (table_body
+      (field_decl
+        name: (identifier)
+        type: (type_ref
+          (dotted_identifier
+            (identifier))))))
+  (namespace_decl
+    name: (dotted_identifier
+      (identifier)
+      (identifier))))
+
+==================
+Hex float defaults and inf/nan
+==================
+
+table HF {
+  a: double = 0x1.8p3;
+  b: float = inf;
+  c: float = nan;
+  d: float = -0x1p0;
+}
+
+---
+
+(source_file
+  (table_decl
+    name: (identifier)
+    body: (table_body
+      (field_decl
+        name: (identifier)
+        type: (type_ref
+          (dotted_identifier
+            (identifier)))
+        default: (scalar
+          (hex_float_literal)))
+      (field_decl
+        name: (identifier)
+        type: (type_ref
+          (dotted_identifier
+            (identifier)))
+        default: (scalar
+          (identifier)))
+      (field_decl
+        name: (identifier)
+        type: (type_ref
+          (dotted_identifier
+            (identifier)))
+        default: (scalar
+          (identifier)))
+      (field_decl
+        name: (identifier)
+        type: (type_ref
+          (dotted_identifier
+            (identifier)))
+        default: (scalar
+          (hex_float_literal))))))
+
+==================
+Object literal at end of file
+==================
+
+table Config { a:int; }
+root_type Config;
+{
+  a: 1,
+  b: "hello",
+  c: [1, 2, 3]
+}
+
+---
+
+(source_file
+  (table_decl
+    name: (identifier)
+    body: (table_body
+      (field_decl
+        name: (identifier)
+        type: (type_ref
+          (dotted_identifier
+            (identifier))))))
+  (root_type_decl
+    type: (dotted_identifier
+      (identifier)))
+  (object_literal
+    (object_field
+      key: (identifier)
+      value: (scalar
+        (int_literal)))
+    (object_field
+      key: (identifier)
+      value: (scalar
+        (string_literal)))
+    (object_field
+      key: (identifier)
+      value: (object_array
+        (scalar
+          (int_literal))
+        (scalar
+          (int_literal))
+        (scalar
+          (int_literal))))))
+
+==================
+Keyword as field name
+==================
+
+table Reserved {
+  enum: int;
+  union: string;
+}
+
+---
+
+(source_file
+  (table_decl
+    name: (identifier)
+    body: (table_body
+      (field_decl
+        name: (identifier)
+        type: (type_ref
+          (dotted_identifier
+            (identifier))))
+      (field_decl
+        name: (identifier)
+        type: (type_ref
+          (dotted_identifier
+            (identifier)))))))
+
+==================
+Fixed-size array inside struct
+==================
+
+struct Matrix3 {
+  data: [float:9];
+}
+
+---
+
+(source_file
+  (struct_decl
+    name: (identifier)
+    body: (table_body
+      (field_decl
+        name: (identifier)
+        type: (type_ref
+          element: (type_ref
+            (dotted_identifier
+              (identifier)))
+          size: (int_literal))))))
+
+==================
+Native include
+==================
+
+native_include "ext.h";
+include "other.fbs";
+
+---
+
+(source_file
+  (native_include_decl
+    path: (string_literal))
+  (include_decl
+    path: (string_literal)))

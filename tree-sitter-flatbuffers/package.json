@@ -1,0 +1,63 @@
+{
+  "name": "tree-sitter-flatbuffers",
+  "version": "0.1.0",
+  "description": "Tree-sitter grammar for FlatBuffers (.fbs) schema files. Syntax highlighting + incremental parsing for Neovim, Helix, Zed, and any editor with a tree-sitter consumer.",
+  "keywords": [
+    "tree-sitter",
+    "tree-sitter-grammar",
+    "flatbuffers",
+    "fbs",
+    "syntax",
+    "parser"
+  ],
+  "license": "MIT",
+  "author": "emindeniz99",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/emindeniz99/playground.git",
+    "directory": "projects/flatbuffers/tree-sitter-flatbuffers"
+  },
+  "homepage": "https://github.com/emindeniz99/playground/tree/main/projects/flatbuffers/tree-sitter-flatbuffers#readme",
+  "bugs": {
+    "url": "https://github.com/emindeniz99/playground/issues"
+  },
+  "main": "bindings/node/index.js",
+  "files": [
+    "LICENSE",
+    "README.md",
+    "CHANGELOG.md",
+    "binding.gyp",
+    "bindings/",
+    "grammar.js",
+    "queries/",
+    "src/"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "generate": "tree-sitter generate",
+    "build": "tree-sitter generate",
+    "test": "tree-sitter test && node scripts/parse-corpus.mjs",
+    "lint": "biome lint grammar.js bindings scripts",
+    "lint:fix": "biome check --write grammar.js bindings scripts",
+    "prepublishOnly": "npm run generate && npm test"
+  },
+  "peerDependencies": {
+    "tree-sitter": "^0.21"
+  },
+  "peerDependenciesMeta": {
+    "tree-sitter": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "node-addon-api": "^7.1.0",
+    "node-gyp-build": "^4.8.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.15",
+    "tree-sitter": "^0.21.1",
+    "tree-sitter-cli": "^0.25.0"
+  }
+}

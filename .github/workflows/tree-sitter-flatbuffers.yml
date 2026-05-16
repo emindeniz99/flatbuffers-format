@@ -18,17 +18,17 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: projects/tree-sitter-flatbuffers/package-lock.json
+          cache-dependency-path: projects/flatbuffers/tree-sitter-flatbuffers/package-lock.json
       - name: Install
-        working-directory: projects/tree-sitter-flatbuffers
+        working-directory: projects/flatbuffers/tree-sitter-flatbuffers
         run: npm ci --no-audit --no-fund
       # Regenerate the parser from grammar.js to make sure the committed
       # src/parser.c matches the source. If it diverges, `tree-sitter
       # generate` will silently overwrite it; the test suite then runs
       # on the freshly-generated parser.
       - name: Generate
-        working-directory: projects/tree-sitter-flatbuffers
+        working-directory: projects/flatbuffers/tree-sitter-flatbuffers
         run: npm run generate
       - name: Test
-        working-directory: projects/tree-sitter-flatbuffers
+        working-directory: projects/flatbuffers/tree-sitter-flatbuffers
         run: npm test

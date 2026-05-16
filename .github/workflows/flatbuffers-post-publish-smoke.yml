@@ -185,7 +185,7 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             v="${{ inputs.tree_sitter_version }}"
           else
-            v="$(python3 -c 'import json; print(json.load(open(".release-please-manifest.json"))["projects/tree-sitter-flatbuffers"])' 2>/dev/null || echo "")"
+            v="$(python3 -c 'import json; print(json.load(open(".release-please-manifest.json"))["projects/flatbuffers/tree-sitter-flatbuffers"])' 2>/dev/null || echo "")"
           fi
           if [ -z "$v" ]; then
             echo "No version to smoke; skipping."
