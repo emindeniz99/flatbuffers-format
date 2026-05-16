@@ -18,7 +18,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: projects/prettier-plugin-flatbuffers/package-lock.json
+          cache-dependency-path: projects/flatbuffers/prettier-plugin-flatbuffers/package-lock.json
       # The plugin depends on flatbuffers-format via `file:../flatbuffers-formatter`,
       # so the sibling must be built before we install in the plugin directory.
       - name: Build flatbuffers-format (sibling, file: dep)
@@ -27,11 +27,11 @@ jobs:
           npm ci --no-audit --no-fund
           npm run build
       - name: Install
-        working-directory: projects/prettier-plugin-flatbuffers
+        working-directory: projects/flatbuffers/prettier-plugin-flatbuffers
         run: npm ci --no-audit --no-fund
       - name: Build
-        working-directory: projects/prettier-plugin-flatbuffers
+        working-directory: projects/flatbuffers/prettier-plugin-flatbuffers
         run: npm run build
       - name: Test
-        working-directory: projects/prettier-plugin-flatbuffers
+        working-directory: projects/flatbuffers/prettier-plugin-flatbuffers
         run: npm test

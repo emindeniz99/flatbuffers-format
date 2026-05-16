@@ -116,7 +116,7 @@ jobs:
             v="${{ inputs.prettier_plugin_version }}"
             engine="$(python3 -c 'import json; print(json.load(open(".release-please-manifest.json"))["projects/flatbuffers-formatter"])' 2>/dev/null || echo "")"
           else
-            v="$(python3 -c 'import json; print(json.load(open(".release-please-manifest.json"))["projects/prettier-plugin-flatbuffers"])' 2>/dev/null || echo "")"
+            v="$(python3 -c 'import json; print(json.load(open(".release-please-manifest.json"))["projects/flatbuffers/prettier-plugin-flatbuffers"])' 2>/dev/null || echo "")"
             engine="$(python3 -c 'import json; print(json.load(open(".release-please-manifest.json"))["projects/flatbuffers-formatter"])' 2>/dev/null || echo "")"
           fi
           if [ -z "$v" ] || [ -z "$engine" ]; then

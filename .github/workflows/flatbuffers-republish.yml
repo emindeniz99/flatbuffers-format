@@ -76,7 +76,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: projects/prettier-plugin-flatbuffers/package-lock.json
+          cache-dependency-path: projects/flatbuffers/prettier-plugin-flatbuffers/package-lock.json
           registry-url: https://registry.npmjs.org
       - name: "Build sibling flatbuffers-format (file: dep)"
         working-directory: projects/flatbuffers-formatter
@@ -84,13 +84,13 @@ jobs:
           npm ci --no-audit --no-fund
           npm run build
       - name: Install
-        working-directory: projects/prettier-plugin-flatbuffers
+        working-directory: projects/flatbuffers/prettier-plugin-flatbuffers
         run: npm ci --no-audit --no-fund
       - name: Build
-        working-directory: projects/prettier-plugin-flatbuffers
+        working-directory: projects/flatbuffers/prettier-plugin-flatbuffers
         run: npm run build
       - name: Rewrite file dep to npm version range
-        working-directory: projects/prettier-plugin-flatbuffers
+        working-directory: projects/flatbuffers/prettier-plugin-flatbuffers
         run: |
           engine_version=$(node -p "require('../../.release-please-manifest.json')['projects/flatbuffers-formatter']")
           echo "Pinning flatbuffers-format to ^${engine_version}"
@@ -101,7 +101,7 @@ jobs:
             fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
           "
       - name: Publish to npm with provenance
-        working-directory: projects/prettier-plugin-flatbuffers
+        working-directory: projects/flatbuffers/prettier-plugin-flatbuffers
         run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
