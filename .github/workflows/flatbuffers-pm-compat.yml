@@ -1,0 +1,196 @@
+# Verify the published `flatbuffers-format` tarball installs cleanly
+# under every major JS package manager — npm, pnpm, Yarn Classic v1,
+# Yarn Berry (v4 default), and Bun. Catches the class of bugs the
+# unit-test surface can't see: PnP-incompatible imports, hoisting
+# assumptions, postinstall-script differences, peer-dep resolution
+# quirks.
+#
+# Two-phase design:
+#   pack    — one-time: build + `pnpm pack` the engine → upload .tgz
+#             as a workflow artifact.
+#   install — fan-out matrix: download the tarball, set up the PM,
+#             init a scratch consumer project, install the tarball,
+#             run a tiny smoke test (`import { format } from
+#             "flatbuffers-format"`).
+#
+# The smoke test deliberately uses the public API only — no internal
+# imports — so a divergence between PMs shows up as a real consumer
+# pain point, not a test-rig artefact.
+
+name: package-manager-compat
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - projects/flatbuffers/flatbuffers-formatter/**
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - .github/workflows/pm-compat.yml
+  pull_request:
+    paths:
+      - projects/flatbuffers/flatbuffers-formatter/**
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - .github/workflows/pm-compat.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pack:
+    name: build + pack tarball
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter flatbuffers-format build
+      # pnpm pack writes the .tgz with workspace:^ rewritten to
+      # ^X.Y.Z, exactly like pnpm publish — i.e. this is the same
+      # artefact npm consumers would get from the registry.
+      - name: Pack tarball
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/_pack"
+          pnpm --filter flatbuffers-format pack --pack-destination "$GITHUB_WORKSPACE/_pack"
+          ls -la "$GITHUB_WORKSPACE/_pack"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flatbuffers-format-tarball
+          path: _pack/*.tgz
+          if-no-files-found: error
+          retention-days: 7
+
+  install:
+    name: install via ${{ matrix.pm }}
+    needs: pack
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        pm: [npm, pnpm, yarn-classic, yarn-berry, bun]
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: flatbuffers-format-tarball
+          path: _pack
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        if: matrix.pm == 'pnpm'
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
+
+      - name: Setup Yarn Classic (v1)
+        if: matrix.pm == 'yarn-classic'
+        run: npm install -g yarn@1.22.22
+
+      - name: Setup Yarn Berry (v4)
+        if: matrix.pm == 'yarn-berry'
+        # Yarn 4 is the current stable Berry. We install the
+        # "yarn 1" shim globally; per-project `yarn set version` then
+        # switches to a vendored Berry release that lives in
+        # .yarn/releases/.
+        run: |
+          npm install -g yarn@1.22.22
+          yarn --version
+
+      - name: Setup Bun
+        if: matrix.pm == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Locate tarball
+        id: t
+        run: |
+          tgz=$(ls _pack/*.tgz | head -1)
+          echo "path=$GITHUB_WORKSPACE/$tgz" >> "$GITHUB_OUTPUT"
+          echo "Tarball: $tgz"
+
+      - name: Init scratch consumer + install tarball
+        run: |
+          set -eux
+          mkdir consumer && cd consumer
+          tarball='${{ steps.t.outputs.path }}'
+
+          # Skip `<pm> init -y` — each PM's interpretation of `-y` and
+          # default field set differs (bun's `init -y` creates an
+          # `init/` subdirectory; yarn berry initializes with a yarnrc).
+          # Hand-writing a tiny ESM package.json sidesteps all of it.
+          cat > package.json <<'JSON'
+          { "name": "consumer", "version": "0.0.0", "private": true, "type": "module" }
+          JSON
+
+          case "${{ matrix.pm }}" in
+            npm)
+              npm install --no-audit --no-fund "$tarball"
+              ;;
+            pnpm)
+              pnpm add "$tarball"
+              ;;
+            yarn-classic)
+              yarn add "file:$tarball"
+              ;;
+            yarn-berry)
+              yarn set version berry
+              # Berry defaults to PnP. We force node-modules linker so
+              # Node's resolution algorithm sees flatbuffers-format
+              # the same way npm/pnpm/bun expose it — testing PnP is
+              # a separate, more nuanced exercise.
+              echo "nodeLinker: node-modules" > .yarnrc.yml
+              yarn add "$tarball"
+              ;;
+            bun)
+              bun add "$tarball"
+              ;;
+          esac
+
+      - name: Smoke test (import + format + roundtrip)
+        working-directory: consumer
+        run: |
+          cat > smoke.mjs <<'EOF'
+          import { format, check } from "flatbuffers-format";
+
+          const ugly = "namespace  X.Y;\n\nenum Color:byte{Red=0,Green,Blue}\ntable T{x:int;color:Color=Green;}";
+          const out = format(ugly);
+
+          // Must produce SOMETHING and be idempotent.
+          if (!out || out.length < 10) {
+            throw new Error("Suspiciously short output: " + JSON.stringify(out));
+          }
+          if (format(out) !== out) {
+            throw new Error("format() is not idempotent on its own output");
+          }
+          if (check(out) !== true) {
+            throw new Error("check() rejected formatted output");
+          }
+
+          // Canonical structural markers — keep loose so tweaks to
+          // whitespace/punctuation in the engine don't break the
+          // PM-compat gate. The point is "does the package import
+          // and run", not "does the printer emit byte-X".
+          for (const expect of ["namespace X.Y", "enum Color", "table T {", "color: Color"]) {
+            if (!out.includes(expect)) {
+              throw new Error("Missing canonical substring: " + JSON.stringify(expect) + " in " + JSON.stringify(out));
+            }
+          }
+
+          console.log("OK under ${{ matrix.pm }} — output length:", out.length, "bytes");
+          EOF
+          node smoke.mjs
+
+      - name: Smoke test under Bun runtime (matrix=bun only)
+        if: matrix.pm == 'bun'
+        working-directory: consumer
+        run: bun run smoke.mjs

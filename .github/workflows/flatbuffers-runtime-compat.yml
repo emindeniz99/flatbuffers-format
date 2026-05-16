@@ -1,0 +1,280 @@
+# Verify the published `flatbuffers-format` tarball works under
+# every non-Node runtime we claim to support — Deno, Bun, Cloudflare
+# Workers (miniflare), and AWS Lambda (SAM local).
+#
+# Why this matters:
+#   - The engine is pure-TypeScript and dep-light (`antlr4ng` only).
+#     It SHOULD work under any modern JS runtime, but "should" isn't
+#     "tested" — these jobs flush out e.g. Node-specific globals,
+#     `node:` import specifiers that other runtimes don't know yet,
+#     CJS/ESM interop quirks, or DOM-vs-Workers mismatches.
+#   - For each runtime we ship a tiny smoke test using only the
+#     public API (`format`, `check`). Anything more is overfit to
+#     this test rig.
+#
+# Mirrors the two-phase shape of pm-compat.yml: one `pack` job
+# produces the canonical tarball; the matrix below downloads it and
+# exercises each runtime against the same artefact.
+
+name: runtime-compat
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - projects/flatbuffers/flatbuffers-formatter/**
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - .github/workflows/runtime-compat.yml
+  pull_request:
+    paths:
+      - projects/flatbuffers/flatbuffers-formatter/**
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - .github/workflows/runtime-compat.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pack:
+    name: build + pack tarball
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter flatbuffers-format build
+      - name: Pack tarball
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/_pack"
+          pnpm --filter flatbuffers-format pack --pack-destination "$GITHUB_WORKSPACE/_pack"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flatbuffers-format-tarball
+          path: _pack/*.tgz
+          if-no-files-found: error
+          retention-days: 7
+
+  # ---------- Deno ---------------------------------------------------------
+
+  deno:
+    name: Deno
+    needs: pack
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: flatbuffers-format-tarball
+          path: _pack
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install tarball into a node_modules tree Deno can read
+        run: |
+          set -eux
+          tgz=$(ls _pack/*.tgz | head -1)
+          mkdir consumer && cd consumer
+          cat > package.json <<'JSON'
+          { "name": "consumer", "version": "0.0.0", "private": true, "type": "module" }
+          JSON
+          npm install --no-audit --no-fund "../$tgz"
+      - name: Smoke test under Deno
+        working-directory: consumer
+        run: |
+          cat > smoke.ts <<'EOF'
+          import { format, check } from "npm:flatbuffers-format";
+          const out = format("namespace X;\ntable T{x:int;}");
+          if (!out.includes("table T")) throw new Error("Unexpected output: " + out);
+          if (check(out) !== true) throw new Error("check() rejected formatted output");
+          console.log("Deno OK:", out.length, "bytes");
+          EOF
+          deno run --allow-read --allow-env --node-modules-dir=auto smoke.ts
+
+  # ---------- Bun (runtime, not installer) --------------------------------
+
+  bun:
+    name: Bun runtime
+    needs: pack
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: flatbuffers-format-tarball
+          path: _pack
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install + smoke
+        run: |
+          set -eux
+          tgz=$(ls _pack/*.tgz | head -1)
+          mkdir consumer && cd consumer
+          cat > package.json <<'JSON'
+          { "name": "consumer", "version": "0.0.0", "private": true, "type": "module" }
+          JSON
+          bun add "../$tgz"
+          cat > smoke.mjs <<'EOF'
+          import { format } from "flatbuffers-format";
+          const out = format("table T{x:int;y:string;}");
+          if (!out.includes("table T")) throw new Error("Unexpected output: " + out);
+          if (format(out) !== out) throw new Error("format() not idempotent under Bun");
+          console.log("Bun OK:", out.length, "bytes");
+          EOF
+          bun run smoke.mjs
+
+  # ---------- Cloudflare Workers (miniflare) ------------------------------
+
+  cloudflare-workers:
+    name: Cloudflare Workers (miniflare)
+    needs: pack
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: flatbuffers-format-tarball
+          path: _pack
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build Worker bundle and run smoke via miniflare
+        run: |
+          set -eux
+          tgz=$(ls _pack/*.tgz | head -1)
+          mkdir worker && cd worker
+          cat > package.json <<'JSON'
+          { "name": "worker", "version": "0.0.0", "private": true, "type": "module" }
+          JSON
+          npm install --no-audit --no-fund "../$tgz" miniflare@^4 esbuild@^0.24
+
+          # 1. Worker source — uses Workers' standard fetch handler shape.
+          cat > worker.mjs <<'EOF'
+          import { format } from "flatbuffers-format";
+          export default {
+            async fetch(req) {
+              const url = new URL(req.url);
+              const src = url.searchParams.get("src") ?? "table T{x:int;}";
+              try {
+                return new Response(format(src), { headers: { "content-type": "text/plain" } });
+              } catch (e) {
+                return new Response("ERR: " + (e.message ?? e), { status: 400 });
+              }
+            }
+          };
+          EOF
+
+          # 2. esbuild → single-file Worker. miniflare can run uncompiled
+          # ESM, but bundling exercises the same path Wrangler would.
+          npx esbuild worker.mjs --bundle --format=esm --target=es2022 \
+            --conditions=workerd,worker,browser --outfile=worker.bundled.mjs
+
+          # 3. Spin up miniflare programmatically, hit it, assert.
+          cat > smoke.mjs <<'EOF'
+          import { Miniflare } from "miniflare";
+          import { readFileSync } from "node:fs";
+
+          const mf = new Miniflare({
+            modules: true,
+            script: readFileSync("worker.bundled.mjs", "utf8"),
+            compatibilityDate: "2026-04-01",
+          });
+          try {
+            const res = await mf.dispatchFetch("https://example.test/?src=" + encodeURIComponent("namespace X;\ntable T{x:int;}"));
+            const body = await res.text();
+            if (res.status !== 200) throw new Error("HTTP " + res.status + ": " + body);
+            if (!body.includes("table T")) throw new Error("Unexpected body: " + body);
+            console.log("Workers OK:", body.length, "bytes");
+          } finally {
+            await mf.dispose();
+          }
+          EOF
+          node smoke.mjs
+
+  # ---------- AWS Lambda (SAM local) --------------------------------------
+
+  aws-lambda:
+    name: AWS Lambda (SAM local)
+    needs: pack
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: flatbuffers-format-tarball
+          path: _pack
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install SAM CLI
+        run: pip install --upgrade aws-sam-cli
+      - name: Scaffold Lambda + invoke
+        run: |
+          set -eux
+          tgz=$(ls _pack/*.tgz | head -1)
+          mkdir -p lambda/fn
+          cd lambda
+
+          # 1. SAM template
+          cat > template.yaml <<'EOF'
+          AWSTemplateFormatVersion: '2010-09-09'
+          Transform: AWS::Serverless-2016-10-31
+          Resources:
+            FormatFn:
+              Type: AWS::Serverless::Function
+              Properties:
+                CodeUri: fn/
+                Handler: handler.handler
+                # AL2023 Node 22 was added in 2025 — also available
+                # as `nodejs22.x`.
+                Runtime: nodejs22.x
+                MemorySize: 256
+                Timeout: 10
+          EOF
+
+          # 2. Function source + dep install (sam local invoke runs the
+          # function in a Lambda-emulated container, so node_modules
+          # must be alongside handler.mjs).
+          cp "../$tgz" fn/flatbuffers-format.tgz
+          cd fn
+          cat > package.json <<'JSON'
+          { "name": "fn", "version": "0.0.0", "private": true, "type": "module" }
+          JSON
+          npm install --no-audit --no-fund ./flatbuffers-format.tgz
+          rm flatbuffers-format.tgz
+
+          cat > handler.mjs <<'EOF'
+          import { format } from "flatbuffers-format";
+          export const handler = async (event) => {
+            const src = event?.src ?? "table T{x:int;}";
+            return { statusCode: 200, body: format(src) };
+          };
+          EOF
+          cd ..
+
+          # 3. Invoke event
+          cat > event.json <<'EOF'
+          { "src": "namespace X;\ntable T{x:int;name:string;}" }
+          EOF
+
+          # 4. sam local invoke runs the function inside a public
+          # AWS Lambda runtime container. Output is the Lambda
+          # response on stdout; runtime/setup logs go to stderr.
+          sam local invoke FormatFn --event event.json > out.json
+          cat out.json
+
+          node -e '
+            const res = JSON.parse(require("fs").readFileSync("out.json", "utf8"));
+            if (res.statusCode !== 200) { console.error("bad status", res); process.exit(1); }
+            if (!res.body.includes("table T")) { console.error("bad body", res); process.exit(1); }
+            console.log("Lambda OK:", res.body.length, "bytes");
+          '
