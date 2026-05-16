@@ -34,7 +34,7 @@ jobs:
       - name: Test
         run: npm test
       - name: Build sibling (handrolled) for crosscheck
-        working-directory: projects/flatbuffers-formatter-handrolled
+        working-directory: projects/flatbuffers/flatbuffers-formatter-handrolled
         run: |
           npm ci --no-audit --no-fund
           npm run build

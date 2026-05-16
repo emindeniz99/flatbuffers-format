@@ -56,7 +56,7 @@
     "lint:fix": "biome check --write src test",
     "format:src": "biome format --write src test",
     "test": "npm run generate && tsc -p tsconfig.test.json && node scripts/run-tests.mjs",
-    "build:sibling": "cd ../flatbuffers-formatter-handrolled && npm ci --no-audit --no-fund && npm run build",
+    "build:sibling": "cd ../flatbuffers/flatbuffers-formatter-handrolled && npm ci --no-audit --no-fund && npm run build",
     "test:crosscheck": "bash test/crosscheck.sh",
     "test:flatc-conform": "bash scripts/flatc-conform.sh",
     "bench": "node scripts/bench.mjs",

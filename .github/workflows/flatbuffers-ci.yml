@@ -67,14 +67,14 @@ jobs:
         node-version: [20, 22]
     defaults:
       run:
-        working-directory: projects/flatbuffers-formatter-handrolled
+        working-directory: projects/flatbuffers/flatbuffers-formatter-handrolled
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
-          cache-dependency-path: projects/flatbuffers-formatter-handrolled/package-lock.json
+          cache-dependency-path: projects/flatbuffers/flatbuffers-formatter-handrolled/package-lock.json
       - name: Install
         run: npm ci --no-audit --no-fund
       - name: Build
@@ -102,7 +102,7 @@ jobs:
           npm ci --no-audit --no-fund
           npm run build
       - name: Install + build flatbuffers-formatter-handrolled
-        working-directory: projects/flatbuffers-formatter-handrolled
+        working-directory: projects/flatbuffers/flatbuffers-formatter-handrolled
         run: |
           npm ci --no-audit --no-fund
           npm run build

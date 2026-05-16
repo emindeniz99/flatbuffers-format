@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!-- Defense in depth — see the matching CSP comment in the
+         published sibling's web/index.html. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none';" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FlatBuffers Formatter</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #fafafa;
+        --fg: #111;
+        --muted: #666;
+        --accent: #2266dd;
+        --border: #ddd;
+        --pre: #fff;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #14161a;
+          --fg: #eaeaea;
+          --muted: #999;
+          --accent: #7aa6ff;
+          --border: #2a2d33;
+          --pre: #1c1f24;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font: 14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--fg);
+      }
+      header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+      header h1 { margin: 0; font-size: 1.1rem; }
+      header .links a { color: var(--accent); margin-left: 1rem; text-decoration: none; }
+      main {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1px;
+        background: var(--border);
+        height: calc(100dvh - 65px);
+      }
+      section {
+        background: var(--bg);
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+      .label {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      textarea, pre {
+        flex: 1 1 auto;
+        margin: 0;
+        padding: 0.75rem 1rem;
+        border: 0;
+        background: var(--pre);
+        color: var(--fg);
+        font: 13px/1.5 ui-monospace, Menlo, Consolas, monospace;
+        resize: none;
+        overflow: auto;
+        white-space: pre;
+      }
+      textarea:focus { outline: none; }
+      .error {
+        color: #b00020;
+        font-weight: 600;
+      }
+      .controls { display: flex; gap: 0.75rem; align-items: center; }
+      .controls label { display: flex; align-items: center; gap: 0.35rem; }
+      input[type="number"] {
+        width: 3.5rem;
+        font: inherit;
+        padding: 0.1rem 0.25rem;
+        background: var(--pre);
+        color: var(--fg);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+      }
+      button {
+        font: inherit;
+        background: var(--accent);
+        color: white;
+        border: 0;
+        padding: 0.3rem 0.7rem;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:hover { filter: brightness(1.08); }
+      @media (max-width: 720px) {
+        main { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>flatbuffers-format-handrolled <span class="badge">audit sibling</span></h1>
+      <div class="links">
+        <a href="https://flatbuffers.dev/flatbuffers_grammar.html" target="_blank" rel="noopener">grammar</a>
+        <a href="https://web.mit.edu/6.005/www/fa15/classes/18-parser-generators/" target="_blank" rel="noopener">MIT 6.005</a>
+      </div>
+    </header>
+    <main>
+      <section>
+        <div class="label">
+          <span>input.fbs</span>
+          <div class="controls">
+            <label>indent <input id="indent" type="number" min="0" max="8" value="2" /></label>
+            <button id="copy">copy output</button>
+          </div>
+        </div>
+        <textarea id="src" spellcheck="false" autocomplete="off"></textarea>
+      </section>
+      <section>
+        <div class="label"><span id="status">output.fbs</span></div>
+        <pre id="out"></pre>
+      </section>
+    </main>
+
+    <script type="module">
+      // Imports resolve to the compiled core. Run `npm run build`
+      // from projects/flatbuffers-formatter-handrolled to produce dist/, then
+      // serve the project root statically (e.g. `npx http-server`).
+      import { format } from "../dist/index.js";
+
+      const SAMPLE = `// Edit me. The output on the right updates live.
+namespace Game.Sample;
+
+table Monster {
+  pos:Vec3;
+  hp:short = 100;
+  name:string;
+  inventory:[ubyte];
+  color:Color = Blue;
+}
+
+struct Vec3 { x:float; y:float; z:float; }
+
+enum Color: byte { Red = 0, Green, Blue = 2 }
+
+root_type Monster;
+`;
+
+      const $src = document.getElementById("src");
+      const $out = document.getElementById("out");
+      const $status = document.getElementById("status");
+      const $indent = document.getElementById("indent");
+      const $copy = document.getElementById("copy");
+
+      $src.value = SAMPLE;
+
+      function update() {
+        const indent = Number($indent.value) || 0;
+        try {
+          const formatted = format($src.value, { indent });
+          $out.textContent = formatted;
+          $status.textContent = "output.fbs";
+          $status.classList.remove("error");
+        } catch (err) {
+          $out.textContent = String(err && err.message ? err.message : err);
+          $status.textContent = "parse error";
+          $status.classList.add("error");
+        }
+      }
+
+      $src.addEventListener("input", update);
+      $indent.addEventListener("input", update);
+      $copy.addEventListener("click", async () => {
+        try { await navigator.clipboard.writeText($out.textContent); } catch {}
+      });
+      update();
+    </script>
+  </body>
+</html>

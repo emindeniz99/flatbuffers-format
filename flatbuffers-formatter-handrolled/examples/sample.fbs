@@ -1,0 +1,45 @@
+// Example FlatBuffers schema. Run `flatbuffers-format examples/sample.fbs` to see
+// the formatted output. Original spacing is deliberately ugly.
+
+include   "other.fbs"  ;
+
+
+namespace   Game .  Sample;
+
+
+attribute  "priority"  ;
+
+  /// A monster in our hypothetical game.
+  ///
+  /// Doc comments stick to their owner.
+table Monster (original_order)   {
+      pos    :Vec3   ;
+  mana:short=  150 ;
+  hp:short=100; // current hit points
+  name:string;
+  friendly:bool=false (deprecated);
+       inventory:[ubyte];
+  color:Color = Blue;
+  weapons:[Weapon];
+   equipped:Equipment;
+   path:[Vec3];
+}
+
+
+struct Vec3{x:float;y:float;z:float;}
+
+
+enum Color:byte{Red = 0,
+Green,
+   Blue=2}
+
+union Equipment { Weapon  , Vehicle  }
+
+rpc_service MonsterStorage{
+  Store(Monster) :  Stat;
+  Retrieve(Stat):Monster  ( streaming :   "server" );
+}
+
+root_type Monster;
+file_identifier "MONS";
+file_extension "mon";
