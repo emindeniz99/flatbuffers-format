@@ -61,6 +61,7 @@
     "test:flatc-conform": "bash scripts/flatc-conform.sh",
     "bench": "node scripts/bench.mjs",
     "build:native": "node scripts/build-native.mjs",
+    "build:wasm": "node scripts/build-wasm.mjs",
     "prepublishOnly": "npm run build && npm test && npm run build:sibling && npm run test:crosscheck"
   },
   "dependencies": {

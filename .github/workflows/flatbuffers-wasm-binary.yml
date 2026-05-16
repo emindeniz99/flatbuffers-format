@@ -1,0 +1,136 @@
+# Build a portable WASI module of `flatbuffers-format` via Javy
+# (https://github.com/bytecodealliance/javy) and attach it to GitHub
+# Releases. Mirror of `native-binaries.yml` but the matrix collapses
+# to a single artifact — the .wasm is platform-agnostic.
+#
+# Why a separate workflow:
+#   - Different toolchain (Javy, not Node SEA + postject).
+#   - Different artifact lifecycle (one universal .wasm vs five
+#     platform-specific binaries).
+#   - Lets us iterate on the WASM build without rerunning the
+#     5-runner Node SEA matrix on every push.
+
+name: wasm-binary
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - projects/flatbuffers-formatter/src/**
+      - projects/flatbuffers-formatter/grammar/**
+      - projects/flatbuffers-formatter/scripts/build-wasm.mjs
+      - .github/workflows/wasm-binary.yml
+  release:
+    types: [released]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: GitHub Release tag to upload to (e.g. flatbuffers-format@0.1.1)
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  # Pin Javy. Newer Javy releases occasionally rename CLI flags
+  # (`build` ↔ `compile`); pinning means PRs see a stable WASM size +
+  # behavior. Bump intentionally with a follow-up PR.
+  JAVY_VERSION: v5.0.4
+
+jobs:
+  build:
+    name: build wasm
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: projects/flatbuffers-formatter
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: projects/flatbuffers-formatter/package-lock.json
+      - name: Install
+        run: npm ci --no-audit --no-fund
+      - name: Build
+        run: npm run build
+      - name: Install Javy
+        run: |
+          set -eu
+          url="https://github.com/bytecodealliance/javy/releases/download/${JAVY_VERSION}/javy-x86_64-linux-${JAVY_VERSION}.gz"
+          echo "Downloading $url"
+          curl -fsSL "$url" -o javy.gz
+          gunzip javy.gz
+          chmod +x javy
+          sudo mv javy /usr/local/bin/javy
+          javy --version
+      - name: Build .wasm
+        run: node scripts/build-wasm.mjs
+      # Smoke-test the .wasm against the corpus before upload.
+      # `wasmtime` is preinstalled on `ubuntu-latest` (apt: wasmtime),
+      # but the GitHub-hosted runner may not have it; install via
+      # `cargo` — slower but reliable.
+      - name: Install wasmtime
+        run: |
+          curl https://wasmtime.dev/install.sh -sSf | bash
+          echo "$HOME/.wasmtime/bin" >> "$GITHUB_PATH"
+      - name: Smoke-test the .wasm
+        run: |
+          for f in test/corpus/01-*.fbs test/corpus/02-*.fbs; do
+            echo "--- $f ---"
+            wasmtime build/wasm/flatbuffers-format.wasm < "$f" > /dev/null
+          done
+          # Round-trip: native output must equal wasm output on the same input.
+          for f in test/corpus/01-*.fbs; do
+            wasm_out=$(wasmtime build/wasm/flatbuffers-format.wasm < "$f")
+            native_out=$(node dist/src/cli.js "$f")
+            if [ "$wasm_out" != "$native_out" ]; then
+              echo "::error::wasm output diverges from native on $f"
+              diff <(echo "$native_out") <(echo "$wasm_out") || true
+              exit 1
+            fi
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flatbuffers-format-wasm
+          path: projects/flatbuffers-formatter/build/wasm/flatbuffers-format.wasm
+          if-no-files-found: error
+          retention-days: 30
+
+  upload-to-release:
+    name: Upload .wasm to GitHub Release
+    needs: build
+    if: |
+      github.event_name == 'release' ||
+      (github.event_name == 'workflow_dispatch' && inputs.tag != '')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: flatbuffers-format-wasm
+          path: _wasm-artifact
+      - name: Determine release tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            echo "value=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag='${{ steps.tag.outputs.value }}'
+          case "$tag" in
+            flatbuffers-format@*) ;;
+            *) echo "Skipping: tag '$tag' is not a flatbuffers-format release"; exit 0 ;;
+          esac
+          gh release upload "$tag" _wasm-artifact/flatbuffers-format.wasm --clobber \
+            --repo "${{ github.repository }}"

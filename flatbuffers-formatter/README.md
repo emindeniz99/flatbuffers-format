@@ -167,6 +167,30 @@ binaries carry an ad-hoc signature only — Gatekeeper will quarantine
 the file on first download until you approve it via Right-click →
 Open in Finder, or `xattr -dr com.apple.quarantine ./flatbuffers-format`.
 
+### WebAssembly (runs anywhere with WASI)
+
+A portable `flatbuffers-format.wasm` is attached to every GitHub
+Release. Hand it to any WASI-compatible runtime — `wasmtime`,
+`wasmer`, `wazero` (Go), `wasmtime-py`, etc. — and it reads `.fbs` on
+stdin, writes formatted output on stdout. No Node, no npm, no
+language-specific bindings.
+
+```bash
+curl -fsSL -o flatbuffers-format.wasm \
+  https://github.com/emindeniz99/playground/releases/latest/download/flatbuffers-format.wasm
+wasmtime flatbuffers-format.wasm < schema.fbs > schema.formatted.fbs
+```
+
+Use cases: embedding the formatter from non-Node hosts (Rust/Go/Python
+build tools), running in sandboxed serverless environments
+(Cloudflare Workers Pages, Vercel Edge), or shipping a
+reproducible-by-hash formatter in tooling pipelines. The .wasm is built
+by [`.github/workflows/wasm-binary.yml`](../../.github/workflows/wasm-binary.yml)
+using [Javy](https://github.com/bytecodealliance/javy)
+(QuickJS-compiled-to-WASM) from
+[`scripts/build-wasm.mjs`](scripts/build-wasm.mjs); reproduce locally
+with `npm run build:wasm` (requires `javy` on `PATH`).
+
 See [docs/cookbook.md](docs/cookbook.md) for copy-paste recipes (CI gates, pre-commit hooks, programmatic use, browser, Prettier integration, migration tips).
 
 ## Editor integration
