@@ -19,14 +19,14 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: projects/flatbuffers-formatter
+        working-directory: projects/flatbuffers/flatbuffers-formatter
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: projects/flatbuffers-formatter/package-lock.json
+          cache-dependency-path: projects/flatbuffers/flatbuffers-formatter/package-lock.json
       - name: Install
         run: npm ci --no-audit --no-fund
       - name: Lint
@@ -42,14 +42,14 @@ jobs:
         node-version: [20, 22]
     defaults:
       run:
-        working-directory: projects/flatbuffers-formatter
+        working-directory: projects/flatbuffers/flatbuffers-formatter
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
-          cache-dependency-path: projects/flatbuffers-formatter/package-lock.json
+          cache-dependency-path: projects/flatbuffers/flatbuffers-formatter/package-lock.json
       - name: Install
         run: npm ci --no-audit --no-fund
       - name: Build
@@ -97,7 +97,7 @@ jobs:
         with:
           node-version: 20
       - name: Install + build flatbuffers-formatter
-        working-directory: projects/flatbuffers-formatter
+        working-directory: projects/flatbuffers/flatbuffers-formatter
         run: |
           npm ci --no-audit --no-fund
           npm run build
@@ -107,7 +107,7 @@ jobs:
           npm ci --no-audit --no-fund
           npm run build
       - name: Cross-check (byte-identical, idempotent)
-        run: bash projects/flatbuffers-formatter/test/crosscheck.sh
+        run: bash projects/flatbuffers/flatbuffers-formatter/test/crosscheck.sh
 
   # Linux-only by design. We download a known-good flatc binary
   # (Linux.flatc.binary.g++-13.zip) from the upstream release. Windows/macOS
@@ -178,9 +178,9 @@ jobs:
       - name: Verify flatc on PATH
         run: flatc --version
       - name: Install + build flatbuffers-formatter
-        working-directory: projects/flatbuffers-formatter
+        working-directory: projects/flatbuffers/flatbuffers-formatter
         run: |
           npm ci --no-audit --no-fund
           npm run build
       - name: flatc-conform
-        run: bash projects/flatbuffers-formatter/scripts/flatc-conform.sh
+        run: bash projects/flatbuffers/flatbuffers-formatter/scripts/flatc-conform.sh

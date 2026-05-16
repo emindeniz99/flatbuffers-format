@@ -4,7 +4,7 @@
 # Driven by Node 22's Single Executable Application feature
 # (https://nodejs.org/api/single-executable-applications.html). The
 # per-platform build logic lives in
-# `projects/flatbuffers-formatter/scripts/build-native.mjs`; this
+# `projects/flatbuffers/flatbuffers-formatter/scripts/build-native.mjs`; this
 # workflow just orchestrates the matrix.
 #
 # When this runs:
@@ -25,9 +25,9 @@ on:
     branches:
       - main
     paths:
-      - projects/flatbuffers-formatter/src/**
-      - projects/flatbuffers-formatter/grammar/**
-      - projects/flatbuffers-formatter/scripts/build-native.mjs
+      - projects/flatbuffers/flatbuffers-formatter/src/**
+      - projects/flatbuffers/flatbuffers-formatter/grammar/**
+      - projects/flatbuffers/flatbuffers-formatter/scripts/build-native.mjs
       - .github/workflows/native-binaries.yml
   release:
     types: [released]
@@ -66,14 +66,14 @@ jobs:
     runs-on: ${{ matrix.os }}
     defaults:
       run:
-        working-directory: projects/flatbuffers-formatter
+        working-directory: projects/flatbuffers/flatbuffers-formatter
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: projects/flatbuffers-formatter/package-lock.json
+          cache-dependency-path: projects/flatbuffers/flatbuffers-formatter/package-lock.json
       - name: Install
         run: npm ci --no-audit --no-fund
       - name: Build

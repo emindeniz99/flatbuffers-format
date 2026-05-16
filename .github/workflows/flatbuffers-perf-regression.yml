@@ -10,7 +10,7 @@
 # baseline in the same PR — preferably with a commit body explaining the
 # tradeoff:
 #
-#     cd projects/flatbuffers-formatter
+#     cd projects/flatbuffers/flatbuffers-formatter
 #     npm run bench -- --json --repeat 3 > scripts/bench-baseline.json
 #     # strip the `node` and `commit` fields — they're irrelevant in a baseline
 #     git commit scripts/bench-baseline.json -m "perf(flatbuffers-formatter): re-baseline bench — <reason>"
@@ -34,14 +34,14 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: projects/flatbuffers-formatter
+        working-directory: projects/flatbuffers/flatbuffers-formatter
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: projects/flatbuffers-formatter/package-lock.json
+          cache-dependency-path: projects/flatbuffers/flatbuffers-formatter/package-lock.json
 
       - name: Install
         run: npm ci --no-audit --no-fund
@@ -71,7 +71,7 @@ jobs:
           # The body marker on line 1 of bench-report.md lets
           # create-or-update-comment find and update the previous
           # report instead of spamming the PR each push.
-          body-path: projects/flatbuffers-formatter/bench-report.md
+          body-path: projects/flatbuffers/flatbuffers-formatter/bench-report.md
           edit-mode: replace
           # Match the marker emitted by bench-compare.mjs.
           body-includes: "<!-- perf-regression-report -->"

@@ -18,14 +18,14 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: projects/flatbuffers-formatter
+        working-directory: projects/flatbuffers/flatbuffers-formatter
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: projects/flatbuffers-formatter/package-lock.json
+          cache-dependency-path: projects/flatbuffers/flatbuffers-formatter/package-lock.json
           registry-url: https://registry.npmjs.org
       - name: Install
         run: npm ci --no-audit --no-fund

@@ -12,13 +12,13 @@
 #
 # Run from anywhere — paths are computed relative to this script.
 # Both projects must be built first:
-#   (cd ../../flatbuffers/flatbuffers-formatter-handrolled && npm run build)
-#   (cd ..                                                  && npm run build)
+#   (cd ../flatbuffers-formatter-handrolled && npm run build)
+#   (cd ..                                  && npm run build)
 
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-HAND="node $HERE/../../flatbuffers/flatbuffers-formatter-handrolled/dist/cli.js"
+HAND="node $HERE/../../flatbuffers-formatter-handrolled/dist/cli.js"
 ANTL="node $HERE/../dist/src/cli.js"
 CORPUS="$HERE/corpus"
 pass=0

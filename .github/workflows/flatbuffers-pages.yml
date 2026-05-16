@@ -1,7 +1,7 @@
 name: Pages (live demo + API docs)
 
 # Publishes a small GitHub Pages site assembled from
-# projects/flatbuffers-formatter/. Three things are deployed:
+# projects/flatbuffers/flatbuffers-formatter/. Three things are deployed:
 #
 #   /                 — minimal landing page (this workflow writes it inline)
 #   /playground/      — the existing web/index.html, unmodified
@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: projects/flatbuffers-formatter
+        working-directory: projects/flatbuffers/flatbuffers-formatter
     steps:
       - uses: actions/checkout@v4
 
@@ -45,7 +45,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: projects/flatbuffers-formatter/package-lock.json
+          cache-dependency-path: projects/flatbuffers/flatbuffers-formatter/package-lock.json
 
       - name: Install
         run: npm ci --no-audit --no-fund
@@ -139,8 +139,8 @@ jobs:
                 </div>
                 <div class="links">
                   <a href="https://www.npmjs.com/package/flatbuffers-format">npm</a>
-                  <a href="https://github.com/emindeniz99/playground/tree/main/projects/flatbuffers-formatter">GitHub</a>
-                  <a href="https://github.com/emindeniz99/playground/blob/main/projects/flatbuffers-formatter/docs/cookbook.md">Cookbook</a>
+                  <a href="https://github.com/emindeniz99/playground/tree/main/projects/flatbuffers/flatbuffers-formatter">GitHub</a>
+                  <a href="https://github.com/emindeniz99/playground/blob/main/projects/flatbuffers/flatbuffers-formatter/docs/cookbook.md">Cookbook</a>
                 </div>
               </main>
             </body>
@@ -149,7 +149,7 @@ jobs:
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: projects/flatbuffers-formatter/site-out
+          path: projects/flatbuffers/flatbuffers-formatter/site-out
 
   deploy:
     name: deploy to GitHub Pages

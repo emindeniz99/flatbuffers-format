@@ -45,14 +45,14 @@ jobs:
       id-token: write
     defaults:
       run:
-        working-directory: projects/flatbuffers-formatter
+        working-directory: projects/flatbuffers/flatbuffers-formatter
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: projects/flatbuffers-formatter/package-lock.json
+          cache-dependency-path: projects/flatbuffers/flatbuffers-formatter/package-lock.json
           registry-url: https://registry.npmjs.org
       - name: Install
         run: npm ci --no-audit --no-fund
@@ -79,7 +79,7 @@ jobs:
           cache-dependency-path: projects/flatbuffers/prettier-plugin-flatbuffers/package-lock.json
           registry-url: https://registry.npmjs.org
       - name: "Build sibling flatbuffers-format (file: dep)"
-        working-directory: projects/flatbuffers-formatter
+        working-directory: projects/flatbuffers/flatbuffers-formatter
         run: |
           npm ci --no-audit --no-fund
           npm run build
@@ -92,7 +92,7 @@ jobs:
       - name: Rewrite file dep to npm version range
         working-directory: projects/flatbuffers/prettier-plugin-flatbuffers
         run: |
-          engine_version=$(node -p "require('../../.release-please-manifest.json')['projects/flatbuffers-formatter']")
+          engine_version=$(node -p "require('../../.release-please-manifest.json')['projects/flatbuffers/flatbuffers-formatter']")
           echo "Pinning flatbuffers-format to ^${engine_version}"
           node -e "
             const fs = require('fs');
@@ -155,7 +155,7 @@ jobs:
           cache: npm
           cache-dependency-path: projects/flatbuffers/vscode-flatbuffers/package-lock.json
       - name: "Build sibling flatbuffers-format (file: dep)"
-        working-directory: projects/flatbuffers-formatter
+        working-directory: projects/flatbuffers/flatbuffers-formatter
         run: |
           npm ci --no-audit --no-fund
           npm run build
@@ -168,7 +168,7 @@ jobs:
       - name: Rewrite file dep to npm version range
         working-directory: projects/flatbuffers/vscode-flatbuffers
         run: |
-          engine_version=$(node -p "require('../../.release-please-manifest.json')['projects/flatbuffers-formatter']")
+          engine_version=$(node -p "require('../../.release-please-manifest.json')['projects/flatbuffers/flatbuffers-formatter']")
           echo "Pinning flatbuffers-format to ^${engine_version}"
           node -e "
             const fs = require('fs');
@@ -248,7 +248,7 @@ jobs:
           cache-dependency-path: projects/flatbuffers/flatbuffers-format-editors/package-lock.json
           registry-url: https://registry.npmjs.org
       - name: "Build sibling flatbuffers-format (file: dep)"
-        working-directory: projects/flatbuffers-formatter
+        working-directory: projects/flatbuffers/flatbuffers-formatter
         run: |
           npm ci --no-audit --no-fund
           npm run build
@@ -261,7 +261,7 @@ jobs:
       - name: Rewrite file dep to npm version range
         working-directory: projects/flatbuffers/flatbuffers-format-editors
         run: |
-          engine_version=$(node -p "require('../../.release-please-manifest.json')['projects/flatbuffers-formatter']")
+          engine_version=$(node -p "require('../../.release-please-manifest.json')['projects/flatbuffers/flatbuffers-formatter']")
           echo "Pinning flatbuffers-format to ^${engine_version}"
           node -e "
             const fs = require('fs');

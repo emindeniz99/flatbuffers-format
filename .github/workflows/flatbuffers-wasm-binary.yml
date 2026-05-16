@@ -17,9 +17,9 @@ on:
     branches:
       - main
     paths:
-      - projects/flatbuffers-formatter/src/**
-      - projects/flatbuffers-formatter/grammar/**
-      - projects/flatbuffers-formatter/scripts/build-wasm.mjs
+      - projects/flatbuffers/flatbuffers-formatter/src/**
+      - projects/flatbuffers/flatbuffers-formatter/grammar/**
+      - projects/flatbuffers/flatbuffers-formatter/scripts/build-wasm.mjs
       - .github/workflows/wasm-binary.yml
   release:
     types: [released]
@@ -45,14 +45,14 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: projects/flatbuffers-formatter
+        working-directory: projects/flatbuffers/flatbuffers-formatter
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: projects/flatbuffers-formatter/package-lock.json
+          cache-dependency-path: projects/flatbuffers/flatbuffers-formatter/package-lock.json
       - name: Install
         run: npm ci --no-audit --no-fund
       - name: Build
@@ -96,7 +96,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: flatbuffers-format-wasm
-          path: projects/flatbuffers-formatter/build/wasm/flatbuffers-format.wasm
+          path: projects/flatbuffers/flatbuffers-formatter/build/wasm/flatbuffers-format.wasm
           if-no-files-found: error
           retention-days: 30
 

@@ -24,7 +24,7 @@ jobs:
           cache: npm
           cache-dependency-path: projects/flatbuffers/vscode-flatbuffers/package-lock.json
       - name: Build sibling flatbuffers-format (file: dependency)
-        working-directory: projects/flatbuffers-formatter
+        working-directory: projects/flatbuffers/flatbuffers-formatter
         run: |
           npm ci --no-audit --no-fund
           npm run build

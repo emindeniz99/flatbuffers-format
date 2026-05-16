@@ -9,12 +9,12 @@ on:
     branches:
       - main
     paths:
-      - projects/flatbuffers-formatter/**
+      - projects/flatbuffers/flatbuffers-formatter/**
       - projects/flatbuffers/flatbuffers-format-editors/**
       - .github/workflows/flatbuffers-format-editors.yml
   pull_request:
     paths:
-      - projects/flatbuffers-formatter/**
+      - projects/flatbuffers/flatbuffers-formatter/**
       - projects/flatbuffers/flatbuffers-format-editors/**
       - .github/workflows/flatbuffers-format-editors.yml
 
@@ -33,7 +33,7 @@ jobs:
           cache: npm
           cache-dependency-path: projects/flatbuffers/flatbuffers-format-editors/package-lock.json
       - name: "Build sibling flatbuffers-format (file: dep)"
-        working-directory: projects/flatbuffers-formatter
+        working-directory: projects/flatbuffers/flatbuffers-formatter
         run: |
           npm ci --no-audit --no-fund
           npm run build
