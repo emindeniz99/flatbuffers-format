@@ -1,0 +1,302 @@
+name: post-publish smoke
+
+# Verifies each just-published artifact actually installs from its registry
+# and works end-to-end. Catches the class of bugs the pre-publish gate
+# can't — e.g. our file: → ^X.Y.Z rewrite path producing a tarball that
+# resolves wrong on a clean machine, or vsce/ovsx ingesting a corrupt
+# .vsix. Triggered automatically when release-please completes, plus a
+# manual workflow_dispatch with per-package version inputs so the
+# maintainer can re-smoke any version.
+#
+# Failure semantics: a smoke job failing means the publish succeeded but
+# the artifact is broken. Rollback by running
+#   npm deprecate <pkg>@<version> "broken; use next release"
+# and pushing a fix as a new release.
+
+on:
+  workflow_run:
+    workflows: ["release-please"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      flatbuffers_format_version:
+        description: "flatbuffers-format version to smoke (blank = read from manifest)"
+        required: false
+      prettier_plugin_version:
+        description: "prettier-plugin-flatbuffers version to smoke (blank = read from manifest)"
+        required: false
+      tree_sitter_version:
+        description: "tree-sitter-flatbuffers version to smoke (blank = read from manifest)"
+        required: false
+      vscode_extension_version:
+        description: "vscode-flatbuffers version to smoke (blank = read from manifest)"
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-flatbuffers-format:
+    name: smoke / flatbuffers-format
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Resolve target version
+        id: ver
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            v="${{ inputs.flatbuffers_format_version }}"
+          else
+            v=$(python3 -c 'import json; print(json.load(open(".release-please-manifest.json"))["projects/flatbuffers-formatter"])' 2>/dev/null || echo "")
+          fi
+          if [ -z "$v" ]; then
+            echo "No version to smoke (manifest missing or input empty); skipping."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=$v" >> "$GITHUB_OUTPUT"
+            echo "Target: flatbuffers-format@$v"
+          fi
+      - name: Wait for npm propagation (up to 90s)
+        if: steps.ver.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          v="${{ steps.ver.outputs.version }}"
+          for i in 1 2 3 4 5 6 7 8 9; do
+            actual=$(npm view "flatbuffers-format@$v" version 2>/dev/null || echo "")
+            if [ "$actual" = "$v" ]; then
+              echo "Registry sees flatbuffers-format@$v ✓"
+              exit 0
+            fi
+            echo "Not yet on registry (try $i/9). Sleeping 10s."
+            sleep 10
+          done
+          echo "::error::flatbuffers-format@$v not found on registry after 90s — publish likely failed."
+          exit 1
+      - name: Install + run CLI smoke
+        if: steps.ver.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          v="${{ steps.ver.outputs.version }}"
+          npm i -g "flatbuffers-format@$v"
+          got=$(flatbuffers-format --version | awk '{print $2}')
+          if [ "$got" != "$v" ]; then
+            echo "::error::CLI --version mismatch: got '$got', expected '$v'"
+            exit 1
+          fi
+          out=$(printf 'table T{x:int;}\n' | flatbuffers-format -)
+          expected=$'table T { x: int; }\n'
+          if [ "$out" != "$expected" ]; then
+            echo "::error::Canonical-output mismatch from published CLI"
+            diff <(printf '%s' "$out") <(printf '%s' "$expected") || true
+            exit 1
+          fi
+          echo "✓ flatbuffers-format@$v installs and formats cleanly."
+
+  smoke-prettier-plugin-flatbuffers:
+    name: smoke / prettier-plugin-flatbuffers
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Resolve target versions
+        id: ver
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            v="${{ inputs.prettier_plugin_version }}"
+            engine="$(python3 -c 'import json; print(json.load(open(".release-please-manifest.json"))["projects/flatbuffers-formatter"])' 2>/dev/null || echo "")"
+          else
+            v="$(python3 -c 'import json; print(json.load(open(".release-please-manifest.json"))["projects/prettier-plugin-flatbuffers"])' 2>/dev/null || echo "")"
+            engine="$(python3 -c 'import json; print(json.load(open(".release-please-manifest.json"))["projects/flatbuffers-formatter"])' 2>/dev/null || echo "")"
+          fi
+          if [ -z "$v" ] || [ -z "$engine" ]; then
+            echo "Missing plugin or engine version; skipping."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=$v" >> "$GITHUB_OUTPUT"
+            echo "engine=$engine" >> "$GITHUB_OUTPUT"
+            echo "Target: prettier-plugin-flatbuffers@$v + flatbuffers-format@$engine"
+          fi
+      - name: Wait for npm propagation
+        if: steps.ver.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          v="${{ steps.ver.outputs.version }}"
+          for i in 1 2 3 4 5 6 7 8 9; do
+            actual=$(npm view "prettier-plugin-flatbuffers@$v" version 2>/dev/null || echo "")
+            if [ "$actual" = "$v" ]; then
+              echo "Registry sees prettier-plugin-flatbuffers@$v ✓"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::prettier-plugin-flatbuffers@$v not on registry after 90s."
+          exit 1
+      - name: Install + Prettier-format smoke
+        if: steps.ver.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/smoke && cd /tmp/smoke
+          npm init -y >/dev/null
+          npm i --no-audit --no-fund prettier \
+            "prettier-plugin-flatbuffers@${{ steps.ver.outputs.version }}" \
+            "flatbuffers-format@${{ steps.ver.outputs.engine }}"
+          echo '{ "plugins": ["prettier-plugin-flatbuffers"] }' > .prettierrc
+          printf 'table T{x:int;}\n' > ugly.fbs
+          # --check on unformatted exits non-zero
+          if npx prettier --check ugly.fbs >/dev/null 2>&1; then
+            echo "::error::Prettier --check returned 0 on unformatted input — plugin didn't engage"
+            exit 1
+          fi
+          npx prettier --write ugly.fbs >/dev/null
+          got=$(cat ugly.fbs)
+          expected=$'table T { x: int; }\n'
+          if [ "$got" != "$expected" ]; then
+            echo "::error::Prettier-formatted output != canonical"
+            diff <(printf '%s' "$got") <(printf '%s' "$expected") || true
+            exit 1
+          fi
+          echo "✓ prettier-plugin-flatbuffers@${{ steps.ver.outputs.version }} engages and formats cleanly."
+
+  smoke-tree-sitter-flatbuffers:
+    name: smoke / tree-sitter-flatbuffers
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Resolve target version
+        id: ver
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            v="${{ inputs.tree_sitter_version }}"
+          else
+            v="$(python3 -c 'import json; print(json.load(open(".release-please-manifest.json"))["projects/tree-sitter-flatbuffers"])' 2>/dev/null || echo "")"
+          fi
+          if [ -z "$v" ]; then
+            echo "No version to smoke; skipping."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=$v" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Wait for npm propagation
+        if: steps.ver.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          v="${{ steps.ver.outputs.version }}"
+          for i in 1 2 3 4 5 6 7 8 9; do
+            actual=$(npm view "tree-sitter-flatbuffers@$v" version 2>/dev/null || echo "")
+            if [ "$actual" = "$v" ]; then
+              echo "Registry sees tree-sitter-flatbuffers@$v ✓"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::tree-sitter-flatbuffers@$v not on registry after 90s."
+          exit 1
+      - name: Install + parse smoke
+        if: steps.ver.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/ts-smoke && cd /tmp/ts-smoke
+          npm init -y >/dev/null
+          # node-gyp build happens during install of tree-sitter-flatbuffers.
+          npm i --no-audit --no-fund tree-sitter \
+            "tree-sitter-flatbuffers@${{ steps.ver.outputs.version }}"
+          cat > smoke.cjs <<'JS'
+          const Parser = require("tree-sitter");
+          const Fbs = require("tree-sitter-flatbuffers");
+          const p = new Parser();
+          p.setLanguage(Fbs);
+          const src = "namespace A.B;\ntable T { x: int; }\n";
+          const tree = p.parse(src);
+          let errors = 0;
+          (function walk(n) {
+            if (n.type === "ERROR" || n.isMissing) errors++;
+            for (let i = 0; i < n.namedChildCount; i++) walk(n.namedChild(i));
+          })(tree.rootNode);
+          if (errors > 0) {
+            console.error("tree-sitter parse produced " + errors + " ERROR/MISSING node(s)");
+            console.error(tree.rootNode.toString());
+            process.exit(1);
+          }
+          console.log("✓ tree-sitter-flatbuffers parsed cleanly, " + tree.rootNode.namedChildCount + " top-level decls");
+          JS
+          node smoke.cjs
+
+  smoke-vscode-flatbuffers:
+    name: smoke / vscode-flatbuffers
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Resolve target version
+        id: ver
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            v="${{ inputs.vscode_extension_version }}"
+          else
+            v="$(python3 -c 'import json; print(json.load(open(".release-please-manifest.json"))["projects/vscode-flatbuffers"])' 2>/dev/null || echo "")"
+          fi
+          if [ -z "$v" ]; then
+            echo "No version to smoke; skipping."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=$v" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Marketplace listing check
+        if: steps.ver.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          v="${{ steps.ver.outputs.version }}"
+          # vsce show returns JSON with a versions[] sorted newest-first.
+          for i in 1 2 3 4 5 6 7 8 9; do
+            latest=$(npx --yes @vscode/vsce show emindeniz99.vscode-flatbuffers --json 2>/dev/null \
+                     | python3 -c 'import json, sys; d=json.load(sys.stdin); print(d["versions"][0]["version"]) if d.get("versions") else print("")' \
+                     || echo "")
+            if [ "$latest" = "$v" ]; then
+              echo "✓ Marketplace lists emindeniz99.vscode-flatbuffers@$v"
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "::error::Marketplace doesn't list emindeniz99.vscode-flatbuffers@$v after ~135s. vsce publish may have failed."
+          exit 1
+      - name: Open VSX listing check (best-effort)
+        if: steps.ver.outputs.skip != 'true'
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          v="${{ steps.ver.outputs.version }}"
+          # Open VSX may have been skipped (no OVSX_PAT, namespace not registered).
+          # Don't fail the workflow on a missing listing.
+          for i in 1 2 3; do
+            latest=$(npx --yes ovsx get emindeniz99.vscode-flatbuffers --metadata 2>/dev/null \
+                     | python3 -c 'import json, sys; d=json.load(sys.stdin); print(d.get("version", ""))' \
+                     || echo "")
+            if [ "$latest" = "$v" ]; then
+              echo "✓ Open VSX lists emindeniz99.vscode-flatbuffers@$v"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::warning::Open VSX doesn't list version $v (may be intentional if OVSX_PAT not set)."
