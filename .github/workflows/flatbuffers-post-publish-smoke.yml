@@ -37,15 +37,42 @@ permissions:
 
 jobs:
   smoke-flatbuffers-format:
-    name: smoke / flatbuffers-format
+    # Matrix over package managers. The published artefact is the
+    # same regardless — what changes is the install algorithm
+    # (resolution, hoisting, lockfile, peer-dep handling). Catching
+    # "publish succeeded but installs break under PM X" the moment
+    # it happens, not weeks later when a user reports it.
+    name: smoke / flatbuffers-format / ${{ matrix.pm }}
     runs-on: ubuntu-latest
     if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch'
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        pm: [npm, pnpm, yarn-classic, yarn-berry, bun]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Setup pnpm
+        if: matrix.pm == 'pnpm'
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
+      - name: Setup Yarn Classic (v1)
+        if: matrix.pm == 'yarn-classic'
+        run: npm install -g yarn@1.22.22
+      - name: Setup Yarn Berry (v4)
+        if: matrix.pm == 'yarn-berry'
+        run: npm install -g yarn@1.22.22
+      - name: Setup Bun
+        if: matrix.pm == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
       - name: Resolve target version
         id: ver
         run: |
@@ -60,8 +87,9 @@ jobs:
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
             echo "version=$v" >> "$GITHUB_OUTPUT"
-            echo "Target: flatbuffers-format@$v"
+            echo "Target: flatbuffers-format@$v via ${{ matrix.pm }}"
           fi
+
       - name: Wait for npm propagation (up to 90s)
         if: steps.ver.outputs.skip != 'true'
         run: |
@@ -78,25 +106,77 @@ jobs:
           done
           echo "::error::flatbuffers-format@$v not found on registry after 90s — publish likely failed."
           exit 1
-      - name: Install + run CLI smoke
+
+      - name: Install scoped to a scratch consumer + smoke
         if: steps.ver.outputs.skip != 'true'
         run: |
-          set -euo pipefail
+          set -eux
           v="${{ steps.ver.outputs.version }}"
-          npm i -g "flatbuffers-format@$v"
-          got=$(flatbuffers-format --version | awk '{print $2}')
+          mkdir consumer && cd consumer
+          # Hand-rolled ESM package.json — avoids each PM's `init`
+          # quirks (notably bun's `init -y` creates a subdirectory
+          # rather than initialising in cwd).
+          cat > package.json <<'JSON'
+          { "name": "consumer", "version": "0.0.0", "private": true, "type": "module" }
+          JSON
+
+          case "${{ matrix.pm }}" in
+            npm)
+              npm install --no-audit --no-fund "flatbuffers-format@$v"
+              bin=node_modules/.bin/flatbuffers-format
+              ;;
+            pnpm)
+              pnpm add "flatbuffers-format@$v"
+              bin=node_modules/.bin/flatbuffers-format
+              ;;
+            yarn-classic)
+              yarn add "flatbuffers-format@$v"
+              bin=node_modules/.bin/flatbuffers-format
+              ;;
+            yarn-berry)
+              yarn set version berry
+              # Berry's PnP linker hides `node_modules/.bin/`; force
+              # node-modules linker to mirror npm semantics for the
+              # CLI invocation. The PnP-compat angle is exercised by
+              # the dedicated pm-compat.yml workflow.
+              echo "nodeLinker: node-modules" > .yarnrc.yml
+              yarn add "flatbuffers-format@$v"
+              bin=node_modules/.bin/flatbuffers-format
+              ;;
+            bun)
+              bun add "flatbuffers-format@$v"
+              bin=node_modules/.bin/flatbuffers-format
+              ;;
+          esac
+
+          # CLI: --version must match the version we just installed.
+          got=$("$bin" --version | awk '{print $2}')
           if [ "$got" != "$v" ]; then
-            echo "::error::CLI --version mismatch: got '$got', expected '$v'"
+            echo "::error::CLI --version mismatch under ${{ matrix.pm }}: got '$got', expected '$v'"
             exit 1
           fi
-          out=$(printf 'table T{x:int;}\n' | flatbuffers-format -)
+
+          # CLI: read .fbs from stdin, write formatted to stdout.
+          out=$(printf 'table T{x:int;}\n' | "$bin" -)
           expected=$'table T { x: int; }\n'
           if [ "$out" != "$expected" ]; then
-            echo "::error::Canonical-output mismatch from published CLI"
+            echo "::error::Canonical-output mismatch under ${{ matrix.pm }}"
             diff <(printf '%s' "$out") <(printf '%s' "$expected") || true
             exit 1
           fi
-          echo "✓ flatbuffers-format@$v installs and formats cleanly."
+
+          # Programmatic API: import + call format().
+          cat > smoke.mjs <<'EOF'
+          import { format, check } from "flatbuffers-format";
+          const out = format("namespace X;\ntable T{x:int;y:string;}");
+          if (!out.includes("table T")) throw new Error("Bad output: " + out);
+          if (format(out) !== out) throw new Error("format() not idempotent");
+          if (check(out) !== true) throw new Error("check() rejected formatted output");
+          console.log("API OK:", out.length, "bytes");
+          EOF
+          node smoke.mjs
+
+          echo "✓ flatbuffers-format@$v installs + formats + API works under ${{ matrix.pm }}"
 
   smoke-prettier-plugin-flatbuffers:
     name: smoke / prettier-plugin-flatbuffers
