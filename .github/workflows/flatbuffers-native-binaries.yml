@@ -1,0 +1,154 @@
+# Build single-file native binaries of `flatbuffers-format` for every
+# supported platform and upload them to the matching GitHub Release.
+#
+# Driven by Node 22's Single Executable Application feature
+# (https://nodejs.org/api/single-executable-applications.html). The
+# per-platform build logic lives in
+# `projects/flatbuffers-formatter/scripts/build-native.mjs`; this
+# workflow just orchestrates the matrix.
+#
+# When this runs:
+#   1. On every push to `main` that touches the engine or the build
+#      script — produces "edge" artifacts uploaded to the workflow run
+#      (useful for previewing without cutting a release).
+#   2. On release-please cutting a new `flatbuffers-format@X.Y.Z` tag,
+#      via the `released` event — uploads signed binaries to the
+#      GitHub Release that release-please just created.
+#
+# We don't publish to a separate registry — the binaries are downloadable
+# directly from GitHub Releases. Doc'd in the engine README.
+
+name: native-binaries
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - projects/flatbuffers-formatter/src/**
+      - projects/flatbuffers-formatter/grammar/**
+      - projects/flatbuffers-formatter/scripts/build-native.mjs
+      - .github/workflows/native-binaries.yml
+  release:
+    types: [released]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: GitHub Release tag to upload to (e.g. flatbuffers-format@0.1.1)
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux-x64
+            os: ubuntu-latest
+            artifact: flatbuffers-format-linux-x64
+          - platform: linux-arm64
+            os: ubuntu-22.04-arm
+            artifact: flatbuffers-format-linux-arm64
+          - platform: macos-x64
+            os: macos-13
+            artifact: flatbuffers-format-macos-x64
+          - platform: macos-arm64
+            os: macos-14
+            artifact: flatbuffers-format-macos-arm64
+          - platform: windows-x64
+            os: windows-2022
+            artifact: flatbuffers-format-windows-x64.exe
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: projects/flatbuffers-formatter
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: projects/flatbuffers-formatter/package-lock.json
+      - name: Install
+        run: npm ci --no-audit --no-fund
+      - name: Build
+        run: npm run build
+      - name: Build native binary
+        run: node scripts/build-native.mjs
+      # Smoke-test the binary before upload — catches injection problems
+      # (postject silently producing a corrupt SEA, etc.) early.
+      - name: Smoke-test (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          ./build/native/flatbuffers-format --version
+          echo 'table T { x: int; }' | ./build/native/flatbuffers-format --check /dev/stdin || true
+      - name: Smoke-test (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          .\build\native\flatbuffers-format.exe --version
+      - name: Rename + collect artifact
+        shell: bash
+        run: |
+          mkdir -p ../../_native-artifacts
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp build/native/flatbuffers-format.exe ../../_native-artifacts/${{ matrix.artifact }}
+          else
+            cp build/native/flatbuffers-format ../../_native-artifacts/${{ matrix.artifact }}
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: _native-artifacts/${{ matrix.artifact }}
+          if-no-files-found: error
+          retention-days: 30
+
+  upload-to-release:
+    name: Upload binaries to GitHub Release
+    needs: build
+    # Only attach to a release on the `release: released` event, OR on
+    # a workflow_dispatch with an explicit tag. Push-to-main runs stop
+    # at the artifact-upload step above — those are previews, not
+    # releases.
+    if: |
+      github.event_name == 'release' ||
+      (github.event_name == 'workflow_dispatch' && inputs.tag != '')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: _native-artifacts
+          merge-multiple: true
+      - name: Determine release tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            echo "value=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag='${{ steps.tag.outputs.value }}'
+          # Only upload to flatbuffers-format@* releases; other releases
+          # (vscode-flatbuffers@*, tree-sitter-flatbuffers@*, etc.) get
+          # nothing from this workflow.
+          case "$tag" in
+            flatbuffers-format@*) ;;
+            *) echo "Skipping: tag '$tag' is not a flatbuffers-format release"; exit 0 ;;
+          esac
+          for f in _native-artifacts/flatbuffers-format-*; do
+            [ -f "$f" ] || continue
+            echo "Uploading $f → $tag"
+            gh release upload "$tag" "$f" --clobber --repo "${{ github.repository }}"
+          done

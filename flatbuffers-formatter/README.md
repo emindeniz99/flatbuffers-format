@@ -136,6 +136,37 @@ npm i -g flatbuffers-format         # global CLI
 npx flatbuffers-format ...          # one-shot, no install
 ```
 
+### Native binary (no Node required)
+
+Prebuilt single-file binaries are attached to every GitHub Release
+(starting with `flatbuffers-format@0.1.0`). Drop one on `PATH` and run
+— the embedded Node 22 runtime is byte-glued in via [Node SEA][node-sea],
+so consumers don't need to install Node or npm:
+
+[node-sea]: https://nodejs.org/api/single-executable-applications.html
+
+| Platform     | Asset filename                          |
+|--------------|------------------------------------------|
+| Linux x64    | `flatbuffers-format-linux-x64`           |
+| Linux arm64  | `flatbuffers-format-linux-arm64`         |
+| macOS x64    | `flatbuffers-format-macos-x64`           |
+| macOS arm64  | `flatbuffers-format-macos-arm64`         |
+| Windows x64  | `flatbuffers-format-windows-x64.exe`     |
+
+```bash
+curl -fsSL -o flatbuffers-format \
+  https://github.com/emindeniz99/playground/releases/latest/download/flatbuffers-format-linux-x64
+chmod +x flatbuffers-format
+./flatbuffers-format --version
+```
+
+The binaries are produced by `.github/workflows/native-binaries.yml`
+using `scripts/build-native.mjs`; run that script locally to build the
+binary for your own machine (`npm run build:native`). The macOS
+binaries carry an ad-hoc signature only — Gatekeeper will quarantine
+the file on first download until you approve it via Right-click →
+Open in Finder, or `xattr -dr com.apple.quarantine ./flatbuffers-format`.
+
 See [docs/cookbook.md](docs/cookbook.md) for copy-paste recipes (CI gates, pre-commit hooks, programmatic use, browser, Prettier integration, migration tips).
 
 ## Editor integration

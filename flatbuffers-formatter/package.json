@@ -60,6 +60,7 @@
     "test:crosscheck": "bash test/crosscheck.sh",
     "test:flatc-conform": "bash scripts/flatc-conform.sh",
     "bench": "node scripts/bench.mjs",
+    "build:native": "node scripts/build-native.mjs",
     "prepublishOnly": "npm run build && npm test && npm run build:sibling && npm run test:crosscheck"
   },
   "dependencies": {

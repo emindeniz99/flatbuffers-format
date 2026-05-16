@@ -8,3 +8,7 @@ dist-test/
 # Bench artifacts (CI writes these; baseline lives at scripts/bench-baseline.json).
 bench-current.json
 bench-report.md
+
+# Native-binary build output (scripts/build-native.mjs). Per-platform
+# artifacts are produced into build/native/ and uploaded by CI.
+build/
