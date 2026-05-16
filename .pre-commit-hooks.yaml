@@ -1,0 +1,39 @@
+# .pre-commit-hooks.yaml — entry point for the pre-commit framework
+# (https://pre-commit.com).
+#
+# Users wire this in by adding the repo to their .pre-commit-config.yaml.
+# pre-commit installs `flatbuffers-format` from npm into its own isolated
+# environment and runs the bin against staged .fbs files. No global npm
+# install required, no Node version pin to worry about (pre-commit
+# manages the Node toolchain via its `node` language).
+#
+# Why two hooks: `flatbuffers-format` rewrites in place during commit
+# (the typical local-dev pattern), `flatbuffers-format-check` is the
+# silent CI variant that fails the run without modifying files (matches
+# the CLI's --check flag semantics).
+#
+# The version in additional_dependencies is intentionally a caret range —
+# pre-commit's `rev:` field (a git ref) is the primary version pin from
+# the user's side; the additional_dependencies range just narrows which
+# npm package version gets installed in the sandbox. Bump the lower bound
+# here when the engine's major changes.
+
+- id: flatbuffers-format
+  name: flatbuffers-format
+  description: Opinionated formatter for FlatBuffers (.fbs) schemas. Rewrites in place.
+  entry: flatbuffers-format --write
+  language: node
+  types: [text]
+  files: \.fbs$
+  pass_filenames: true
+  additional_dependencies: ["flatbuffers-format@^0.1.0"]
+
+- id: flatbuffers-format-check
+  name: flatbuffers-format (check only)
+  description: Verify .fbs files are already formatted; exits non-zero if not. Use in CI.
+  entry: flatbuffers-format --check
+  language: node
+  types: [text]
+  files: \.fbs$
+  pass_filenames: true
+  additional_dependencies: ["flatbuffers-format@^0.1.0"]
