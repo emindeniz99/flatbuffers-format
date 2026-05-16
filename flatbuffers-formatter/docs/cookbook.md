@@ -4,7 +4,7 @@ Copy-paste recipes for `flatbuffers-format`. Each section is
 self-contained — jump to the one that matches your use case.
 
 1. [CI gate with `--check`](#1-ci-gate-with---check)
-2. [Pre-commit hook (husky + lint-staged, or vanilla git hook)](#2-pre-commit-hook)
+2. [Pre-commit hook (husky + lint-staged, vanilla git hook, or the pre-commit framework)](#2-pre-commit-hook)
 3. [Programmatic use from Node](#3-programmatic-use-from-node)
 4. [Programmatic use from the browser](#4-programmatic-use-from-the-browser)
 5. [VS Code task — format current file on a keybinding](#5-vs-code-task)
@@ -110,6 +110,32 @@ git add "${files[@]}"
 `.git/hooks/` isn't tracked by git, so commit a copy to
 `scripts/git-hooks/pre-commit` and document `git config core.hooksPath
 scripts/git-hooks` in your CONTRIBUTING.md if you want it shared.
+
+### 2c. Python `pre-commit` framework
+
+If your team already runs [pre-commit](https://pre-commit.com) (the
+default in Python-heavy stacks, common in mixed-language monorepos),
+add to `.pre-commit-config.yaml`:
+
+```yaml
+- repo: https://github.com/emindeniz99/playground
+  rev: flatbuffers-format@v0.1.0   # bump on each release
+  hooks:
+    - id: flatbuffers-format        # rewrites in place
+    # …or for the silent CI variant:
+    # - id: flatbuffers-format-check
+```
+
+`pre-commit install` once per clone and pushing/committing
+auto-triggers it on staged `.fbs` files. The framework installs the
+npm package into an isolated environment — no global `flatbuffers-format`
+required, no Node-version pinning conflict with the rest of your
+toolchain.
+
+Two hook IDs ship:
+- `flatbuffers-format` — `--write` mode for local commits
+- `flatbuffers-format-check` — `--check` mode for CI, fails the run
+  on any unformatted file
 
 ---
 
