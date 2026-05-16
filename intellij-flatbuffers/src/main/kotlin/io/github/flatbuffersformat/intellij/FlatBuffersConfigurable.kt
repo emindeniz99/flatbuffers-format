@@ -1,6 +1,5 @@
 package io.github.flatbuffersformat.intellij
 
-import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.BoundConfigurable
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.ui.dsl.builder.bindSelected
@@ -36,14 +35,24 @@ class FlatBuffersConfigurable : BoundConfigurable("FlatBuffers") {
 
         return panel {
             row("Binary path:") {
-                textFieldWithBrowseButton(
-                    browseDialogTitle = "Select flatbuffers-format binary",
-                    fileChooserDescriptor = FileChooserDescriptorFactory
-                        .createSingleFileNoJarsDescriptor(),
-                )
+                // Plain text field rather than the DSL's
+                // `textFieldWithBrowseButton(...)` helper: the latter
+                // has default args, so Kotlin compiles every call site
+                // through the `$default` synthetic which is deprecated
+                // since 2024.3. The native Java alternative
+                // (`TextFieldWithBrowseButton` + `addBrowseFolderListener`)
+                // changed signatures multiple times between 2024.1 and
+                // 2025.1, making it hard to compile a single source
+                // tree that works against the whole sinceBuild..*
+                // range. We sidestep both: auto-detection already
+                // resolves the binary in 99% of cases, and the comment
+                // below makes the manual path explicit.
+                textField()
                     .columns(40)
                     .bindText(settings::cliPath)
-                    .comment("Leave blank to auto-detect on PATH. $detectionHint")
+                    .comment("Leave blank to auto-detect on PATH. $detectionHint<br/>" +
+                        "To set manually, paste an absolute path to the " +
+                        "<code>flatbuffers-format</code> executable.")
             }
             row("Extra arguments:") {
                 textField()

@@ -96,10 +96,17 @@ intellijPlatform {
             // The matrix below covers the lowest supported build
             // (since we set sinceBuild=242) and the latest stable
             // line, which together catch both forward- and
-            // backward-compat regressions.
+            // backward-compat regressions. Rider is verified
+            // explicitly because it occasionally exposes a slightly
+            // different platform API surface than Community IDEA
+            // (some commercial-only modules), and the plugin
+            // explicitly claims to support Rider in plugin.xml's
+            // description.
             ide("IC-2024.2")     // floor, matches sinceBuild
             ide("IC-2024.3")     // mid-cycle
             ide("IC-2025.1")     // recent stable
+            ide("RD-2024.2")     // Rider — floor, most-common downstream
+            ide("RD-2025.1")     // Rider — current
         }
     }
 
