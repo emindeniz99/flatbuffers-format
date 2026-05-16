@@ -4,3 +4,7 @@ dist-test/
 # Generated parser is checked in so the project is buildable
 # without first running the antlr-ng generator. Re-run
 # `npm run generate` after editing the grammar.
+
+# Bench artifacts (CI writes these; baseline lives at scripts/bench-baseline.json).
+bench-current.json
+bench-report.md

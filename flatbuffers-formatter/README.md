@@ -266,6 +266,17 @@ What this means in practice:
   published) bundles to ~4 kB gzip if you ever need a lighter alternative —
   see [`docs/grammar-comparison.md`](docs/grammar-comparison.md).
 
+### Regression gate
+
+Every PR runs `scripts/bench-compare.mjs` against
+[`scripts/bench-baseline.json`](scripts/bench-baseline.json) and fails if
+throughput regresses by more than 25% (in-process µs/file), cold-start
+median by more than 30%, or bundle min+gz by more than 15%. The comparison
+posts a Markdown table to the PR for visibility. To accept slower numbers
+legitimately, re-baseline locally
+(`npm run bench -- --json --repeat 3 > scripts/bench-baseline.json`) and
+commit the new baseline in the same PR.
+
 ## Formatting rules
 
 | Construct | Rule | Configurable? |

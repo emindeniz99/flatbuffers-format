@@ -1,0 +1,22 @@
+{
+  "_captured": "2026-05-16 on Intel(R) Xeon(R) Processor @ 2.10GHz / 16.9 GB RAM (linux container). Update by running `npm run bench -- --json --repeat 3 > scripts/bench-baseline.json` locally, then strip the `node` + `commit` fields.",
+  "schema_version": 1,
+  "in_process": {
+    "corpus_files": 24,
+    "corpus_bytes": 22611,
+    "iterations": 1000,
+    "elapsed_ms": 8377.7,
+    "us_per_call": 349.1,
+    "files_per_sec": 2865
+  },
+  "cold_start_cli": {
+    "sample_bytes": 7504,
+    "min_ms": 165.8,
+    "median_ms": 187.0,
+    "p90_ms": 200.7
+  },
+  "bundle": {
+    "min_bytes": 242268,
+    "min_gz_bytes": 60563
+  }
+}
