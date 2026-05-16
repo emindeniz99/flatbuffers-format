@@ -200,7 +200,7 @@ jobs:
       HAS_SIGNING_KEY: ${{ secrets.JETBRAINS_PRIVATE_KEY != '' && 'true' || 'false' }}
     defaults:
       run:
-        working-directory: projects/intellij-flatbuffers
+        working-directory: projects/flatbuffers/intellij-flatbuffers
     steps:
       - name: Fail fast if JETBRAINS_MARKETPLACE_TOKEN is missing
         env:

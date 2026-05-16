@@ -20,11 +20,11 @@ on:
     branches:
       - main
     paths:
-      - projects/intellij-flatbuffers/**
+      - projects/flatbuffers/intellij-flatbuffers/**
       - .github/workflows/intellij-flatbuffers.yml
   pull_request:
     paths:
-      - projects/intellij-flatbuffers/**
+      - projects/flatbuffers/intellij-flatbuffers/**
       - .github/workflows/intellij-flatbuffers.yml
 
 permissions:
@@ -36,7 +36,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: projects/intellij-flatbuffers
+        working-directory: projects/flatbuffers/intellij-flatbuffers
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -59,6 +59,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: intellij-flatbuffers-plugin
-          path: projects/intellij-flatbuffers/build/distributions/*.zip
+          path: projects/flatbuffers/intellij-flatbuffers/build/distributions/*.zip
           if-no-files-found: error
           retention-days: 30

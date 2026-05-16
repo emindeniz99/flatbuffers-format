@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  16x16 file-type icon shown in the Project view. Same mark as the
+  larger pluginIcon.svg, just simplified to read at very small sizes.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+  <rect width="16" height="16" rx="2.5" ry="2.5" fill="#14746F"/>
+  <path d="M 5.5 3.5 Q 3.8 3.5 3.8 5.2 L 3.8 7.2 Q 3.8 8 2.8 8 Q 3.8 8 3.8 8.8 L 3.8 10.8 Q 3.8 12.5 5.5 12.5"
+        stroke="#FFFFFF" stroke-width="0.85" fill="none"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 10.5 3.5 Q 12.2 3.5 12.2 5.2 L 12.2 7.2 Q 12.2 8 13.2 8 Q 12.2 8 12.2 8.8 L 12.2 10.8 Q 12.2 12.5 10.5 12.5"
+        stroke="#FFFFFF" stroke-width="0.85" fill="none"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="6" y="6.6" width="4" height="0.7" rx="0.35" fill="#FFFFFF"/>
+  <rect x="6" y="8" width="2.8" height="0.7" rx="0.35" fill="#FFFFFF" opacity="0.85"/>
+  <rect x="6" y="9.4" width="3.4" height="0.7" rx="0.35" fill="#FFFFFF" opacity="0.95"/>
+</svg>

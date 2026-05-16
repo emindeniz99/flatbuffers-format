@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Marketplace plugin icon (required by Marketplace policy as `pluginIcon.svg`
+  in META-INF/). Same mark as the VS Code extension — teal rounded square
+  with white braces wrapping three "formatted body" lines — keeps the
+  visual family consistent across editors.
+
+  IntelliJ also looks for `pluginIcon_dark.svg` for the dark theme; the
+  teal background is dark enough on its own that the same SVG works for
+  both, so we ship one file.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="40" height="40">
+  <rect width="40" height="40" rx="7" ry="7" fill="#14746F"/>
+
+  <path d="M 14.5 10
+           Q 10.5 10 10.5 14
+           L 10.5 18.5
+           Q 10.5 20.5 8 20.5
+           Q 10.5 20.5 10.5 22.5
+           L 10.5 26.5
+           Q 10.5 30 14.5 30"
+        stroke="#FFFFFF"
+        stroke-width="1.6"
+        fill="none"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
+
+  <path d="M 25.5 10
+           Q 29.5 10 29.5 14
+           L 29.5 18.5
+           Q 29.5 20.5 32 20.5
+           Q 29.5 20.5 29.5 22.5
+           L 29.5 26.5
+           Q 29.5 30 25.5 30"
+        stroke="#FFFFFF"
+        stroke-width="1.6"
+        fill="none"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
+
+  <rect x="15.5" y="17" width="9" height="1.2" rx="0.6" fill="#FFFFFF"/>
+  <rect x="15.5" y="19.7" width="6.5" height="1.2" rx="0.6" fill="#FFFFFF" opacity="0.85"/>
+  <rect x="15.5" y="22.4" width="7.8" height="1.2" rx="0.6" fill="#FFFFFF" opacity="0.95"/>
+</svg>

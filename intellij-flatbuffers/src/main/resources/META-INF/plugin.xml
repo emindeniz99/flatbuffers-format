@@ -1,0 +1,137 @@
+<idea-plugin>
+  <!--
+    Plugin descriptor for IntelliJ-family IDEs (IDEA, Rider, WebStorm,
+    PyCharm, GoLand, CLion, RustRover, RubyMine, PhpStorm, Aqua, Fleet
+    via legacy-IJ-plugin compat). The single `<depends>` line on
+    `com.intellij.modules.platform` is enough — every IntelliJ-family
+    IDE includes that module by definition, so a single .zip ships
+    everywhere.
+
+    Why not a separate Rider-only variant: the Marketplace allows
+    targeting multiple IDEs with one upload as long as the plugin only
+    uses platform APIs (which is the case here — we never touch C#
+    language services or anything Rider-specific). One artifact, one
+    listing, one CI job.
+  -->
+
+  <id>io.github.flatbuffersformat.intellij</id>
+  <name>FlatBuffers</name>
+  <vendor email="" url="https://github.com/emindeniz99/playground/tree/main/projects/intellij-flatbuffers">emindeniz99</vendor>
+
+  <description><![CDATA[
+    <p>
+      Syntax highlighting and format-on-save for FlatBuffers
+      (<code>.fbs</code>) schema files. The formatter delegates to the
+      <a href="https://www.npmjs.com/package/flatbuffers-format"><code>flatbuffers-format</code></a>
+      CLI for byte-for-byte parity with the published engine — same
+      output you'd get from the VS Code extension, Prettier plugin,
+      <code>npx flatbuffers-format</code>, or the pre-commit hook.
+    </p>
+
+    <h3>Features</h3>
+    <ul>
+      <li>Recognises <code>.fbs</code> as the <b>FlatBuffers</b> language.</li>
+      <li>Syntax highlighting (keywords, types, attributes, numbers,
+        strings, comments) via a hand-rolled lexer mirroring the engine
+        grammar.</li>
+      <li>Format the current file with <kbd>Ctrl/⌘ + Alt + L</kbd> (the
+        usual <i>Reformat Code</i> shortcut) — shells out to
+        <code>flatbuffers-format</code> asynchronously.</li>
+      <li>Settings page at <i>Preferences → Tools → FlatBuffers</i>
+        for CLI path discovery, format options, and a "format on save"
+        toggle.</li>
+    </ul>
+
+    <h3>Prerequisites</h3>
+    <p>
+      The plugin shells out to <code>flatbuffers-format</code> on
+      <code>PATH</code>. Install once:
+    </p>
+    <pre>npm install -g flatbuffers-format</pre>
+    <p>
+      Then point the IDE at it (auto-detected on most systems; manual
+      override in the settings page).
+    </p>
+
+    <h3>Supported IDEs</h3>
+    <p>
+      All JetBrains IDEs built on the IntelliJ Platform 2024.2 or newer:
+      IntelliJ IDEA (Community + Ultimate), Rider, WebStorm, PyCharm,
+      GoLand, CLion, RustRover, RubyMine, PhpStorm, Aqua, DataGrip,
+      DataSpell, MPS, and the Android Studio fork (2024.2-aligned).
+    </p>
+  ]]></description>
+
+  <change-notes><![CDATA[
+    <h3>0.1.0</h3>
+    <ul>
+      <li>Initial release.</li>
+      <li><code>.fbs</code> file-type registration.</li>
+      <li>Lexer-driven syntax highlighting.</li>
+      <li>External formatter integration via
+        <code>AsyncDocumentFormattingService</code>.</li>
+      <li>Settings page under <i>Tools → FlatBuffers</i>.</li>
+      <li>Line/block comment toggle support (<kbd>Ctrl/⌘ + /</kbd>,
+        <kbd>Ctrl/⌘ + Shift + /</kbd>).</li>
+    </ul>
+  ]]></change-notes>
+
+  <!-- The lone hard dependency: every IntelliJ-family IDE ships this.
+       Adding more `<depends>` lines is a footgun — it restricts which
+       IDEs can install the plugin. -->
+  <depends>com.intellij.modules.platform</depends>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <!-- File type registration: anything ending in .fbs is a FlatBuffers
+         schema. The fileType reference is the language ID (not the
+         class FQN). -->
+    <fileType
+        name="FlatBuffers"
+        implementationClass="io.github.flatbuffersformat.intellij.FlatBuffersFileType"
+        fieldName="INSTANCE"
+        language="FlatBuffers"
+        extensions="fbs"/>
+
+    <!-- Lexer-backed syntax highlighter. -->
+    <lang.syntaxHighlighterFactory
+        language="FlatBuffers"
+        implementationClass="io.github.flatbuffersformat.intellij.FlatBuffersSyntaxHighlighterFactory"/>
+
+    <!-- Color settings page (Preferences → Editor → Color Scheme →
+         FlatBuffers). Lets users override token colors. -->
+    <colorSettingsPage
+        implementation="io.github.flatbuffersformat.intellij.FlatBuffersColorSettingsPage"/>
+
+    <!-- Line/block commenter. Wires up Ctrl+/ and Ctrl+Shift+/. -->
+    <lang.commenter
+        language="FlatBuffers"
+        implementationClass="io.github.flatbuffersformat.intellij.FlatBuffersCommenter"/>
+
+    <!-- External formatter wiring. AsyncDocumentFormattingService is the
+         supported integration point since 2022.2 — it runs the formatter
+         off the EDT, lets the user cancel mid-format, and reports
+         failures via the IDE's standard error infrastructure. -->
+    <formattingService
+        implementation="io.github.flatbuffersformat.intellij.FlatBuffersFormattingService"/>
+
+    <!-- App-level (not project-level) settings: CLI path is a global
+         tool, not a per-project concern. Mirror Prettier-plugin layout. -->
+    <applicationService
+        serviceImplementation="io.github.flatbuffersformat.intellij.FlatBuffersSettings"/>
+
+    <!-- Settings UI under Preferences → Tools → FlatBuffers. -->
+    <applicationConfigurable
+        parentId="tools"
+        instance="io.github.flatbuffersformat.intellij.FlatBuffersConfigurable"
+        id="io.github.flatbuffersformat.intellij.FlatBuffersConfigurable"
+        displayName="FlatBuffers"/>
+
+    <!-- Notification group referenced by the formatting service when
+         the CLI shells out and exits non-zero, or isn't found. BALLOON
+         = transient bottom-right popup; users dismiss without action. -->
+    <notificationGroup
+        id="FlatBuffers"
+        displayType="BALLOON"
+        isLogByDefault="true"/>
+  </extensions>
+</idea-plugin>
