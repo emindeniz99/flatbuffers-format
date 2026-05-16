@@ -85,7 +85,21 @@ intellijPlatform {
 
     pluginVerification {
         ides {
-            recommended()
+            // `recommended()` would auto-resolve to JetBrains'
+            // current recommended-for-verification set, but that
+            // list occasionally references IDE builds that aren't
+            // yet downloadable from the public CDN (the indexer is
+            // ahead of releases). Pinning explicit, known-shipped
+            // builds is more reliable for CI; bump in lockstep with
+            // `sinceBuild`/`untilBuild` above.
+            //
+            // The matrix below covers the lowest supported build
+            // (since we set sinceBuild=242) and the latest stable
+            // line, which together catch both forward- and
+            // backward-compat regressions.
+            ide("IC-2024.2")     // floor, matches sinceBuild
+            ide("IC-2024.3")     // mid-cycle
+            ide("IC-2025.1")     // recent stable
         }
     }
 

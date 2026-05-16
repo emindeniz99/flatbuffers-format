@@ -14,9 +14,16 @@
     listing, one CI job.
   -->
 
-  <id>io.github.flatbuffersformat.intellij</id>
+  <!-- Marketplace policy (since 2024-03-26) rejects plugin IDs
+       containing the word "intellij" — it implies an official
+       JetBrains plugin. We use the `.fbs` suffix instead (matches
+       the file extension the plugin handles). Kotlin class FQNs
+       still live under `io.github.flatbuffersformat.intellij.*`
+       because that's a code namespace, not a Marketplace ID, and
+       renaming it would churn every source file for no gain. -->
+  <id>io.github.flatbuffersformat.fbs</id>
   <name>FlatBuffers</name>
-  <vendor email="" url="https://github.com/emindeniz99/playground/tree/main/projects/intellij-flatbuffers">emindeniz99</vendor>
+  <vendor email="" url="https://github.com/emindeniz99/playground/tree/main/projects/flatbuffers/intellij-flatbuffers">emindeniz99</vendor>
 
   <description><![CDATA[
     <p>

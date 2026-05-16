@@ -83,6 +83,14 @@ mkdirSync(outDir, { recursive: true });
 // esbuild is invoked via `npx --yes` so we don't need it as a devDep.
 // Same pattern used by scripts/bench.mjs for the size-measurement bundle.
 
+// Read the version out of the engine's package.json so we can bake
+// it into the bundle — the SEA blob has no runtime access to a real
+// package.json (`import.meta.url` doesn't resolve there).
+const pkgVersion = JSON.parse(
+  readFileSync(join(projectDir, "package.json"), "utf8"),
+).version;
+console.log(`Embedding version: ${pkgVersion}`);
+
 console.log("Bundling CLI with esbuild...");
 const esbuildRes = spawnSync(
   "npx",
@@ -97,6 +105,11 @@ const esbuildRes = spawnSync(
     "--outfile=" + bundlePath,
     // Drop the shebang — the SEA-injected runtime owns the entry point.
     "--banner:js=",
+    // Substitute the version-read env lookup with a string literal.
+    // cli.ts checks `process.env.FLATBUFFERS_FORMAT_VERSION` first
+    // before falling back to the (unreachable from a SEA blob)
+    // package.json read.
+    `--define:process.env.FLATBUFFERS_FORMAT_VERSION=${JSON.stringify(pkgVersion)}`,
   ],
   { stdio: "inherit", shell: process.platform === "win32" },
 );

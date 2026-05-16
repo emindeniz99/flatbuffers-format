@@ -1,7 +1,12 @@
-# Gradle
+# Gradle. The wrapper jar + scripts are generated on demand (CI runs
+# `gradle wrapper --gradle-version 8.10.2`); committing the binary
+# jar would be a maintenance smell, so we leave it out here.
 .gradle/
+.kotlin/
 build/
-!gradle/wrapper/gradle-wrapper.jar
+gradle/wrapper/
+gradlew
+gradlew.bat
 
 # IntelliJ Platform Gradle Plugin caches
 .intellijPlatform/

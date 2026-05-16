@@ -7,8 +7,8 @@
 [![JetBrains Marketplace][marketplace-badge]][marketplace-url]
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-[marketplace-badge]: https://img.shields.io/jetbrains/plugin/v/io.github.flatbuffersformat.intellij?label=Marketplace
-[marketplace-url]: https://plugins.jetbrains.com/plugin/io.github.flatbuffersformat.intellij
+[marketplace-badge]: https://img.shields.io/jetbrains/plugin/v/io.github.flatbuffersformat.fbs?label=Marketplace
+[marketplace-url]: https://plugins.jetbrains.com/plugin/io.github.flatbuffersformat.fbs
 
 Syntax highlighting and format-on-save for FlatBuffers
 (`.fbs`) schema files. Format delegates to the published
@@ -33,7 +33,7 @@ same engine, same output, no surprise across teams that use both.
 2. Search for **FlatBuffers**
 3. Install, restart.
 
-Or via JetBrains Toolbox `jb plugin install io.github.flatbuffersformat.intellij`.
+Or via JetBrains Toolbox `jb plugin install io.github.flatbuffersformat.fbs`.
 
 ### From a `.zip`
 

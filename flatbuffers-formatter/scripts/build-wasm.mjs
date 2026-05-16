@@ -72,24 +72,49 @@ const wrapperPath = join(outDir, "wrapper.mjs");
 writeFileSync(
   wrapperPath,
   `import { format } from "${cliEntry.replaceAll("\\", "/")}";
-import { readFileSync } from "node:fs";
 
-// Read the entire stdin. Node-style: \`0\` is the fd, no encoding arg
-// returns a Buffer which Javy threads back as a Uint8Array.
-let input;
-try {
-  input = readFileSync(0, "utf8");
-} catch (e) {
-  process.stderr.write("flatbuffers-format.wasm: failed to read stdin: " + (e && e.message || e) + "\\n");
-  process.exit(2);
+// Javy's QuickJS-on-WASM doesn't ship Node's fs/process modules.
+// stdin/stdout/stderr are exposed as global IO functions:
+//   Javy.IO.readSync(fd, buffer)  → bytes read
+//   Javy.IO.writeSync(fd, buffer) → bytes written
+// We read all of stdin in 4 KiB chunks, run format(), write stdout.
+
+function readAllStdin() {
+  const chunks = [];
+  const buf = new Uint8Array(4096);
+  while (true) {
+    const n = Javy.IO.readSync(0, buf);
+    if (n <= 0) break;
+    chunks.push(buf.slice(0, n));
+  }
+  const total = chunks.reduce((s, c) => s + c.length, 0);
+  const merged = new Uint8Array(total);
+  let off = 0;
+  for (const c of chunks) {
+    merged.set(c, off);
+    off += c.length;
+  }
+  return new TextDecoder("utf-8").decode(merged);
 }
 
+function writeStdout(s) {
+  Javy.IO.writeSync(1, new TextEncoder().encode(s));
+}
+
+function writeStderr(s) {
+  Javy.IO.writeSync(2, new TextEncoder().encode(s));
+}
+
+const input = readAllStdin();
 try {
-  const out = format(input);
-  process.stdout.write(out);
+  writeStdout(format(input));
 } catch (e) {
-  process.stderr.write("flatbuffers-format.wasm: parse error: " + (e && e.message || e) + "\\n");
-  process.exit(1);
+  writeStderr("flatbuffers-format.wasm: parse error: " + (e && e.message || e) + "\\n");
+  // Javy has no process.exit; throwing surfaces as a wasm trap which
+  // wasmtime maps to exit code 134 (SIGABRT). For a clean non-zero
+  // exit code, callers can use \`wasmtime --invoke\` patterns or wrap
+  // the .wasm in their own runner.
+  throw e;
 }
 `,
 );
@@ -108,15 +133,22 @@ const esb = spawnSync(
     wrapperPath,
     "--bundle",
     "--platform=node",
-    "--target=es2022",
-    "--format=cjs",
+    // Javy's embedded QuickJS doesn't accept the ES2022 public class
+    // field declaration syntax — specifically chokes on declarations
+    // whose name matches a reserved-in-some-contexts identifier
+    // (`set`, `get`). antlr4ng uses `set` as a field. Targeting
+    // es2019 makes esbuild lower the field declaration to a plain
+    // `this.set = undefined` assignment inside the constructor,
+    // which QuickJS handles fine.
+    "--target=es2019",
+    // ESM, not CJS — Javy 5 supports ECMAScript modules natively
+    // but doesn't provide a `require` shim, so a CJS bundle from
+    // esbuild crashes at "`require` is not defined" in any code
+    // path that touches Node built-ins.
+    "--format=esm",
     "--outfile=" + bundlePath,
     // Drop banner — Javy doesn't want a shebang and treats the file as raw JS.
     "--banner:js=",
-    // Don't try to resolve node-builtins that Javy supplies. The Javy
-    // runtime ships polyfills for the small Node stdlib subset we use
-    // (fs.readFileSync(0,...), process.stdout/stderr.write, etc.).
-    "--external:node:fs",
   ],
   { stdio: "inherit", shell: process.platform === "win32" },
 );
