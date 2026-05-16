@@ -1,0 +1,51 @@
+# Per-package CI for flatbuffers-format-editors. Mirrors the workflows
+# for the other npm packages in the monorepo: install + build the
+# `file:` sibling engine, then install + build + test this package.
+
+name: flatbuffers-format-editors
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - projects/flatbuffers-formatter/**
+      - projects/flatbuffers-format-editors/**
+      - .github/workflows/flatbuffers-format-editors.yml
+  pull_request:
+    paths:
+      - projects/flatbuffers-formatter/**
+      - projects/flatbuffers-format-editors/**
+      - .github/workflows/flatbuffers-format-editors.yml
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: build + test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: projects/flatbuffers-format-editors/package-lock.json
+      - name: "Build sibling flatbuffers-format (file: dep)"
+        working-directory: projects/flatbuffers-formatter
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Install
+        working-directory: projects/flatbuffers-format-editors
+        run: npm ci --no-audit --no-fund
+      - name: Lint
+        working-directory: projects/flatbuffers-format-editors
+        run: npm run lint
+      - name: Build
+        working-directory: projects/flatbuffers-format-editors
+        run: npm run build
+      - name: Test
+        working-directory: projects/flatbuffers-format-editors
+        run: npm test
