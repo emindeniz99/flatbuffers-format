@@ -191,7 +191,10 @@ vim.api.nvim_create_autocmd("BufWritePost", {
 
 A hosted playground is available at
 <https://emindeniz99.github.io/playground/playground/> — paste a schema
-and watch it format live, no install needed.
+and watch it format live, no install needed. The page also ships a
+curated set of corpus fixtures behind a *load example* dropdown, a
+*share* button (encodes the current input into the URL fragment, copies
+the link to the clipboard) and a *copy* button on the output pane.
 
 To run the same page locally: `src/index.ts` and the generated parser
 only depend on `antlr4ng`, which ships an ES-module build. After

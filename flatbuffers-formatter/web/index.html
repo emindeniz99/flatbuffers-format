@@ -26,26 +26,44 @@
       }
       * { box-sizing: border-box; }
       body { margin: 0; font: 14px/1.45 system-ui, -apple-system, Segoe UI, sans-serif; background: var(--bg); color: var(--fg); }
-      header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+      header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+      header .title { display: flex; align-items: center; gap: 0.6rem; }
+      header .title svg { width: 24px; height: 24px; flex: none; border-radius: 5px; }
       header h1 { margin: 0; font-size: 1.1rem; }
       header .links a { color: var(--accent); margin-left: 1rem; text-decoration: none; }
       main { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); height: calc(100dvh - 65px); }
       section { background: var(--bg); display: flex; flex-direction: column; min-height: 0; }
       .label { padding: 0.5rem 0.75rem; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-      textarea, pre { flex: 1 1 auto; margin: 0; padding: 0.75rem 1rem; border: 0; background: var(--pre); color: var(--fg); font: 13px/1.5 ui-monospace, Menlo, Consolas, monospace; resize: none; overflow: auto; white-space: pre; }
+      textarea, pre { flex: 1 1 auto; margin: 0; padding: 0.75rem 1rem; border: 0; background: var(--pre); color: var(--fg); font: 13px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace; resize: none; overflow: auto; white-space: pre; }
       textarea:focus { outline: none; }
       .error { color: #b00020; font-weight: 600; }
-      .controls { display: flex; gap: 0.75rem; align-items: center; }
+      .controls { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
       .controls label { display: flex; align-items: center; gap: 0.35rem; }
       input[type="number"] { width: 3.5rem; font: inherit; padding: 0.1rem 0.25rem; background: var(--pre); color: var(--fg); border: 1px solid var(--border); border-radius: 4px; }
+      select { font: inherit; background: var(--pre); color: var(--fg); border: 1px solid var(--border); border-radius: 4px; padding: 0.15rem 0.3rem; }
       button { font: inherit; background: var(--accent); color: white; border: 0; padding: 0.3rem 0.7rem; border-radius: 4px; cursor: pointer; }
+      button.ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+      .toast { color: var(--muted); font-size: 0.75rem; transition: opacity 0.3s; opacity: 0; }
+      .toast.show { opacity: 1; }
       .badge { background: var(--accent); color: white; padding: 1px 6px; border-radius: 999px; font-size: 11px; }
       @media (max-width: 720px) { main { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; } }
     </style>
   </head>
   <body>
     <header>
-      <h1>flatbuffers-format <span class="badge">ANTLR4</span></h1>
+      <div class="title">
+        <!-- Inlined from projects/vscode-flatbuffers/icon.svg so the page
+             stays self-contained (loads under file://, no extra request). -->
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" aria-hidden="true">
+          <rect width="128" height="128" rx="24" ry="24" fill="#14746F"/>
+          <path d="M 46 32 Q 34 32 34 44 L 34 58 Q 34 64 26 64 Q 34 64 34 70 L 34 84 Q 34 96 46 96" stroke="#FFFFFF" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M 82 32 Q 94 32 94 44 L 94 58 Q 94 64 102 64 Q 94 64 94 70 L 94 84 Q 94 96 82 96" stroke="#FFFFFF" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="50" y="54" width="28" height="3.5" rx="1.75" fill="#FFFFFF"/>
+          <rect x="50" y="62" width="20" height="3.5" rx="1.75" fill="#FFFFFF" opacity="0.85"/>
+          <rect x="50" y="70" width="24" height="3.5" rx="1.75" fill="#FFFFFF" opacity="0.95"/>
+        </svg>
+        <h1>flatbuffers-format <span class="badge">ANTLR4</span></h1>
+      </div>
       <div class="links">
         <a href="https://www.antlr.org/" target="_blank" rel="noopener">antlr.org</a>
         <a href="https://github.com/mike-lischke/antlr-ng" target="_blank" rel="noopener">antlr-ng</a>
@@ -57,14 +75,26 @@
         <div class="label">
           <span>input.fbs</span>
           <div class="controls">
+            <label>example
+              <select id="example">
+                <option value="">-- load --</option>
+              </select>
+            </label>
             <label>indent <input id="indent" type="number" min="0" max="8" value="2" /></label>
-            <button id="copy">copy output</button>
+            <button id="share" class="ghost" type="button">share</button>
+            <span id="share-toast" class="toast"></span>
           </div>
         </div>
         <textarea id="src" spellcheck="false" autocomplete="off"></textarea>
       </section>
       <section>
-        <div class="label"><span id="status">output.fbs</span></div>
+        <div class="label">
+          <span id="status">output.fbs</span>
+          <div class="controls">
+            <button id="copy" type="button">copy</button>
+            <span id="copy-toast" class="toast"></span>
+          </div>
+        </div>
         <pre id="out"></pre>
       </section>
     </main>
@@ -82,6 +112,21 @@
           "antlr4ng": "../node_modules/antlr4ng/dist/index.mjs"
         }
       }
+    </script>
+    <!-- Curated corpus fixtures inlined as JSON so the playground works
+         from file://, http-server, and GitHub Pages without extra fetches
+         or Pages workflow changes. Source: projects/flatbuffers-formatter/
+         test/corpus/*.fbs. -->
+    <script type="application/json" id="examples-data">
+{
+  "01-minimal.fbs": "table Hello { x: int; }\n",
+  "09-monster-like.fbs": "// Monster example, adapted from the official FlatBuffers tutorial.\n\nnamespace MyGame.Sample;\n\nattribute \"priority\";\n\nenum Color: byte { Red = 0, Green, Blue = 2 }\n\nunion Equipment { Weapon }\n\nstruct Vec3 {\n  x: float;\n  y: float;\n  z: float;\n}\n\ntable Monster {\n  pos: Vec3;\n  mana: short = 150;\n  hp: short = 100;\n  name: string;\n  friendly: bool = false (deprecated);\n  inventory: [ubyte];\n  color: Color = Blue;\n  weapons: [Weapon];\n  equipped: Equipment;\n  path: [Vec3];\n}\n\ntable Weapon {\n  name: string;\n  damage: short;\n}\n\nroot_type Monster;\n\nfile_identifier \"MONS\";\nfile_extension \"mon\";\n",
+  "17-comprehensive-canonical.fbs": "// Comprehensive integration fixture for the flatbuffers-format\n// formatter. Every section in this file is annotated with the grammar\n// production it exercises and the formatter rule it stresses.\n//\n// References (used as a feature checklist, not copied):\n//   - Official FlatBuffers grammar:\n//     https://flatbuffers.dev/flatbuffers_grammar.html\n//   - Upstream FlatBuffers test schema:\n//     https://github.com/google/flatbuffers/blob/master/tests/monster_test.fbs\n//\n// This file is an original composition for this corpus. It is paired\n// with 18-comprehensive-ugly.fbs, which holds the same logical schema\n// with deliberately destructive whitespace, indentation, and blank-line\n// patterns. Both files must produce byte-identical output through both\n// the ANTLR-backed and the hand-rolled engines — see test/crosscheck.sh.\n// It is also required to be accepted by `flatc` (see\n// scripts/flatc-conform.sh).\n\n// --- native_include ----------------------------------------------------\n// Grammar: native_include_decl.\n// Formatter: single space after the keyword, string literal verbatim,\n// trailing semicolon, one decl per line.\nnative_include \"comprehensive_extra.h\";\n\n// --- main namespace ----------------------------------------------------\n// Grammar: namespace_decl with a dotted path.\n// Formatter: dots between segments carry no surrounding whitespace.\nnamespace Example.Comprehensive;\n\n// --- attribute declarations -------------------------------------------\n// Grammar: attribute_decl. Declares custom attribute names so they can\n// appear on fields below without flatc warnings.\nattribute \"priority\";\nattribute \"validator\";\n\n// --- enums ------------------------------------------------------------\n\n/// Bit-flags enum. Exercises:\n///   - explicit underlying type (`: uint`)\n///   - the (bit_flags) attribute on the enum header\n///   - doc comment that must stay attached to the enum\n///   - members with no explicit value (auto-assigned)\nenum Color: uint (bit_flags) { Red, Green, Blue, Alpha }\n\n/// Plain enum with explicit signed values. Exercises:\n///   - negative integer values\n///   - decimal positive values\n///   - default-by-omission (Mid)\nenum Priority: byte { Low = -1, Mid, High = 10 }\n\n// Comment-only header (// not ///), no doc-comment attachment.\n// Tests that ordinary comments above an enum stay above without being\n// promoted to doc trivia.\nenum Tag: ubyte { None, First, Second, Third }\n\n// --- structs ----------------------------------------------------------\n\n/// Fixed-layout scalar struct. Exercises struct field grammar.\nstruct Vec3 {\n  x: float;\n  y: float;\n  z: float;\n}\n\n/// Struct with a fixed-size array field. Exercises `[T:N]` grammar.\nstruct Matrix3 { data: [float:9]; }\n\n/// Struct-of-structs. Exercises struct-typed fields inside a struct.\nstruct Ray {\n  origin: Vec3;\n  direction: Vec3;\n}\n\n// --- tables referenced by the union (forward refs are legal) ---------\n\ntable PrimarySword {\n  name: string;\n  damage: short;\n}\n\ntable BowAttack {\n  name: string;\n  range: int = 100;\n  damage: short;\n}\n\ntable MagicSpell {\n  name: string;\n  mana_cost: int;\n  /* Multi-line block comment between fields. Stresses block-comment\n     trivia that lives in the gap between two fields. */\n  damage: short;\n}\n\n// --- union ------------------------------------------------------------\n\n// Union with mixed plain and aliased variants. Exercises:\n//   - the `Alias: Type` member form\n//   - the bare `Type` member form\n//   - multiple variants separated by commas\nunion Attack { Melee: PrimarySword, Ranged: BowAttack, MagicSpell }\n\n// --- namespace re-open: drop into External.Ref to declare Anchor -----\n// Grammar: a second namespace_decl in the same file.\n// Formatter: each namespace re-open is its own top-level declaration\n// with a blank line separating it from neighbours.\nnamespace External.Ref;\n\n/// Anchor — referenced from the main namespace via the fully-qualified\n/// path `External.Ref.Anchor`. Lives in this re-opened namespace so the\n/// reference below resolves under flatc's semantic check.\ntable Anchor {\n  label: string;\n  pos: Example.Comprehensive.Vec3;\n}\n\n// --- namespace re-open: back to Example.Comprehensive for Monster ---\nnamespace Example.Comprehensive;\n\n// --- the everything-bag table ----------------------------------------\n\n/// Comprehensive table. Each field exercises a specific formatter rule\n/// or grammar production — called out in the trailing line comment.\ntable Monster {\n  // --- scalar fields with various default kinds ---\n  hp: short = 100; // signed decimal default\n  level: ubyte = 1; // unsigned decimal default\n  experience: uint = 0; // explicit zero default\n  scale: float = 1.5; // float with mantissa\n  density: float = inf; // float +infinity literal\n  nan_check: float = nan; // float NaN literal\n  hex_id: uint = 0xDEADBEEF; // hex-literal default (uint)\n  enabled: bool = true; // bool default\n  cooldown: float = 1.5e-3; // exponent-form float\n\n  // --- string + required ---\n  name: string (required); // (required) metadata\n\n  // --- deprecated ---\n  old_score: int (deprecated); // (deprecated) metadata\n\n  // --- key for vector-of-table lookup ---\n  uid: ulong (key); // (key) metadata\n\n  // --- custom user attribute (declared at top of file) ---\n  rating: int (priority: 5); // custom key:value metadata\n\n  // --- multiple metadata items on one field ---\n  internal: string (deprecated, priority: 0); // comma-separated metadata\n\n  // --- collections ---\n  inventory: [ubyte]; // vector of scalar\n  tags: [string]; // vector of strings\n  trail: [Vec3]; // vector of struct\n  loot: [PrimarySword]; // vector of table\n  abilities: [Attack]; // vector of union\n\n  // --- enum reference defaults ---\n  primary_color: Color = Red; // enum value as default\n  flag_mask: Color = 5; // bit_flags numeric default\n\n  // --- nested struct / table / union fields ---\n  position: Vec3; // single struct field\n  primary_weapon: PrimarySword; // single table field\n  weapon: Attack; // single union field\n\n  // --- namespaced type reference ---\n  spawn_at: External.Ref.Anchor; // dotted type reference\n\n  // --- keyword as field name ---\n  enum: int; // reserved word as ident\n\n  /// Doc-style comment attached to the next field. The formatter must\n  /// keep this doc comment glued to hp_max — never floated up by a\n  /// blank line, never demoted to a regular `//` comment.\n  hp_max: short;\n}\n\n// --- supporting tables for RPC ---------------------------------------\n\ntable Stat {\n  count: int;\n  message: string;\n}\n\ntable MonsterRequest { filter: string; }\n\n// --- RPC service -----------------------------------------------------\n\n/// RPC service. Exercises all four streaming variants flatc recognizes\n/// (none / server / client / bidi), plus an extra `idempotent` flag on\n/// one call.\nrpc_service MonsterStorage {\n  Store(Monster): Stat;\n  Retrieve(MonsterRequest): Stat (streaming: \"server\");\n  Push(Stat): Stat (streaming: \"client\");\n  Bidi(Stat): Stat (streaming: \"bidi\", idempotent);\n}\n\n// --- file metadata + root --------------------------------------------\n\nroot_type Monster;\nfile_identifier \"COMP\";\nfile_extension \"comp\";\n\n// --- object literal --------------------------------------------------\n// Grammar: object_literal_decl.\n// Stresses the JSON-ish sample-data form that flatc accepts at the end\n// of a schema. Single-line nested object inside; the formatter keeps\n// it on its own line.\n{\n  name: \"Sample\",\n  hp: 250,\n  position: {\n    x: 1.0,\n    y: 2.0,\n    z: 3.0\n  }\n}\n",
+  "18-comprehensive-ugly.fbs": "// Comprehensive integration fixture for the flatbuffers-format\n// formatter. Every section in this file is annotated with the grammar\n// production it exercises and the formatter rule it stresses.\n//\n// References (used as a feature checklist, not copied):\n//   - Official FlatBuffers grammar:\n//     https://flatbuffers.dev/flatbuffers_grammar.html\n//   - Upstream FlatBuffers test schema:\n//     https://github.com/google/flatbuffers/blob/master/tests/monster_test.fbs\n//\n// This file is an original composition for this corpus. It is paired\n// with 18-comprehensive-ugly.fbs, which holds the same logical schema\n// with deliberately destructive whitespace, indentation, and blank-line\n// patterns. Both files must produce byte-identical output through both\n// the ANTLR-backed and the hand-rolled engines — see test/crosscheck.sh.\n// It is also required to be accepted by `flatc` (see\n// scripts/flatc-conform.sh).\n\n// --- native_include ----------------------------------------------------\n// Grammar: native_include_decl.\n// Formatter: single space after the keyword, string literal verbatim,\n// trailing semicolon, one decl per line.\n   native_include    \"comprehensive_extra.h\"  ;\n\n// --- main namespace ----------------------------------------------------\n// Grammar: namespace_decl with a dotted path.\n// Formatter: dots between segments carry no surrounding whitespace.\nnamespace   Example  .  Comprehensive  ;\n\n// --- attribute declarations -------------------------------------------\n// Grammar: attribute_decl. Declares custom attribute names so they can\n// appear on fields below without flatc warnings.\nattribute\"priority\";\n   attribute    \"validator\"   ;\n\n// --- enums ------------------------------------------------------------\n\n/// Bit-flags enum. Exercises:\n///   - explicit underlying type (`: uint`)\n///   - the (bit_flags) attribute on the enum header\n///   - doc comment that must stay attached to the enum\n///   - members with no explicit value (auto-assigned)\nenum Color:uint(bit_flags){Red,Green  ,  Blue,Alpha}\n\n/// Plain enum with explicit signed values. Exercises:\n///   - negative integer values\n///   - decimal positive values\n///   - default-by-omission (Mid)\n   enum   Priority   :   byte   {   Low=-1   ,   Mid   ,   High=10   }\n\n// Comment-only header (// not ///), no doc-comment attachment.\n// Tests that ordinary comments above an enum stay above without being\n// promoted to doc trivia.\nenum Tag:ubyte{None,First,Second,Third}\n\n// --- structs ----------------------------------------------------------\n\n/// Fixed-layout scalar struct. Exercises struct field grammar.\nstruct  Vec3  {x:float;y:float;z:float;}\n\n/// Struct with a fixed-size array field. Exercises `[T:N]` grammar.\nstruct Matrix3{data:[float:9];}\n\n/// Struct-of-structs. Exercises struct-typed fields inside a struct.\nstruct   Ray   {  origin  :  Vec3  ;  direction  :  Vec3  ;  }\n\n// --- tables referenced by the union (forward refs are legal) ---------\n\ntable PrimarySword{name:string;damage:short;}\n\ntable   BowAttack   {name:string;range:int=100;damage:short;}\n\ntable MagicSpell {\n  name:string;\n   mana_cost   :   int   ;\n  /* Multi-line block comment between fields. Stresses block-comment\n     trivia that lives in the gap between two fields. */\ndamage:short;\n}\n\n// --- union ------------------------------------------------------------\n\n// Union with mixed plain and aliased variants. Exercises:\n//   - the `Alias: Type` member form\n//   - the bare `Type` member form\n//   - multiple variants separated by commas\nunion   Attack   {   Melee   :   PrimarySword   ,   Ranged   :   BowAttack   ,   MagicSpell   }\n\n// --- namespace re-open: drop into External.Ref to declare Anchor -----\n// Grammar: a second namespace_decl in the same file.\n// Formatter: each namespace re-open is its own top-level declaration\n// with a blank line separating it from neighbours.\nnamespace External.Ref;\n\n/// Anchor — referenced from the main namespace via the fully-qualified\n/// path `External.Ref.Anchor`. Lives in this re-opened namespace so the\n/// reference below resolves under flatc's semantic check.\ntable Anchor{label:string;pos:Example.Comprehensive.Vec3;}\n\n// --- namespace re-open: back to Example.Comprehensive for Monster ---\nnamespace   Example.Comprehensive  ;\n\n// --- the everything-bag table ----------------------------------------\n\n/// Comprehensive table. Each field exercises a specific formatter rule\n/// or grammar production — called out in the trailing line comment.\ntable Monster {\n  // --- scalar fields with various default kinds ---\nhp:short=100;// signed decimal default\n   level   :   ubyte   =   1   ;   // unsigned decimal default\nexperience:uint=0; // explicit zero default\n  scale  :  float  =  1.5  ;  // float with mantissa\ndensity:float=inf; // float +infinity literal\nnan_check:float=nan; // float NaN literal\n   hex_id:uint=0xDEADBEEF;   // hex-literal default (uint)\nenabled:bool=true; // bool default\ncooldown:float=1.5e-3; // exponent-form float\n\n  // --- string + required ---\nname:string(required); // (required) metadata\n\n  // --- deprecated ---\nold_score:int(deprecated); // (deprecated) metadata\n\n  // --- key for vector-of-table lookup ---\n   uid   :   ulong   (   key   )   ;   // (key) metadata\n\n  // --- custom user attribute (declared at top of file) ---\nrating:int(priority:5); // custom key:value metadata\n\n  // --- multiple metadata items on one field ---\ninternal:string(deprecated,priority:0); // comma-separated metadata\n\n  // --- collections ---\n   inventory:[ubyte];   // vector of scalar\ntags:[string]; // vector of strings\ntrail:[Vec3]; // vector of struct\nloot:[PrimarySword]; // vector of table\nabilities:[Attack]; // vector of union\n\n  // --- enum reference defaults ---\nprimary_color:Color=Red; // enum value as default\nflag_mask:Color=5; // bit_flags numeric default\n\n  // --- nested struct / table / union fields ---\nposition:Vec3; // single struct field\nprimary_weapon:PrimarySword; // single table field\nweapon:Attack; // single union field\n\n  // --- namespaced type reference ---\nspawn_at:External.Ref.Anchor; // dotted type reference\n\n  // --- keyword as field name ---\nenum:int; // reserved word as ident\n\n  /// Doc-style comment attached to the next field. The formatter must\n  /// keep this doc comment glued to hp_max — never floated up by a\n  /// blank line, never demoted to a regular `//` comment.\nhp_max:short;\n}\n\n// --- supporting tables for RPC ---------------------------------------\n\ntable Stat{count:int;message:string;}\n\ntable   MonsterRequest   {   filter   :   string   ;   }\n\n// --- RPC service -----------------------------------------------------\n\n/// RPC service. Exercises all four streaming variants flatc recognizes\n/// (none / server / client / bidi), plus an extra `idempotent` flag on\n/// one call.\nrpc_service MonsterStorage {\nStore(Monster):Stat;\n   Retrieve(MonsterRequest):Stat(streaming:\"server\");\nPush(Stat) : Stat (streaming:\"client\");\nBidi(Stat):Stat(streaming:\"bidi\",idempotent);\n}\n\n// --- file metadata + root --------------------------------------------\n\n   root_type   Monster   ;\nfile_identifier\"COMP\";\nfile_extension   \"comp\"  ;\n\n// --- object literal --------------------------------------------------\n// Grammar: object_literal_decl.\n// Stresses the JSON-ish sample-data form that flatc accepts at the end\n// of a schema. Single-line nested object inside; the formatter keeps\n// it on its own line.\n{name:\"Sample\",hp:250,position:{x:1.0,y:2.0,z:3.0}}\n",
+  "20-enum-value-metadata.fbs": "// Exercises per-enum-value metadata: the upstream FlatBuffers EBNF\n// allows an optional `metadata` block on each enum value (after the\n// optional `= value` initializer). Earlier versions of our grammar\n// only accepted `(deprecated)` etc. on the enum header, not on the\n// individual values. This fixture pins the closed gap.\n\nnamespace EnumMeta;\n\nattribute \"priority\";\n\nenum Status: byte {\n  Pending,\n  Active = 1 (priority: 0),\n  Retired (deprecated),\n  Banned = 99 (deprecated, priority: -1)\n}\n\ntable Holder { s: Status = Pending; }\n\nroot_type Holder;\n",
+  "22-union-underlying-type.fbs": "// Union with an explicit underlying integer type, e.g.\n//   union Weapon : uint8 { Sword, Axe }\n// Mirrors the `enum X : T { ... }` syntax; added to flatc after\n// version 2.0.8 (per the FlatBuffers commit history; the upstream\n// EBNF spec at flatbuffers.dev/grammar still understates this).\n\nnamespace UnionBase;\n\ntable Sword { damage: short; }\n\ntable Axe {\n  damage: short;\n  cleave: bool = false;\n}\n\ntable Wand { spell: string; }\n\nunion Weapon: uint8 { Sword, Axe, Wand }\n\ntable Hero { primary: Weapon; }\n\nroot_type Hero;\n",
+  "23-hex-floats.fbs": "// C99-style hex float literals. flatc accepts these as far back as\n// 2.0.8; closing this gap brings the formatter's grammar in line with\n// the upstream EBNF spec (which lists hex_float_constant as a\n// scalar form).\n//\n// The forms exercised below cover the three lexer alternatives:\n//   - `mantissa.fraction p exponent` (`0x1.8p3`)\n//   - `.fraction p exponent`         (`0x.8p4`)\n//   - `mantissa p exponent`          (`0x1p0`)\n// Plus signs on the binary exponent and a leading - on the value.\n\ntable HexFloats {\n  a: double = 0x1.8p3; // 12.0  — mantissa.fraction p exponent\n  b: double = 0X1.8P+3; // uppercase variants and explicit + sign\n  c: double = 0x1.8p-3; // negative exponent\n  d: double = 0x1p0; // 1.0 — mantissa-only, no fraction\n  e: double = 0x.8p4; // 8.0 — fraction-only, no integer mantissa\n  f: float = -0x1.8p3; // negated value (-12.0)\n}\n\nroot_type HexFloats;\n"
+}
     </script>
     <script type="module">
       import { format } from "../dist/src/index.js";
@@ -109,7 +154,30 @@ root_type Monster;
       const $status = document.getElementById("status");
       const $indent = document.getElementById("indent");
       const $copy = document.getElementById("copy");
-      $src.value = SAMPLE;
+      const $copyToast = document.getElementById("copy-toast");
+      const $share = document.getElementById("share");
+      const $shareToast = document.getElementById("share-toast");
+      const $example = document.getElementById("example");
+
+      // Populate the example dropdown from the inlined JSON.
+      const EXAMPLES = JSON.parse(document.getElementById("examples-data").textContent);
+      for (const name of Object.keys(EXAMPLES)) {
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        $example.appendChild(opt);
+      }
+
+      // Initial textarea content: URL hash (shared link) > default sample.
+      // Hash format: "#src=" + encodeURIComponent(text). Plain percent-
+      // encoding keeps the page dependency-free and works in every browser.
+      function readHash() {
+        const h = window.location.hash;
+        if (!h.startsWith("#src=")) return null;
+        try { return decodeURIComponent(h.slice(5)); } catch { return null; }
+      }
+      const shared = readHash();
+      $src.value = shared != null ? shared : SAMPLE;
 
       function update() {
         const indent = Number($indent.value) || 0;
@@ -124,11 +192,43 @@ root_type Monster;
         }
       }
 
+      function flashToast($el, msg) {
+        $el.textContent = msg;
+        $el.classList.add("show");
+        setTimeout(() => $el.classList.remove("show"), 1500);
+      }
+
       $src.addEventListener("input", update);
       $indent.addEventListener("input", update);
-      $copy.addEventListener("click", async () => {
-        try { await navigator.clipboard.writeText($out.textContent); } catch {}
+
+      $example.addEventListener("change", () => {
+        const name = $example.value;
+        if (!name) return;
+        $src.value = EXAMPLES[name];
+        $example.value = ""; // reset so re-selecting the same item works
+        update();
       });
+
+      $copy.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText($out.textContent);
+          flashToast($copyToast, "copied");
+        } catch {
+          flashToast($copyToast, "copy failed");
+        }
+      });
+
+      $share.addEventListener("click", async () => {
+        const hash = "#src=" + encodeURIComponent($src.value);
+        history.replaceState(null, "", hash);
+        try {
+          await navigator.clipboard.writeText(window.location.href);
+          flashToast($shareToast, "link copied");
+        } catch {
+          flashToast($shareToast, "url updated");
+        }
+      });
+
       update();
     </script>
   </body>
