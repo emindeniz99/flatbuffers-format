@@ -29,6 +29,7 @@ on:
           - tree-sitter-flatbuffers
           - vscode-flatbuffers
           - intellij-flatbuffers
+          - flatbuffers-format-editors
 
 permissions:
   contents: read
@@ -230,3 +231,49 @@ jobs:
         env:
           JETBRAINS_MARKETPLACE_TOKEN: ${{ secrets.JETBRAINS_MARKETPLACE_TOKEN }}
         run: ./gradlew --no-daemon publishPlugin
+
+  republish-flatbuffers-format-editors:
+    name: npm publish flatbuffers-format-editors
+    if: ${{ inputs.package == 'flatbuffers-format-editors' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: projects/flatbuffers-format-editors/package-lock.json
+          registry-url: https://registry.npmjs.org
+      - name: "Build sibling flatbuffers-format (file: dep)"
+        working-directory: projects/flatbuffers-formatter
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Install
+        working-directory: projects/flatbuffers-format-editors
+        run: npm ci --no-audit --no-fund
+      - name: Build
+        working-directory: projects/flatbuffers-format-editors
+        run: npm run build
+      - name: Rewrite file dep to npm version range
+        working-directory: projects/flatbuffers-format-editors
+        run: |
+          engine_version=$(node -p "require('../../.release-please-manifest.json')['projects/flatbuffers-formatter']")
+          echo "Pinning flatbuffers-format to ^${engine_version}"
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            if (pkg.peerDependencies && pkg.peerDependencies['flatbuffers-format'])
+              pkg.peerDependencies['flatbuffers-format'] = '^${engine_version}';
+            if (pkg.devDependencies && pkg.devDependencies['flatbuffers-format'])
+              pkg.devDependencies['flatbuffers-format'] = '^${engine_version}';
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+      - name: Publish to npm with provenance
+        working-directory: projects/flatbuffers-format-editors
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
