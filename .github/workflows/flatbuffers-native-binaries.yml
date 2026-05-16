@@ -50,6 +50,12 @@ on:
 
 permissions:
   contents: write
+  # SLSA build-provenance attestations (`actions/attest-build-provenance`)
+  # need an OIDC token to sign with Sigstore Fulcio + write to the
+  # repo's attestations API. The token expires when the job ends;
+  # nothing persists in the repo beyond the attestation itself.
+  id-token: write
+  attestations: write
 
 jobs:
   build:
@@ -210,6 +216,22 @@ jobs:
             cd ../../_native-artifacts
             sha256sum "${{ matrix.artifact }}" > "${{ matrix.artifact }}.sha256"
           )
+
+      # SLSA build-provenance attestation. Signed by Sigstore Fulcio
+      # using the workflow's OIDC token; the attestation links the
+      # downloaded artefact to this exact GitHub Actions run (commit
+      # SHA, workflow file, runner identity). Consumers verify with:
+      #   gh attestation verify <file> --repo emindeniz99/playground
+      # We attest both the binary AND its SHA sidecar so the sidecar
+      # itself becomes trustworthy (a tampered sidecar would either
+      # have no attestation or one with a wrong subject hash).
+      - name: Attest build provenance
+        working-directory: ${{ github.workspace }}
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            _native-artifacts/${{ matrix.artifact }}
+            _native-artifacts/${{ matrix.artifact }}.sha256
 
       - uses: actions/upload-artifact@v4
         with:

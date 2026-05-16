@@ -32,6 +32,11 @@ on:
 
 permissions:
   contents: write
+  # SLSA build-provenance attestations need the OIDC token + the
+  # attestations API. See native-binaries.yml for the consumer-side
+  # verification flow.
+  id-token: write
+  attestations: write
 
 env:
   # Pin Javy. Newer Javy releases occasionally rename CLI flags
@@ -94,10 +99,29 @@ jobs:
               exit 1
             fi
           done
+      - name: Emit SHA256 sidecar
+        run: |
+          set -euo pipefail
+          cd build/wasm
+          sha256sum flatbuffers-format.wasm > flatbuffers-format.wasm.sha256
+          cat flatbuffers-format.wasm.sha256
+
+      # SLSA build-provenance over both the .wasm and its sidecar —
+      # see native-binaries.yml for the verification flow.
+      - name: Attest build provenance
+        working-directory: ${{ github.workspace }}
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            projects/flatbuffers/flatbuffers-formatter/build/wasm/flatbuffers-format.wasm
+            projects/flatbuffers/flatbuffers-formatter/build/wasm/flatbuffers-format.wasm.sha256
+
       - uses: actions/upload-artifact@v4
         with:
           name: flatbuffers-format-wasm
-          path: projects/flatbuffers/flatbuffers-formatter/build/wasm/flatbuffers-format.wasm
+          path: |
+            projects/flatbuffers/flatbuffers-formatter/build/wasm/flatbuffers-format.wasm
+            projects/flatbuffers/flatbuffers-formatter/build/wasm/flatbuffers-format.wasm.sha256
           if-no-files-found: error
           retention-days: 30
 
@@ -133,5 +157,8 @@ jobs:
             flatbuffers-format@*) ;;
             *) echo "Skipping: tag '$tag' is not a flatbuffers-format release"; exit 0 ;;
           esac
-          gh release upload "$tag" _wasm-artifact/flatbuffers-format.wasm --clobber \
+          gh release upload "$tag" \
+            _wasm-artifact/flatbuffers-format.wasm \
+            _wasm-artifact/flatbuffers-format.wasm.sha256 \
+            --clobber \
             --repo "${{ github.repository }}"
