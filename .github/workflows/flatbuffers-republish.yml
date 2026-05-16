@@ -245,7 +245,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: projects/flatbuffers-format-editors/package-lock.json
+          cache-dependency-path: projects/flatbuffers/flatbuffers-format-editors/package-lock.json
           registry-url: https://registry.npmjs.org
       - name: "Build sibling flatbuffers-format (file: dep)"
         working-directory: projects/flatbuffers-formatter
@@ -253,13 +253,13 @@ jobs:
           npm ci --no-audit --no-fund
           npm run build
       - name: Install
-        working-directory: projects/flatbuffers-format-editors
+        working-directory: projects/flatbuffers/flatbuffers-format-editors
         run: npm ci --no-audit --no-fund
       - name: Build
-        working-directory: projects/flatbuffers-format-editors
+        working-directory: projects/flatbuffers/flatbuffers-format-editors
         run: npm run build
       - name: Rewrite file dep to npm version range
-        working-directory: projects/flatbuffers-format-editors
+        working-directory: projects/flatbuffers/flatbuffers-format-editors
         run: |
           engine_version=$(node -p "require('../../.release-please-manifest.json')['projects/flatbuffers-formatter']")
           echo "Pinning flatbuffers-format to ^${engine_version}"
@@ -273,7 +273,7 @@ jobs:
             fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
           "
       - name: Publish to npm with provenance
-        working-directory: projects/flatbuffers-format-editors
+        working-directory: projects/flatbuffers/flatbuffers-format-editors
         run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
