@@ -50,7 +50,7 @@
     "prettier": ">=3"
   },
   "dependencies": {
-    "flatbuffers-format": "file:../flatbuffers-formatter"
+    "flatbuffers-format": "workspace:^"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.15",
