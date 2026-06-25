@@ -92,26 +92,25 @@ intellijPlatform {
             // list occasionally references IDE builds that aren't
             // yet downloadable from the public CDN (the indexer is
             // ahead of releases). Pinning explicit, known-shipped
-            // builds is more reliable for CI; bump in lockstep with
-            // `sinceBuild`/`untilBuild` above.
+            // builds is more reliable for CI.
             //
-            // The matrix below covers the lowest supported build
-            // (since we set sinceBuild=242) and the latest stable
-            // line, which together catch both forward- and
-            // backward-compat regressions. Rider is verified
-            // explicitly because it occasionally exposes a slightly
-            // different platform API surface than Community IDEA
-            // (some commercial-only modules), and the plugin
-            // explicitly claims to support Rider in plugin.xml's
-            // description.
-            // `ide("IC-2024.2")` was removed in plugin 2.12; use
-            // create(type, version). Community floor + recent line,
-            // plus Rider (the most common commercial downstream).
-            create(IntelliJPlatformType.IntellijIdeaCommunity, "2024.2") // floor, matches sinceBuild
-            create(IntelliJPlatformType.IntellijIdeaCommunity, "2024.3") // mid-cycle
-            create(IntelliJPlatformType.IntellijIdeaCommunity, "2025.1") // recent stable
-            create(IntelliJPlatformType.Rider, "2024.2") // Rider — floor, most-common downstream
-            create(IntelliJPlatformType.Rider, "2025.1") // Rider — current
+            // A three-point check across the supported range
+            // (sinceBuild=242, no upper bound): the floor, the newest
+            // IntelliJ, and the latest Rider. Few enough IDE downloads
+            // to fit the runner disk and keep CI minutes down — the
+            // floor is where breakage hides (an API newer than 242);
+            // the newest is a forward sanity check.
+            //
+            // Type rule: IntelliJ IDEA Community (IC) only exists for
+            // builds < 2025.3; 2025.3 unified IDEA into one product, so
+            // the newest line uses the IntellijIdea (IU) type. Rider must
+            // use the multi-OS ZIP — its installer isn't supported
+            // (plugin issue #1852).
+            create(IntelliJPlatformType.IntellijIdeaCommunity, "2024.2") // oldest, == sinceBuild 242
+            create(IntelliJPlatformType.IntellijIdea, "2026.1")          // newest IntelliJ (post-merge unified type)
+            create(IntelliJPlatformType.Rider, "2026.1") {               // latest Rider
+                useInstaller = false
+            }
         }
     }
 
