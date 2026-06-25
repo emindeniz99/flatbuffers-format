@@ -178,55 +178,10 @@ TL;DR:
 
 ## Roadmap
 
-Where this family is heading, in three buckets. Each bullet is a
-direction not a promise — if a row matters to you, file an issue
-and we can prioritise it.
-
-### Likely next (0.2.x)
-
-- **Bundle the native engine inside the IntelliJ plugin** so Rider
-  / IDEA / GoLand / CLion users don't need a separate
-  `npm install -g flatbuffers-format`. Download-on-demand from the
-  matching GitHub Release, cached to the IDE plugins directory.
-- **`textFieldWithBrowseButton` deprecation** in the IntelliJ
-  Configurable — non-blocking today, will be when 2025.x drops the
-  deprecated overload.
-- **Wider IntelliJ verifier matrix** — add explicit Rider (RD-*)
-  builds alongside the IDEA Community ones we already run.
-- **Multi-PM post-publish smoke** — extend
-  `post-publish-smoke.yml` to install each just-published artefact
-  via npm / pnpm / yarn / bun (currently npm only).
-
-### Maybe (0.3.x — 0.x)
-
-- **Lezer grammar for CodeMirror** to replace the StreamLanguage
-  in `flatbuffers-format-editors/codemirror`. Gets incremental
-  parsing + PSI access; cost is a second grammar to keep in sync
-  with the engine.
-- **Code-fold ranges + outline view** on every editor surface (VS
-  Code, IntelliJ, web). Mostly platform glue around the engine's
-  AST.
-- **Schema-level diagnostics** beyond parse errors: undefined
-  symbol refs, illegal vtable IDs, conflicting `(id: N)`
-  attributes, etc. The engine already builds an AST that would
-  support these — needs a `lint()` API alongside `format()` and
-  `check()`.
-- **Sourcemap for Prettier integration** so the plugin can offer
-  in-place fixes via Prettier's error-on-format mode.
-
-### Not planned
-
-- Reading FlatBuffers binary buffers — `flatc` is the authoritative
-  tool there; we'd be reimplementing a moving target.
-- A bytecode VM / interpreter for `.fbs` schemas — out of scope for
-  a formatter.
-- Custom code generators (TS / Go / Rust / Swift bindings) — same
-  reason; `flatc` owns that surface.
-- A LSP server. The four editor surfaces already cover the formats
-  we care about, and the engine isn't designed to provide LSP-shaped
-  queries (definitions, references) over `.fbs`. If demand
-  materialises we'd revisit; for now `flatc` + the editor plugins
-  are sufficient.
+See [`ROADMAP.md`](./ROADMAP.md) — features, supply-chain/security
+follow-ups, release-infra to-dos, maintainer action items, and an
+explicit "not planned" list (so settled decisions don't get
+re-litigated).
 
 ## Lifting this folder out into its own repo
 
