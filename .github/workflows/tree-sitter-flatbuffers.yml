@@ -1,6 +1,7 @@
 name: tree-sitter-flatbuffers CI
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main

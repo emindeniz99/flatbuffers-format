@@ -5,6 +5,7 @@
 name: flatbuffers-format-editors
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
