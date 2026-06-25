@@ -141,7 +141,7 @@ jobs:
           echo "sha256=9f87066dc5dfa7fe02090b55bab5f3e55df03e32c9b0cdf229004ade7d091039" >> "$GITHUB_OUTPUT"
       - name: Cache flatc binary
         id: flatc-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: tools/flatc
           key: flatc-linux-gcc-${{ steps.flatc.outputs.tag }}-${{ steps.flatc.outputs.sha256 }}

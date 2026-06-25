@@ -227,7 +227,7 @@ jobs:
       # have no attestation or one with a wrong subject hash).
       - name: Attest build provenance
         working-directory: ${{ github.workspace }}
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: |
             _native-artifacts/${{ matrix.artifact }}

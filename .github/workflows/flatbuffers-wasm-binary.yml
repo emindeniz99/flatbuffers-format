@@ -110,7 +110,7 @@ jobs:
       # see native-binaries.yml for the verification flow.
       - name: Attest build provenance
         working-directory: ${{ github.workspace }}
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: |
             projects/flatbuffers/flatbuffers-formatter/build/wasm/flatbuffers-format.wasm
