@@ -20,12 +20,13 @@
 //     `JETBRAINS_MARKETPLACE_TOKEN` env var. The release workflow wires
 //     this up automatically.
 
+import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 
 plugins {
     java
-    kotlin("jvm") version "2.0.21"
-    id("org.jetbrains.intellij.platform") version "2.1.0"
+    kotlin("jvm") version "2.4.0"
+    id("org.jetbrains.intellij.platform") version "2.16.0"
 }
 
 group = providers.gradleProperty("pluginGroup").get()
@@ -49,7 +50,8 @@ dependencies {
         //   bundledPlugin("org.jetbrains.plugins.textmate")
         // and mirror it in plugin.xml `<depends>`.
 
-        instrumentationTools()
+        // instrumentationTools() dropped: removed in IntelliJ Platform
+        // Gradle Plugin 2.12+ — the Java compiler dep is now auto-applied.
         pluginVerifier()
         zipSigner()
         testFramework(TestFrameworkType.Platform)
@@ -102,11 +104,14 @@ intellijPlatform {
             // (some commercial-only modules), and the plugin
             // explicitly claims to support Rider in plugin.xml's
             // description.
-            ide("IC-2024.2")     // floor, matches sinceBuild
-            ide("IC-2024.3")     // mid-cycle
-            ide("IC-2025.1")     // recent stable
-            ide("RD-2024.2")     // Rider — floor, most-common downstream
-            ide("RD-2025.1")     // Rider — current
+            // `ide("IC-2024.2")` was removed in plugin 2.12; use
+            // create(type, version). Community floor + recent line,
+            // plus Rider (the most common commercial downstream).
+            create(IntelliJPlatformType.IntellijIdeaCommunity, "2024.2") // floor, matches sinceBuild
+            create(IntelliJPlatformType.IntellijIdeaCommunity, "2024.3") // mid-cycle
+            create(IntelliJPlatformType.IntellijIdeaCommunity, "2025.1") // recent stable
+            create(IntelliJPlatformType.Rider, "2024.2") // Rider — floor, most-common downstream
+            create(IntelliJPlatformType.Rider, "2025.1") // Rider — current
         }
     }
 
@@ -136,7 +141,7 @@ intellijPlatform {
 
 tasks {
     wrapper {
-        gradleVersion = "8.10.2"
+        gradleVersion = "9.5.0"
         distributionType = Wrapper.DistributionType.BIN
     }
 
