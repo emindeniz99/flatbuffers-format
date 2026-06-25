@@ -48,7 +48,7 @@ jobs:
       # gradle-wrapper.jar (binary jars in source are a maintenance smell).
       # `gradle wrapper --gradle-version` is idempotent.
       - name: Generate Gradle wrapper
-        run: gradle wrapper --gradle-version 9.5.0
+        run: gradle wrapper --gradle-version 9.5.1
       - name: Build plugin
         run: ./gradlew --no-daemon buildPlugin
       - name: Test

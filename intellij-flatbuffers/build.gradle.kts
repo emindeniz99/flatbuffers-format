@@ -141,7 +141,7 @@ intellijPlatform {
 
 tasks {
     wrapper {
-        gradleVersion = "9.5.0"
+        gradleVersion = "9.5.1"
         distributionType = Wrapper.DistributionType.BIN
     }
 
