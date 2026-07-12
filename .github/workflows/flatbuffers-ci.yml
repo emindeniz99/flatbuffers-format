@@ -21,13 +21,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: projects/flatbuffers/package.json
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
+          cache-dependency-path: projects/flatbuffers/pnpm-lock.yaml
       - name: Install
+        working-directory: projects/flatbuffers
         run: pnpm install --frozen-lockfile
       - name: Lint
+        working-directory: projects/flatbuffers
         run: pnpm --filter flatbuffers-format lint
 
   flatbuffers-format-test:
@@ -46,15 +51,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: projects/flatbuffers/package.json
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: pnpm
+          cache-dependency-path: projects/flatbuffers/pnpm-lock.yaml
       - name: Install
+        working-directory: projects/flatbuffers
         run: pnpm install --frozen-lockfile
       - name: Build
+        working-directory: projects/flatbuffers
         run: pnpm --filter flatbuffers-format build
       - name: Test
+        working-directory: projects/flatbuffers
         run: pnpm --filter flatbuffers-format test
 
   flatbuffers-format-handrolled-test:
@@ -68,15 +79,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: projects/flatbuffers/package.json
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: pnpm
+          cache-dependency-path: projects/flatbuffers/pnpm-lock.yaml
       - name: Install
+        working-directory: projects/flatbuffers
         run: pnpm install --frozen-lockfile
       - name: Build
+        working-directory: projects/flatbuffers
         run: pnpm --filter flatbuffers-format-handrolled build
       - name: Test
+        working-directory: projects/flatbuffers
         run: pnpm --filter flatbuffers-format-handrolled test
 
   # Linux-only by design. crosscheck.sh is a bash script and wiring up bash
@@ -91,13 +108,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: projects/flatbuffers/package.json
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
+          cache-dependency-path: projects/flatbuffers/pnpm-lock.yaml
       - name: Install
+        working-directory: projects/flatbuffers
         run: pnpm install --frozen-lockfile
       - name: Build both engines
+        working-directory: projects/flatbuffers
         run: pnpm --filter flatbuffers-format --filter flatbuffers-format-handrolled build
       - name: Cross-check (byte-identical, idempotent)
         run: bash projects/flatbuffers/flatbuffers-formatter/test/crosscheck.sh
@@ -113,10 +135,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: projects/flatbuffers/package.json
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
+          cache-dependency-path: projects/flatbuffers/pnpm-lock.yaml
       # ---------------------------------------------------------------------
       # flatc binary install — pinned tag + SHA256-verified download.
       #
@@ -173,8 +198,10 @@ jobs:
       - name: Verify flatc on PATH
         run: flatc --version
       - name: Install
+        working-directory: projects/flatbuffers
         run: pnpm install --frozen-lockfile
       - name: Build engine
+        working-directory: projects/flatbuffers
         run: pnpm --filter flatbuffers-format build
       - name: flatc-conform
         run: bash projects/flatbuffers/flatbuffers-formatter/scripts/flatc-conform.sh

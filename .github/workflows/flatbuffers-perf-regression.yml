@@ -38,16 +38,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: projects/flatbuffers/package.json
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
+          cache-dependency-path: projects/flatbuffers/pnpm-lock.yaml
 
       - name: Install
-        working-directory: ${{ github.workspace }}
+        working-directory: projects/flatbuffers
         run: pnpm install --frozen-lockfile
 
       - name: Build
+        working-directory: projects/flatbuffers
         run: pnpm --filter flatbuffers-format build
 
       - name: Run bench (JSON, median of 3)

@@ -1,0 +1,26 @@
+{
+  "name": "flatbuffers-workspace",
+  "private": true,
+  "description": "Workspace manifest for the FlatBuffers package family. Not published. Lives in projects/flatbuffers/ so the repo root stays project-free (see CONVENTIONS.md).",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=10"
+  },
+  "scripts": {
+    "build": "pnpm -r --filter './*' build",
+    "test": "pnpm -r --filter './*' test",
+    "lint": "pnpm -r --filter './*' --if-present lint"
+  },
+  "pnpm": {
+    "//": "pnpm 10 sandboxes lifecycle scripts by default. The packages below are the ones we actively use during build/test/publish; everything else stays sandboxed.",
+    "onlyBuiltDependencies": [
+      "@vscode/vsce-sign",
+      "keytar",
+      "tree-sitter",
+      "tree-sitter-cli"
+    ]
+  }
+}

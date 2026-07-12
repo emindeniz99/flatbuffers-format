@@ -138,7 +138,7 @@ jobs:
               # Berry's PnP linker hides `node_modules/.bin/`; force
               # node-modules linker to mirror npm semantics for the
               # CLI invocation. The PnP-compat angle is exercised by
-              # the dedicated pm-compat.yml workflow.
+              # the dedicated flatbuffers-pm-compat.yml workflow.
               echo "nodeLinker: node-modules" > .yarnrc.yml
               yarn add "flatbuffers-format@$v"
               bin=node_modules/.bin/flatbuffers-format

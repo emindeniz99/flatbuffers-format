@@ -1,0 +1,15 @@
+# pnpm workspace manifest for the FlatBuffers project family.
+#
+# This workspace lives inside projects/flatbuffers/ — the repo root is
+# intentionally workspace-free so sibling projects stay independent
+# (see CONVENTIONS.md). Every npm-managed FlatBuffers package is an
+# immediate subfolder of this directory. Other projects (e.g. the
+# Python projects/markets/) are orthogonal and NOT members.
+#
+# Why include the private `flatbuffers-formatter-handrolled`: it's a
+# workspace member so its `workspace:` deps (none today, but room for
+# future) resolve cleanly, and so `pnpm -r run test` exercises it
+# alongside the published packages.
+
+packages:
+  - "*"

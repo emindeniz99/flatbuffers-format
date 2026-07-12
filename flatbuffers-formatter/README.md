@@ -3,7 +3,7 @@
 **The opinionated, zero-config formatter for FlatBuffers (`.fbs`) schemas — fast, byte-stable, type-safe, runs anywhere.**
 
 [![npm](https://img.shields.io/npm/v/flatbuffers-format.svg)](https://www.npmjs.com/package/flatbuffers-format)
-[![CI](https://github.com/emindeniz99/playground/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/emindeniz99/playground/actions/workflows/ci.yml)
+[![CI](https://github.com/emindeniz99/playground/actions/workflows/flatbuffers-ci.yml/badge.svg?branch=main)](https://github.com/emindeniz99/playground/actions/workflows/flatbuffers-ci.yml)
 [![License](https://img.shields.io/npm/l/flatbuffers-format.svg)](LICENSE)
 [![Node](https://img.shields.io/node/v/flatbuffers-format.svg)](package.json)
 [![Types](https://img.shields.io/badge/types-included-blue.svg)](dist/src/index.d.ts)
@@ -160,7 +160,7 @@ chmod +x flatbuffers-format
 ./flatbuffers-format --version
 ```
 
-The binaries are produced by `.github/workflows/native-binaries.yml`
+The binaries are produced by `.github/workflows/flatbuffers-native-binaries.yml`
 using `scripts/build-native.mjs`; run that script locally to build the
 binary for your own machine (`npm run build:native`). The macOS
 binaries carry an ad-hoc signature only — Gatekeeper will quarantine
@@ -185,7 +185,7 @@ Use cases: embedding the formatter from non-Node hosts (Rust/Go/Python
 build tools), running in sandboxed serverless environments
 (Cloudflare Workers Pages, Vercel Edge), or shipping a
 reproducible-by-hash formatter in tooling pipelines. The .wasm is built
-by [`.github/workflows/wasm-binary.yml`](../../.github/workflows/wasm-binary.yml)
+by [`.github/workflows/flatbuffers-wasm-binary.yml`](../../.github/workflows/flatbuffers-wasm-binary.yml)
 using [Javy](https://github.com/bytecodealliance/javy)
 (QuickJS-compiled-to-WASM) from
 [`scripts/build-wasm.mjs`](scripts/build-wasm.mjs); reproduce locally

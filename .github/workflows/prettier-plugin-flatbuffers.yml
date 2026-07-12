@@ -16,13 +16,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: projects/flatbuffers/package.json
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
+          cache-dependency-path: projects/flatbuffers/pnpm-lock.yaml
       - name: Install (workspace, hoists the workspace:^ engine dep)
+        working-directory: projects/flatbuffers
         run: pnpm install --frozen-lockfile
       - name: Build engine + plugin
+        working-directory: projects/flatbuffers
         run: pnpm --filter flatbuffers-format --filter prettier-plugin-flatbuffers build
       - name: Test
+        working-directory: projects/flatbuffers
         run: pnpm --filter prettier-plugin-flatbuffers test
