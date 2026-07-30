@@ -68,7 +68,7 @@
     "antlr4ng": "^3.0.16"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.15",
+    "@biomejs/biome": "^2.5.5",
     "@types/node": "^22.10.0",
     "antlr-ng": "^1.0.10",
     "typescript": "^5.6.0"
