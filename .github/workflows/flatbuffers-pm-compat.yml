@@ -24,15 +24,15 @@ on:
     branches: [main]
     paths:
       - projects/flatbuffers/flatbuffers-formatter/**
-      - pnpm-lock.yaml
-      - pnpm-workspace.yaml
-      - .github/workflows/pm-compat.yml
+      - projects/flatbuffers/pnpm-lock.yaml
+      - projects/flatbuffers/pnpm-workspace.yaml
+      - .github/workflows/flatbuffers-pm-compat.yml
   pull_request:
     paths:
       - projects/flatbuffers/flatbuffers-formatter/**
-      - pnpm-lock.yaml
-      - pnpm-workspace.yaml
-      - .github/workflows/pm-compat.yml
+      - projects/flatbuffers/pnpm-lock.yaml
+      - projects/flatbuffers/pnpm-workspace.yaml
+      - .github/workflows/flatbuffers-pm-compat.yml
   workflow_dispatch:
 
 permissions:
@@ -45,16 +45,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: projects/flatbuffers/package.json
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
+          cache-dependency-path: projects/flatbuffers/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+        working-directory: projects/flatbuffers
       - run: pnpm --filter flatbuffers-format build
+        working-directory: projects/flatbuffers
       # pnpm pack writes the .tgz with workspace:^ rewritten to
       # ^X.Y.Z, exactly like pnpm publish — i.e. this is the same
       # artefact npm consumers would get from the registry.
       - name: Pack tarball
+        working-directory: projects/flatbuffers
         run: |
           mkdir -p "$GITHUB_WORKSPACE/_pack"
           pnpm --filter flatbuffers-format pack --pack-destination "$GITHUB_WORKSPACE/_pack"

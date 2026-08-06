@@ -1,6 +1,6 @@
 # Build a portable WASI module of `flatbuffers-format` via Javy
 # (https://github.com/bytecodealliance/javy) and attach it to GitHub
-# Releases. Mirror of `native-binaries.yml` but the matrix collapses
+# Releases. Mirror of `flatbuffers-native-binaries.yml` but the matrix collapses
 # to a single artifact — the .wasm is platform-agnostic.
 #
 # Why a separate workflow:
@@ -20,7 +20,7 @@ on:
       - projects/flatbuffers/flatbuffers-formatter/src/**
       - projects/flatbuffers/flatbuffers-formatter/grammar/**
       - projects/flatbuffers/flatbuffers-formatter/scripts/build-wasm.mjs
-      - .github/workflows/wasm-binary.yml
+      - .github/workflows/flatbuffers-wasm-binary.yml
   release:
     types: [released]
   workflow_dispatch:
@@ -33,7 +33,7 @@ on:
 permissions:
   contents: write
   # SLSA build-provenance attestations need the OIDC token + the
-  # attestations API. See native-binaries.yml for the consumer-side
+  # attestations API. See flatbuffers-native-binaries.yml for the consumer-side
   # verification flow.
   id-token: write
   attestations: write
@@ -54,14 +54,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: projects/flatbuffers/package.json
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
+          cache-dependency-path: projects/flatbuffers/pnpm-lock.yaml
       - name: Install
-        working-directory: ${{ github.workspace }}
+        working-directory: projects/flatbuffers
         run: pnpm install --frozen-lockfile
       - name: Build
+        working-directory: projects/flatbuffers
         run: pnpm --filter flatbuffers-format build
       - name: Install Javy
         run: |
@@ -107,7 +111,7 @@ jobs:
           cat flatbuffers-format.wasm.sha256
 
       # SLSA build-provenance over both the .wasm and its sidecar —
-      # see native-binaries.yml for the verification flow.
+      # see flatbuffers-native-binaries.yml for the verification flow.
       - name: Attest build provenance
         working-directory: ${{ github.workspace }}
         uses: actions/attest-build-provenance@v4

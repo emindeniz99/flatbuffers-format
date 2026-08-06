@@ -1,0 +1,10 @@
+# Force LF line endings on checkout for all text files in the
+# FlatBuffers family, regardless of the contributor's OS / git
+# autocrlf setting. The published .fbs files always end in LF (the
+# formatter enforces it), and the tests compare corpus content
+# byte-for-byte through template literals — CRLF checkout on Windows
+# would silently fail those tests.
+#
+# Scoped here (git applies .gitattributes per directory tree) so the
+# rule doesn't impose LF on unrelated sibling projects.
+* text=auto eol=lf

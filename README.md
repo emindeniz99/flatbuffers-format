@@ -107,22 +107,22 @@ Eight workflows run on every PR. Five are this family's:
 
 | Workflow | Gate |
 |---|---|
-| [`ci.yml`](../../.github/workflows/ci.yml) | Engine + handrolled unit tests on `{linux, macOS, Windows} × node {20, 22, 24, 26}` matrix, plus the byte-identical crosscheck and `flatc-conform` (against the upstream `flatc` binary, SHA256-pinned). |
+| [`flatbuffers-ci.yml`](../../.github/workflows/flatbuffers-ci.yml) | Engine + handrolled unit tests on `{linux, macOS, Windows} × node {20, 22, 24, 26}` matrix, plus the byte-identical crosscheck and `flatc-conform` (against the upstream `flatc` binary, SHA256-pinned). |
 | [`prettier-plugin-flatbuffers.yml`](../../.github/workflows/prettier-plugin-flatbuffers.yml) | Prettier plugin build + 7 unit tests. |
 | [`tree-sitter-flatbuffers.yml`](../../.github/workflows/tree-sitter-flatbuffers.yml) | tree-sitter generate + 9 grammar tests + 24-corpus round-trip. |
 | [`vscode-flatbuffers.yml`](../../.github/workflows/vscode-flatbuffers.yml) | VS Code extension build + 5 unit tests on a node matrix. |
 | [`intellij-flatbuffers.yml`](../../.github/workflows/intellij-flatbuffers.yml) | Gradle `buildPlugin` + `verifyPlugin` (IntelliJ Plugin Verifier against every recommended IDE). |
 | [`flatbuffers-format-editors.yml`](../../.github/workflows/flatbuffers-format-editors.yml) | Editors package lint + build + tests. |
-| [`perf-regression.yml`](../../.github/workflows/perf-regression.yml) | Engine bench, median-of-3, sticky-comment regression report against `scripts/bench-baseline.json`. |
+| [`flatbuffers-perf-regression.yml`](../../.github/workflows/flatbuffers-perf-regression.yml) | Engine bench, median-of-3, sticky-comment regression report against `scripts/bench-baseline.json`. |
 | [`codeql.yml`](../../.github/workflows/codeql.yml) | Static analysis. |
 
 On `release: released`, three more workflows fire:
-- [`native-binaries.yml`](../../.github/workflows/native-binaries.yml)
+- [`flatbuffers-native-binaries.yml`](../../.github/workflows/flatbuffers-native-binaries.yml)
   — 5-platform Node SEA matrix, attaches signed binaries to the
   release.
-- [`wasm-binary.yml`](../../.github/workflows/wasm-binary.yml) — Javy
+- [`flatbuffers-wasm-binary.yml`](../../.github/workflows/flatbuffers-wasm-binary.yml) — Javy
   build + round-trip-equivalence smoke vs native + asset upload.
-- [`post-publish-smoke.yml`](../../.github/workflows/post-publish-smoke.yml)
+- [`flatbuffers-post-publish-smoke.yml`](../../.github/workflows/flatbuffers-post-publish-smoke.yml)
   — install each just-published artifact from the public registry
   and exercise its public surface.
 
