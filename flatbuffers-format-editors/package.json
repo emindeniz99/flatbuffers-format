@@ -73,14 +73,14 @@
     "monaco-editor": { "optional": true }
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.15",
-    "@codemirror/language": "^6.10.0",
-    "@codemirror/state": "^6.4.0",
+    "@biomejs/biome": "^2.5.5",
+    "@codemirror/language": "^6.12.4",
+    "@codemirror/state": "^6.7.1",
     "@codemirror/view": "^6.30.0",
     "@lezer/highlight": "^1.2.0",
     "@types/node": "^22.10.0",
     "flatbuffers-format": "workspace:^",
-    "monaco-editor": "^0.52.0",
+    "monaco-editor": "^0.56.0",
     "typescript": "^5.6.0"
   }
 }
