@@ -1,0 +1,54 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "node",
+  "include-component-in-tag": true,
+  "pull-request-title-pattern": "chore(${component}): release ${version}",
+  "separate-pull-requests": false,
+  "packages": {
+    "projects/flatbuffers/flatbuffers-formatter": {
+      "release-type": "node",
+      "package-name": "flatbuffers-format",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true,
+      "bootstrap-sha": "d66c6edd684307422fcdb3a8bd22e498d1f5a4c8"
+    },
+    "projects/flatbuffers/prettier-plugin-flatbuffers": {
+      "release-type": "node",
+      "package-name": "prettier-plugin-flatbuffers",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true,
+      "bootstrap-sha": "82cdb315c6d40a0b6e281f4dd8c57aa809f8948c"
+    },
+    "projects/flatbuffers/tree-sitter-flatbuffers": {
+      "release-type": "node",
+      "package-name": "tree-sitter-flatbuffers",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true,
+      "bootstrap-sha": "60ef29959221c2f97c2fdc660f6a81336b05ed3a"
+    },
+    "projects/flatbuffers/vscode-flatbuffers": {
+      "release-type": "node",
+      "package-name": "vscode-flatbuffers",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true,
+      "bootstrap-sha": "dc8d517955715a5e627a344f86025f344df816b6"
+    },
+    "projects/flatbuffers/intellij-flatbuffers": {
+      "release-type": "simple",
+      "package-name": "intellij-flatbuffers",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true,
+      "bootstrap-sha": "36653a578f4c95312729658ca5478d46aa236316",
+      "extra-files": [
+        "gradle.properties"
+      ]
+    },
+    "projects/flatbuffers/flatbuffers-format-editors": {
+      "release-type": "node",
+      "package-name": "flatbuffers-format-editors",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true,
+      "bootstrap-sha": "fe062c3a336ed2ad0e6bacc4503dd6a368c0c09d"
+    }
+  }
+}

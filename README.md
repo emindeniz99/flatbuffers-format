@@ -196,13 +196,14 @@ git clone https://github.com/emindeniz99/playground.git playground-orig
 cd playground-orig
 git filter-repo --subdirectory-filter projects/flatbuffers
 
-# 2. Move workspace + manifest to the new root
-mv ../package.json .                      # tweak: rename "playground-monorepo" → "flatbuffers-tooling"
-mv ../pnpm-workspace.yaml .               # tweak: change `projects/flatbuffers/*` → `./*` (or per-package)
-mv ../pnpm-lock.yaml .                    # regenerate via `pnpm install` after the path-prefix bump
+# 2. Workspace + manifest already live in this folder (package.json,
+#    pnpm-workspace.yaml, pnpm-lock.yaml, release-please config/manifest),
+#    so the subdirectory filter carries them along — just rename
+#    "flatbuffers-workspace" if desired.
 
 # 3. Update path-prefix references
-#    - release-please-config.json + manifest: drop `projects/flatbuffers/` from each path key
+#    - release-please-config.json + .release-please-manifest.json: drop
+#      `projects/flatbuffers/` from each path key
 #    - .github/workflows/*: drop `projects/flatbuffers/` from path filters + working-directory
 #    - Each package.json's `repository.directory` + `homepage` URL
 #    - README cross-links
