@@ -44,7 +44,7 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
       # Generate the wrapper on-the-fly so we don't have to check in
       # gradle-wrapper.jar (binary jars in source are a maintenance smell).
       # `gradle wrapper --gradle-version` is idempotent.
