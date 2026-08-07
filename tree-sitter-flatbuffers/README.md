@@ -56,7 +56,7 @@ roots = []
 
 [[grammar]]
 name = "flatbuffers"
-source = { git = "https://github.com/emindeniz99/playground", subpath = "projects/tree-sitter-flatbuffers" }
+source = { git = "https://github.com/emindeniz99/playground", subpath = "projects/flatbuffers/tree-sitter-flatbuffers" }
 ```
 
 Then `hx --grammar fetch && hx --grammar build`. Drop the

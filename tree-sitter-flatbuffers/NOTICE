@@ -1,0 +1,20 @@
+tree-sitter-flatbuffers
+Copyright (c) 2026 emindeniz99
+
+This product includes software developed by the Tree-sitter project.
+
+The following files are emitted verbatim by `tree-sitter generate` and are
+copied from tree-sitter/tree-sitter. They carry no license header of their
+own, so their provenance is recorded here rather than being covered by this
+package's blanket copyright:
+
+    src/tree_sitter/alloc.h
+    src/tree_sitter/array.h
+    src/tree_sitter/parser.h
+
+    Copyright (c) 2018-2024 Max Brunsfeld
+    Licensed under the MIT License.
+    https://github.com/tree-sitter/tree-sitter/blob/master/LICENSE
+
+`src/parser.c` and `src/grammar.json` are generated from `grammar.js` by the
+same tool; the grammar itself is original work under this package's LICENSE.

@@ -1,4 +1,4 @@
-package io.github.flatbuffersformat.intellij
+package io.github.emindeniz99.intellij
 
 import com.intellij.openapi.fileTypes.SyntaxHighlighter
 import com.intellij.openapi.fileTypes.SyntaxHighlighterFactory

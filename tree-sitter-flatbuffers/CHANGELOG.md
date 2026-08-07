@@ -3,7 +3,7 @@
 All notable changes to `tree-sitter-flatbuffers` are documented in
 this file. This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.0] — initial release
+## [0.1.0] - Unreleased
 
 - Tree-sitter grammar for FlatBuffers (`.fbs`) schema files.
 - Accepts the same dialect as `flatbuffers-format` 0.1.0:

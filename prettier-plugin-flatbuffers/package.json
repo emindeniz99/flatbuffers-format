@@ -16,7 +16,7 @@
     "url": "git+https://github.com/emindeniz99/playground.git",
     "directory": "projects/flatbuffers/prettier-plugin-flatbuffers"
   },
-  "homepage": "https://github.com/emindeniz99/playground/tree/main/projects/prettier-plugin-flatbuffers#readme",
+  "homepage": "https://github.com/emindeniz99/playground/tree/main/projects/flatbuffers/prettier-plugin-flatbuffers#readme",
   "bugs": {
     "url": "https://github.com/emindeniz99/playground/issues"
   },

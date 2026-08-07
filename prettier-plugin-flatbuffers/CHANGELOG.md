@@ -3,7 +3,7 @@
 All notable changes to `prettier-plugin-flatbuffers` are documented in
 this file. This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.0] — initial release
+## [0.1.0] - Unreleased
 
 - Prettier 3+ plugin for `.fbs` files
 - Maps `tabWidth` / `useTabs` / `endOfLine` to flatbuffers-format options

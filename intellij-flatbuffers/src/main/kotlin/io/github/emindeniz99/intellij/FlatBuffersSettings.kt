@@ -1,4 +1,4 @@
-package io.github.flatbuffersformat.intellij
+package io.github.emindeniz99.intellij
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.PersistentStateComponent
@@ -22,7 +22,7 @@ import java.io.File
  * `flatbuffers-format` config files (when the engine grows them).
  */
 @State(
-    name = "io.github.flatbuffersformat.intellij.FlatBuffersSettings",
+    name = "io.github.emindeniz99.intellij.FlatBuffersSettings",
     storages = [Storage("flatbuffers-format.xml")],
 )
 @Service(Service.Level.APP)

@@ -20,7 +20,7 @@
     "authors": [{ "name": "emindeniz99" }],
     "links": {
       "repository": "https://github.com/emindeniz99/playground",
-      "homepage": "https://github.com/emindeniz99/playground/tree/main/projects/tree-sitter-flatbuffers"
+      "homepage": "https://github.com/emindeniz99/playground/tree/main/projects/flatbuffers/tree-sitter-flatbuffers"
     }
   },
   "bindings": {

@@ -24,7 +24,14 @@
       "package-name": "tree-sitter-flatbuffers",
       "changelog-path": "CHANGELOG.md",
       "bump-minor-pre-major": true,
-      "bootstrap-sha": "60ef29959221c2f97c2fdc660f6a81336b05ed3a"
+      "bootstrap-sha": "60ef29959221c2f97c2fdc660f6a81336b05ed3a",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "tree-sitter.json",
+          "jsonpath": "$.metadata.version"
+        }
+      ]
     },
     "projects/flatbuffers/vscode-flatbuffers": {
       "release-type": "node",

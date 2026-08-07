@@ -18,10 +18,10 @@
        containing the word "intellij" — it implies an official
        JetBrains plugin. We use the `.fbs` suffix instead (matches
        the file extension the plugin handles). Kotlin class FQNs
-       still live under `io.github.flatbuffersformat.intellij.*`
+       still live under `io.github.emindeniz99.intellij.*`
        because that's a code namespace, not a Marketplace ID, and
        renaming it would churn every source file for no gain. -->
-  <id>io.github.flatbuffersformat.fbs</id>
+  <id>io.github.emindeniz99.fbs</id>
   <name>FlatBuffers</name>
   <vendor email="" url="https://github.com/emindeniz99/playground/tree/main/projects/flatbuffers/intellij-flatbuffers">emindeniz99</vendor>
 
@@ -102,7 +102,7 @@
          class FQN). -->
     <fileType
         name="FlatBuffers"
-        implementationClass="io.github.flatbuffersformat.intellij.FlatBuffersFileType"
+        implementationClass="io.github.emindeniz99.intellij.FlatBuffersFileType"
         fieldName="INSTANCE"
         language="FlatBuffers"
         extensions="fbs"/>
@@ -110,35 +110,35 @@
     <!-- Lexer-backed syntax highlighter. -->
     <lang.syntaxHighlighterFactory
         language="FlatBuffers"
-        implementationClass="io.github.flatbuffersformat.intellij.FlatBuffersSyntaxHighlighterFactory"/>
+        implementationClass="io.github.emindeniz99.intellij.FlatBuffersSyntaxHighlighterFactory"/>
 
     <!-- Color settings page (Preferences → Editor → Color Scheme →
          FlatBuffers). Lets users override token colors. -->
     <colorSettingsPage
-        implementation="io.github.flatbuffersformat.intellij.FlatBuffersColorSettingsPage"/>
+        implementation="io.github.emindeniz99.intellij.FlatBuffersColorSettingsPage"/>
 
     <!-- Line/block commenter. Wires up Ctrl+/ and Ctrl+Shift+/. -->
     <lang.commenter
         language="FlatBuffers"
-        implementationClass="io.github.flatbuffersformat.intellij.FlatBuffersCommenter"/>
+        implementationClass="io.github.emindeniz99.intellij.FlatBuffersCommenter"/>
 
     <!-- External formatter wiring. AsyncDocumentFormattingService is the
          supported integration point since 2022.2 — it runs the formatter
          off the EDT, lets the user cancel mid-format, and reports
          failures via the IDE's standard error infrastructure. -->
     <formattingService
-        implementation="io.github.flatbuffersformat.intellij.FlatBuffersFormattingService"/>
+        implementation="io.github.emindeniz99.intellij.FlatBuffersFormattingService"/>
 
     <!-- App-level (not project-level) settings: CLI path is a global
          tool, not a per-project concern. Mirror Prettier-plugin layout. -->
     <applicationService
-        serviceImplementation="io.github.flatbuffersformat.intellij.FlatBuffersSettings"/>
+        serviceImplementation="io.github.emindeniz99.intellij.FlatBuffersSettings"/>
 
     <!-- Settings UI under Preferences → Tools → FlatBuffers. -->
     <applicationConfigurable
         parentId="tools"
-        instance="io.github.flatbuffersformat.intellij.FlatBuffersConfigurable"
-        id="io.github.flatbuffersformat.intellij.FlatBuffersConfigurable"
+        instance="io.github.emindeniz99.intellij.FlatBuffersConfigurable"
+        id="io.github.emindeniz99.intellij.FlatBuffersConfigurable"
         displayName="FlatBuffers"/>
 
     <!-- Notification group referenced by the formatting service when

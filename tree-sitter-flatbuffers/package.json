@@ -24,6 +24,7 @@
   "main": "bindings/node/index.js",
   "files": [
     "LICENSE",
+    "NOTICE",
     "README.md",
     "CHANGELOG.md",
     "binding.gyp",
@@ -44,7 +45,7 @@
     "prepublishOnly": "pnpm run generate && pnpm test"
   },
   "peerDependencies": {
-    "tree-sitter": "^0.21"
+    "tree-sitter": "^0.25"
   },
   "peerDependenciesMeta": {
     "tree-sitter": {

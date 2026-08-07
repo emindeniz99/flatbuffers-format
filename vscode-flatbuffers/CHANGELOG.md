@@ -3,7 +3,7 @@
 All notable changes to the `FlatBuffers` VS Code extension are documented here.
 This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.0] — initial release
+## [0.1.0] - Unreleased
 
 First release of the FlatBuffers VS Code extension.
 

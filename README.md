@@ -21,11 +21,11 @@ etc.) is orthogonal and not part of this family.
 | [`prettier-plugin-flatbuffers/`](./prettier-plugin-flatbuffers) | TS | npm: [`prettier-plugin-flatbuffers`](https://www.npmjs.com/package/prettier-plugin-flatbuffers) | **Prettier 3 plugin.** Add to `.prettierrc` and `.fbs` files format alongside everything else Prettier already touches. Thin shim — routes to the engine, honours Prettier's `tabWidth` / `printWidth` / `endOfLine`. |
 | [`tree-sitter-flatbuffers/`](./tree-sitter-flatbuffers) | tree-sitter DSL → generated C | npm: [`tree-sitter-flatbuffers`](https://www.npmjs.com/package/tree-sitter-flatbuffers) | **Tree-sitter grammar.** Drives syntax highlighting + incremental parsing in editors that consume tree-sitter (Neovim, Helix, Zed, GitHub.com). Grammar mirrors the engine's ANTLR4 grammar; corpus round-trips against the formatter on every CI run. |
 | [`vscode-flatbuffers/`](./vscode-flatbuffers) | TS (ESM) | VS Code Marketplace + Open VSX: [`emindeniz99.vscode-flatbuffers`](https://marketplace.visualstudio.com/items?itemName=emindeniz99.vscode-flatbuffers) | **VS Code extension.** TextMate highlighting + a native ESM format-on-save provider that delegates to the engine. No third-party "Run on Save" plugin needed. |
-| [`intellij-flatbuffers/`](./intellij-flatbuffers) | Kotlin (JDK 21) | JetBrains Marketplace: [`io.github.flatbuffersformat.fbs`](https://plugins.jetbrains.com/plugin/io.github.flatbuffersformat.fbs) | **JetBrains plugin.** One `.zip` covers IntelliJ IDEA, Rider, WebStorm, PyCharm, GoLand, CLion, RustRover, RubyMine, PhpStorm, Aqua, DataGrip, DataSpell, and Android Studio (all IntelliJ Platform 2024.2+). Hand-rolled lexer for highlighting; shells out to the engine CLI for Reformat Code. |
+| [`intellij-flatbuffers/`](./intellij-flatbuffers) | Kotlin (JDK 21) | JetBrains Marketplace: [`io.github.emindeniz99.fbs`](https://plugins.jetbrains.com/plugin/io.github.emindeniz99.fbs) | **JetBrains plugin.** One `.zip` covers IntelliJ IDEA, Rider, WebStorm, PyCharm, GoLand, CLion, RustRover, RubyMine, PhpStorm, Aqua, DataGrip, DataSpell, and Android Studio (all IntelliJ Platform 2024.2+). Hand-rolled lexer for highlighting; shells out to the engine CLI for Reformat Code. |
 | [`flatbuffers-format-editors/`](./flatbuffers-format-editors) | TS (ESM) | npm: [`flatbuffers-format-editors`](https://www.npmjs.com/package/flatbuffers-format-editors) | **Browser editor integrations.** Three subpath exports — `/codemirror` (CodeMirror 6 language extension), `/monaco` (Monaco Monarch + format provider), and `/web-component` (drop-in `<flatbuffers-editor>` custom element). All three call the engine in-process — no CLI, no Node. |
 
-Six of the seven are publicly published; `flatbuffers-formatter-handrolled`
-stays private as the differential oracle for the engine.
+`flatbuffers-formatter-handrolled` is the only one that stays unpublished —
+it is the differential oracle every engine release is checked against.
 
 ## How they fit together
 
@@ -73,11 +73,11 @@ requirements, live in the root [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
 
 ## Dev loop
 
-The repo is a pnpm workspace rooted at the repo root. Bootstrap once,
-then operate on individual packages via filters:
+This folder is the pnpm workspace root. Bootstrap once, then operate on
+individual packages via filters:
 
 ```bash
-# from the repo root
+# from projects/flatbuffers/
 pnpm install                                                  # installs everything, once
 
 # scoped: just the engine
@@ -85,10 +85,10 @@ pnpm --filter flatbuffers-format build
 pnpm --filter flatbuffers-format test
 
 # scoped: build everything in this family
-pnpm -r --filter './projects/flatbuffers/*' build
+pnpm -r --filter './*' build
 
 # Cross-engine differential check (byte-identical antlr vs handrolled)
-bash projects/flatbuffers/flatbuffers-formatter/test/crosscheck.sh
+bash flatbuffers-formatter/test/crosscheck.sh
 
 # All four test layers (matches what prepublishOnly does)
 pnpm --filter flatbuffers-format test
@@ -138,7 +138,7 @@ the repo root:
 | `prettier-plugin-flatbuffers/` | npm | `prettier-plugin-flatbuffers` |
 | `tree-sitter-flatbuffers/` | npm | `tree-sitter-flatbuffers` |
 | `vscode-flatbuffers/` | VS Code Marketplace (+ Open VSX, best-effort) | `emindeniz99.vscode-flatbuffers` |
-| `intellij-flatbuffers/` | JetBrains Marketplace | `io.github.flatbuffersformat.fbs` |
+| `intellij-flatbuffers/` | JetBrains Marketplace | `io.github.emindeniz99.fbs` |
 | `flatbuffers-format-editors/` | npm | `flatbuffers-format-editors` |
 
 You don't bump `version` fields by hand. The flow:
