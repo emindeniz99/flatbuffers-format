@@ -6,7 +6,6 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.util.xmlb.XmlSerializerUtil
-import java.io.File
 
 /**
  * App-level persistent settings. Stored in
@@ -45,13 +44,6 @@ class FlatBuffersSettings : PersistentStateComponent<FlatBuffersSettings.State> 
          */
         var extraArgs: String = ""
 
-        /**
-         * If true, the plugin registers a save listener that formats
-         * `.fbs` files on save. Defaults off — users can still
-         * format-on-save via IDE's built-in "Save Actions" plugin or
-         * via the Code → Reformat Code action.
-         */
-        var formatOnSave: Boolean = false
     }
 
     private var state = State()
@@ -69,54 +61,13 @@ class FlatBuffersSettings : PersistentStateComponent<FlatBuffersSettings.State> 
         get() = state.extraArgs
         set(value) { state.extraArgs = value.trim() }
 
-    var formatOnSave: Boolean
-        get() = state.formatOnSave
-        set(value) { state.formatOnSave = value }
-
-    /**
-     * Returns an absolute path to a usable `flatbuffers-format` binary,
-     * or null if none can be found. Resolution order:
-     *
-     *   1. User-configured path (Settings → Tools → FlatBuffers).
-     *   2. Native binary downloaded by the plugin's "Download
-     *      bundled engine" action (see [BundledEngine]).
-     *   3. `flatbuffers-format` on `PATH`. On Windows the npm
-     *      wrapper is `.cmd`; we check both spellings.
-     *
-     * The configured path wins so power users can override an
-     * accidentally-cached older engine. The bundled-engine cache
-     * wins over `PATH` so a user who downloaded via our settings
-     * page gets a predictable behaviour even if their `PATH`
-     * later changes.
-     */
-    fun resolveCliPath(): String? {
-        if (state.cliPath.isNotBlank()) {
-            val f = File(state.cliPath)
-            if (f.exists() && f.canExecute()) return f.absolutePath
-            return null
-        }
-        val cached = BundledEngine.cachedBinaryPath()
-        if (cached != null) {
-            val f = cached.toFile()
-            if (f.exists() && f.canExecute()) return f.absolutePath
-        }
-        return findOnPath("flatbuffers-format")
-    }
-
-    private fun findOnPath(name: String): String? {
-        val path = System.getenv("PATH") ?: return null
-        val isWindows = System.getProperty("os.name").lowercase().contains("win")
-        val candidates = if (isWindows) listOf("$name.cmd", "$name.exe", name) else listOf(name)
-        val sep = if (isWindows) ";" else ":"
-        for (dir in path.split(sep)) {
-            if (dir.isBlank()) continue
-            for (c in candidates) {
-                val f = File(dir, c)
-                if (f.exists() && f.canExecute()) return f.absolutePath
-            }
-        }
-        return null
-    }
+    // Engine resolution deliberately does NOT live here any more. It
+    // moved to [EngineResolver] + [IdeEngineEnvironment] when the
+    // plugin gained a second *shape* of engine: the in-jar JS bundle
+    // needs `node <script>`, which a `String?` path cannot express. The
+    // old implementation also searched `System.getenv("PATH")`, which
+    // is the wrong PATH for an IDE launched from the Dock — the very
+    // bug that produced the new resolver.
 
     companion object {
         @JvmStatic

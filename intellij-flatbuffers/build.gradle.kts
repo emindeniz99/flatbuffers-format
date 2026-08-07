@@ -20,6 +20,7 @@
 //     `JETBRAINS_MARKETPLACE_TOKEN` env var. The release workflow wires
 //     this up automatically.
 
+import java.io.File
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 
@@ -87,6 +88,17 @@ val generateEngineVersion = tasks.register("generateEngineVersion") {
         val parsed = groovy.json.JsonSlurper().parse(pkg) as Map<String, Any?>
         val version = parsed["version"] as? String
             ?: error("no top-level \"version\" in $pkg")
+        // The Node floor the bundled JS engine must not be run below.
+        // Generated for the same reason as the version: a literal `20`
+        // in Kotlin would keep claiming 20 after the engine raised its
+        // own `engines.node`, and the plugin would hand a modern-JS
+        // bundle to a Node that can't parse it.
+        @Suppress("UNCHECKED_CAST")
+        val engines = parsed["engines"] as? Map<String, Any?>
+        val nodeRange = engines?.get("node") as? String
+            ?: error("no \"engines.node\" in $pkg")
+        val nodeFloor = Regex("""(\d+)""").find(nodeRange)?.groupValues?.get(1)
+            ?: error("cannot derive a Node major floor from engines.node = \"$nodeRange\" in $pkg")
         val target = outDir.get().file("io/github/emindeniz99/intellij/EngineCoordinates.kt").asFile
         target.parentFile.mkdirs()
         target.writeText(
@@ -97,11 +109,126 @@ val generateEngineVersion = tasks.register("generateEngineVersion") {
 
             internal const val GENERATED_ENGINE_VERSION: String = "$version"
             internal const val GENERATED_RELEASE_REPO: String = "${releaseRepo.get()}"
+            internal const val GENERATED_NODE_MAJOR_FLOOR: Int = $nodeFloor
 
             """.trimIndent() + "\n",
         )
     }
 }
+
+// ---- generated engine JS bundle ---------------------------------------
+// The formatter itself is a ~620 KiB JavaScript bundle. The native
+// binary the plugin can download is that same bundle glued to an
+// embedded Node runtime — 105 MiB, of which 99.4% is runtime. So we
+// ship the bundle in the plugin .zip and run it on whatever Node the
+// user already has; the native download stays as the no-Node fallback.
+//
+// Same generated-input pattern as `generateEngineVersion` above, but
+// into `resources` instead of `kotlin`, so the file lands in the plugin
+// jar at `/engine/flatbuffers-format.cjs`. It is written under build/
+// and therefore gitignored — never committed.
+//
+// Prerequisites are node on PATH plus a built engine
+// (`pnpm --filter flatbuffers-format build`). When either is missing,
+// what happens depends on whether this build can SHIP:
+//
+//   * A release invocation (`publishPlugin`/`signPlugin`, or an
+//     explicit `-PrequireEngineBundle=true`) FAILS. A published plugin
+//     with no bundle silently loses its Node tier and forces every user
+//     into the 105 MiB native download — a regression nobody would
+//     notice from a green build log, which is precisely why it must not
+//     be a warning.
+//   * Any other invocation warns and skips, because
+//     intellij-flatbuffers.yml is a Gradle-only job with no pnpm step
+//     and a hard failure there would turn every PR red without giving
+//     anyone a way to fix it. Adding a node + `pnpm install && pnpm
+//     --filter flatbuffers-format build` step to that workflow (and
+//     passing -PrequireEngineBundle=true) is the real fix.
+val BUNDLE_MISSING_CONSEQUENCE =
+    "The plugin would ship WITHOUT its bundled JS engine, so every user falls back to the " +
+        "105 MiB native download."
+
+val engineBundleIsMandatory: Boolean = run {
+    val releaseTasks = setOf("publishPlugin", "signPlugin")
+    val isReleaseInvocation = gradle.startParameter.taskNames.any { requested ->
+        releaseTasks.any { requested == it || requested.endsWith(":$it") }
+    }
+    providers.gradleProperty("requireEngineBundle")
+        .map { it.toBoolean() }
+        .getOrElse(isReleaseInvocation)
+}
+/** First `node` executable on the build machine's PATH, or null. */
+fun nodeOnPath(): File? {
+    val isWindows = System.getProperty("os.name").lowercase().contains("win")
+    val names = if (isWindows) listOf("node.exe", "node.cmd") else listOf("node")
+    return (System.getenv("PATH") ?: "")
+        .split(File.pathSeparator)
+        .asSequence()
+        .filter { it.isNotBlank() }
+        .flatMap { dir -> names.asSequence().map { File(dir, it) } }
+        .firstOrNull { it.isFile && it.canExecute() }
+}
+
+val engineJsDir = layout.buildDirectory.dir("generated/engine-js")
+val bundleEngineJs = tasks.register<Exec>("bundleEngineJs") {
+    val bundler = file("../flatbuffers-formatter/scripts/build-bundle.mjs")
+    val engineDist = file("../flatbuffers-formatter/dist")
+    val cliEntry = File(engineDist, "src/cli.js")
+    val node = nodeOnPath()
+    val outFile = engineJsDir.get().file("engine/flatbuffers-format.cjs").asFile
+
+    inputs.file(bundler)
+    inputs.file("../flatbuffers-formatter/package.json")
+    // fileTree (not inputs.dir) tolerates a missing dist/ — the task is
+    // skipped in that case, and inputs.dir would fail snapshotting first.
+    inputs.files(fileTree(engineDist))
+    outputs.dir(engineJsDir)
+
+    commandLine(node?.absolutePath ?: "node", bundler.absolutePath, "--outfile", outFile.absolutePath)
+
+    val blocker: String? = when {
+        node == null -> "no `node` on the build machine's PATH"
+        !cliEntry.isFile ->
+            "${cliEntry.path} not found — run `pnpm --filter flatbuffers-format build` first"
+        else -> null
+    }
+    // Fail at configuration time, not from inside `onlyIf`: Gradle wraps
+    // an exception thrown by a spec in "Could not evaluate onlyIf
+    // predicate", which buries the one sentence the reader needs.
+    if (blocker != null && engineBundleIsMandatory) {
+        throw GradleException(
+            "bundleEngineJs cannot run: $blocker. $BUNDLE_MISSING_CONSEQUENCE Fix the build " +
+                "environment, or pass -PrequireEngineBundle=false to deliberately build a " +
+                "plugin without its JS engine.",
+        )
+    }
+    onlyIf {
+        if (blocker == null) {
+            true
+        } else {
+            logger.warn("bundleEngineJs SKIPPED: $blocker. $BUNDLE_MISSING_CONSEQUENCE")
+            false
+        }
+    }
+
+    doLast {
+        // esbuild can exit 0 having written nothing useful (a bad
+        // --outfile path, a full disk). The jar would then be built from
+        // an empty resources dir and look identical to a successful
+        // build, so assert on the artefact itself. The real bundle is
+        // ~620 KiB; anything under 10 KiB is not a formatter.
+        val size = if (outFile.isFile) outFile.length() else 0L
+        if (size < 10_000) {
+            throw GradleException(
+                "bundleEngineJs produced no usable bundle at ${outFile.path} ($size bytes). " +
+                    "The plugin jar would ship without its JS engine.",
+            )
+        }
+        logger.lifecycle("bundleEngineJs: ${size / 1024} KiB -> ${outFile.path}")
+    }
+}
+
+sourceSets["main"].resources.srcDir(bundleEngineJs)
 
 kotlin {
     jvmToolchain(providers.gradleProperty("javaVersion").get().toInt())

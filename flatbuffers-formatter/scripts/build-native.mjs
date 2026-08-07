@@ -55,8 +55,8 @@ import { copyFileSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync 
 import { createHash } from "node:crypto";
 import { join, dirname, resolve, basename } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createRequire } from "node:module";
 import { platform, arch } from "node:os";
+import { bundleCli } from "./build-bundle.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const projectDir = resolve(here, "..");
@@ -99,63 +99,25 @@ rmSync(outDir, { recursive: true, force: true });
 mkdirSync(outDir, { recursive: true });
 
 // --- 2. Bundle the CLI into a single, dep-free .js --------------------------
-// esbuild is a declared devDependency, invoked through its resolved
-// entry point rather than through `npx --yes esbuild`.
+// The esbuild invocation itself lives in build-bundle.mjs, which the
+// IntelliJ plugin's Gradle build also calls: the plugin ships that same
+// bundle and runs it on the user's own Node, so the two artifacts must
+// come out of one set of flags or they will drift.
 //
-// The npx form avoided declaring a devDep and never worked: every leg
-// of flatbuffers-native-binaries.yml died with `sh: 1: esbuild: not
-// found`, so that workflow had never once succeeded and no release ever
-// received a binary. npx resolves against the working directory, and in
-// a pnpm workspace this package's node_modules has no esbuild to find.
-// It looked fine locally only because an unrelated sibling package had
-// pulled esbuild into the store.
-//
-// Resolving it here also pins the version to the lockfile instead of
-// running whatever npm serves at build time — no unpinned download
-// during a release.
-
-// Read the version out of the engine's package.json so we can bake
-// it into the bundle — the SEA blob has no runtime access to a real
-// package.json (`import.meta.url` doesn't resolve there).
-const pkgVersion = JSON.parse(
-  readFileSync(join(projectDir, "package.json"), "utf8"),
-).version;
-console.log(`Embedding version: ${pkgVersion}`);
+// Target node22 explicitly rather than taking build-bundle's default
+// (the package's `engines.node` floor): a SEA blob is glued to the
+// Node 22 host runtime that produced it, so it may use everything that
+// runtime has.
 
 console.log("Bundling CLI with esbuild...");
-const esbuildBin = createRequire(import.meta.url).resolve("esbuild/bin/esbuild");
-const esbuildRes = spawnSync(
-  process.execPath,
-  [
-    esbuildBin,
-    cliEntry,
-    "--bundle",
-    "--platform=node",
-    "--target=node22",
-    "--format=cjs", // SEA blobs are CJS today; v22 doesn't support ESM blob entry.
-    "--outfile=" + bundlePath,
-    // Drop the shebang — the SEA-injected runtime owns the entry point.
-    "--banner:js=",
-    // Substitute the version-read env lookup with a string literal.
-    // cli.ts checks `process.env.FLATBUFFERS_FORMAT_VERSION` first
-    // before falling back to the (unreachable from a SEA blob)
-    // package.json read.
-    `--define:process.env.FLATBUFFERS_FORMAT_VERSION=${JSON.stringify(pkgVersion)}`,
-  ],
-  // No `shell` here, deliberately. It was needed only while this
-  // spawned `npx` (which is `npx.cmd` on Windows and unrunnable without
-  // a shell). We now spawn node with an explicit script path, and
-  // routing that through cmd/pwsh STRIPS the quotes that JSON.stringify
-  // puts around the version, so esbuild received
-  // `--define:...=0.2.0` and rejected it with
-  // "Invalid define value (must be an entity name or JS literal)".
-  // Unix legs passed because shell was false there.
-  { stdio: "inherit" },
-);
-if (esbuildRes.status !== 0) {
-  console.error("esbuild failed");
-  process.exit(esbuildRes.status ?? 1);
+let bundled;
+try {
+  bundled = bundleCli({ outFile: bundlePath, target: "node22" });
+} catch (err) {
+  console.error(err.message);
+  process.exit(1);
 }
+console.log(`Embedded version: ${bundled.version}`);
 
 // --- 3. Generate the SEA blob -----------------------------------------------
 

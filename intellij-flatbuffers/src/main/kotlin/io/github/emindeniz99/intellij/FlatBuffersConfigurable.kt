@@ -14,9 +14,9 @@ import com.intellij.ui.dsl.builder.panel
 /**
  * Settings panel under Preferences → Tools → FlatBuffers:
  *
- *   1. CLI path. Empty means "auto-detect"; we show whatever was
- *      found below the field. Resolution order: configured > cached
- *      download > PATH.
+ *   1. CLI path. Empty means "auto-detect"; we show whatever
+ *      [EngineResolver] picked below the field, including the
+ *      degradation message when it had to settle for second best.
  *   2. Download bundled engine. Fetches the matching native binary
  *      from the engine's GitHub Release on demand and caches it
  *      under the IDE system directory; eliminates the "install
@@ -35,12 +35,23 @@ import com.intellij.ui.dsl.builder.panel
 class FlatBuffersConfigurable : BoundConfigurable("FlatBuffers") {
     override fun createPanel(): DialogPanel {
         val settings = FlatBuffersSettings.getInstance()
-        val detected = settings.resolveCliPath()
-        val detectionHint = if (detected != null) {
-            "Auto-detected at <code>$detected</code>"
-        } else {
-            "Not found on PATH. Install via <code>npm install -g flatbuffers-format</code> " +
-                "or use the \"Download bundled engine\" button below."
+        // Someone opening this page has usually just installed
+        // something; a cached "no Node here" from IDE start would make
+        // the page lie about it.
+        NodeProbe.clear()
+        val resolution = EngineResolver.resolve(IdeEngineEnvironment(settings))
+        val detectionHint = buildString {
+            val engine = resolution.engine
+            if (engine != null) {
+                append("Currently using <b>${engine.describe}</b>.")
+            } else {
+                append(
+                    "No engine found. Install via <code>npm install -g flatbuffers-format</code>, " +
+                        "install Node ${GENERATED_NODE_MAJOR_FLOOR}+ so the plugin can run its own " +
+                        "bundled engine, or use the \"Download bundled engine\" button below.",
+                )
+            }
+            resolution.issue?.let { append("<br/>${it.message}") }
         }
 
         return panel {
@@ -135,11 +146,10 @@ class FlatBuffersConfigurable : BoundConfigurable("FlatBuffers") {
                         "Example: <code>--use-tabs --line-width 120</code>.")
             }
             row {
-                checkBox("Format on save")
-                    .bindSelected(settings::formatOnSave)
-                    .comment("Runs flatbuffers-format every time you save a .fbs file. " +
-                        "Off by default — the standard Reformat Code action " +
-                        "(Ctrl/⌘+Alt+L) always works regardless.")
+                comment("Format on save is handled by the IDE, not by this plugin: " +
+                    "enable <i>Settings | Tools | Actions on Save | Reformat code</i>. " +
+                    "It drives this formatter through the platform's formatting " +
+                    "service, the same path as Reformat Code (Ctrl/⌘+Alt+L).")
             }
         }
     }

@@ -25,13 +25,17 @@
        because that implies an official JetBrains plugin. The package
        stays as it is — a code namespace is not a Marketplace ID. -->
   <id>io.github.emindeniz99.flatbuffers</id>
-  <name>FlatBuffers</name>
+  <name>FlatBuffers Format</name>
   <vendor email="emindeniz99@gmail.com" url="https://github.com/emindeniz99/flatbuffers-format/tree/main/intellij-flatbuffers">emindeniz99</vendor>
 
   <description><![CDATA[
     <p>
-      Syntax highlighting and format-on-save for FlatBuffers
-      (<code>.fbs</code>) schema files. The formatter delegates to the
+      Syntax highlighting and code formatting for FlatBuffers
+      (<code>.fbs</code>) schema files. Formatting runs through the
+      platform's own formatting service, so <i>Reformat Code</i>
+      (<kbd>Ctrl/⌘+Alt+L</kbd>) works, and enabling
+      <i>Settings → Tools → Actions on Save → Reformat code</i> gives you
+      format-on-save with no extra plugin. The formatter delegates to the
       <a href="https://www.npmjs.com/package/flatbuffers-format"><code>flatbuffers-format</code></a>
       CLI for byte-for-byte parity with the published engine — same
       output you'd get from the VS Code extension, Prettier plugin,
@@ -54,7 +58,11 @@
 
     <h3>Prerequisites</h3>
     <p>
-      The plugin shells out to <code>flatbuffers-format</code>. You have two ways to make it available:
+      None, on a machine with Node 20+: the plugin ships the formatter as a
+      JavaScript bundle and runs it on the Node you already have — including
+      one installed by nvm, fnm, Volta, asdf, nodenv or mise, which an IDE
+      launched from the Dock or a desktop shortcut cannot see on its own
+      <code>PATH</code>. Otherwise:
     </p>
     <ul>
       <li>
@@ -81,6 +89,23 @@
   ]]></description>
 
   <change-notes><![CDATA[
+    <h3>0.2.0</h3>
+    <ul>
+      <li>First public release on the JetBrains Marketplace.</li>
+      <li>The formatter now ships <i>inside</i> the plugin as a JavaScript
+        bundle and runs on any Node 20+ on your machine, including one
+        installed by nvm, fnm, Volta, asdf, nodenv or mise — which an IDE
+        started from the Dock or a desktop shortcut could not previously
+        find. A Node below that floor is refused rather than used, and
+        every fallback is reported once with the action that fixes it.</li>
+      <li>Bundled-engine download: if the <code>flatbuffers-format</code>
+        CLI isn't on your <code>PATH</code>, the settings page can fetch a
+        matching prebuilt binary from the project's GitHub Release and
+        verify it against its published SHA256 sidecar.</li>
+      <li>Removed a non-functional "Format on save" checkbox. Use
+        <i>Settings → Tools → Actions on Save → Reformat code</i>, which
+        drives this formatter through the platform's formatting service.</li>
+    </ul>
     <h3>0.1.0</h3>
     <ul>
       <li>Initial release.</li>

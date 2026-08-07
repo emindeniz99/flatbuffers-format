@@ -41,25 +41,31 @@ Grab the latest release from
 [GitHub Releases](https://github.com/emindeniz99/flatbuffers-format/releases?q=intellij-flatbuffers)
 and install it via **Settings → Plugins → ⚙ → Install from disk…**.
 
-### Install the engine
+### Getting an engine
 
-The plugin shells out to the `flatbuffers-format` binary. Install
-once via npm:
+The plugin ships the formatter as a ~620 KiB JavaScript bundle inside
+its own `.zip`, so on a machine with Node 20+ there is **nothing to
+install**. It picks an engine in this order:
 
-```bash
-npm install -g flatbuffers-format
-```
+1. **Binary path** from *Settings → Tools → FlatBuffers*, if you set
+   one. Explicit wins over everything — and if it isn't runnable the
+   plugin says so rather than quietly formatting with something else.
+2. **`flatbuffers-format` on `PATH`** (`npm install -g
+   flatbuffers-format`), for teams that want to pin the engine version
+   themselves.
+3. **The bundled JS engine**, run on a Node found on your machine. The
+   plugin looks at the login shell's `PATH` (not just the one the IDE
+   inherited, which is bare when you launch from the Dock) and at nvm,
+   fnm, Volta, asdf, nodenv, mise and Homebrew locations. A Node older
+   than the engine's floor is refused, with a notification naming the
+   version it found — never used, because the bundle would only produce
+   a syntax error on it.
+4. **The downloaded native engine** — a ~30 MiB self-contained binary
+   fetched by the "Download bundled engine" button, for machines with
+   no Node at all.
 
-Verify:
-
-```bash
-flatbuffers-format --version
-```
-
-The plugin auto-detects the binary on `PATH`; if you keep it elsewhere
-(corporate npm prefix, nvm-per-project, etc.), set the path manually:
-
-**Settings → Tools → FlatBuffers → Binary path**.
+Whenever the plugin has to fall back, it says so once per IDE session
+in a notification carrying the action that fixes it.
 
 ## Features
 
@@ -89,7 +95,7 @@ The plugin auto-detects the binary on `PATH`; if you keep it elsewhere
 
 | Setting          | Default       | What it does |
 |------------------|---------------|--------------|
-| Binary path      | *(auto)*      | Absolute path to `flatbuffers-format`. Leave blank to look it up on `PATH`. |
+| Binary path      | *(auto)*      | Absolute path to `flatbuffers-format`. Leave blank to auto-detect (see [Getting an engine](#getting-an-engine)); the page shows which engine is in use. |
 | Extra arguments  | *(none)*      | Whitespace-separated CLI args appended to every invocation. Example: `--use-tabs --line-width 120`. |
 | Format on save   | off           | Runs the formatter on every save. Independent of any "Save Actions" plugin. |
 
@@ -171,9 +177,9 @@ sideloading-friendly distribution.
   there's demand.
 - **No range formatting** — the engine is whole-file. Format Selection
   formats the entire document.
-- **No bundled CLI** — you install the Node engine separately. A
-  native (GraalVM-compiled) build of the engine is on the roadmap and
-  will eliminate this once it lands.
+- **The bundled engine needs a Node on the machine** — the plugin ships
+  the formatter, not a JavaScript runtime. Machines with no Node (or one
+  below the engine's floor) fall back to the ~30 MiB native download.
 
 ## License
 

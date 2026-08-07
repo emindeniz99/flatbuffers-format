@@ -24,12 +24,15 @@ import java.util.concurrent.TimeUnit
  * payoff is worth in v0.1.
  *
  * Process invocation strategy: write the document to a temp `.fbs`
- * file, run `flatbuffers-format <tempfile>` (no `--write`, so output
+ * file, run the resolved engine against it (no `--write`, so output
  * goes to stdout), capture stdout, hand it back. Temp file is
  * cleaned up in `finally` even on cancel. We never touch the file
  * the user has open — the IDE writes the result via the standard
  * Document API, which handles undo, encoding, and line-ending
  * preservation for us.
+ *
+ * *Which* engine, and what to tell the user when it isn't the one we
+ * would have picked, is [EngineResolver]'s job — see [FlatBuffersEngine].
  */
 class FlatBuffersFormattingService : AsyncDocumentFormattingService() {
 
@@ -40,20 +43,31 @@ class FlatBuffersFormattingService : AsyncDocumentFormattingService() {
 
     override fun getName(): String = "flatbuffers-format"
 
-    override fun getNotificationGroupId(): String = "FlatBuffers"
+    override fun getNotificationGroupId(): String = NOTIFICATION_GROUP
 
     override fun createFormattingTask(request: AsyncFormattingRequest): FormattingTask? {
         val settings = FlatBuffersSettings.getInstance()
-        val cliPath = settings.resolveCliPath()
-        if (cliPath == null) {
+
+        // Which engine, and what we had to settle for. Resolution is
+        // per-request on purpose: installing Node or the CLI must not
+        // require an IDE restart. The only expensive part of it (asking
+        // an interpreter its version) is cached in NodeProbe.
+        val resolution = EngineResolver.resolve(IdeEngineEnvironment(settings))
+        resolution.issue?.let { EngineNotifications.getInstance(request.context.project).notifyOnce(it) }
+
+        val engine = resolution.engine
+        if (engine == null) {
             request.onError(
                 "FlatBuffers format failed",
-                "flatbuffers-format binary not found. " +
-                "Install it via `npm install -g flatbuffers-format` " +
-                "or set its path in Preferences → Tools → FlatBuffers."
+                resolution.issue?.message
+                    ?: "No usable flatbuffers-format engine was found. " +
+                    "Install it via `npm install -g flatbuffers-format`, " +
+                    "set its path in Preferences → Tools → FlatBuffers, " +
+                    "or download the native engine from that settings page.",
             )
             return null
         }
+        LOG.debug("Formatting with ${engine.describe}")
 
         return object : FormattingTask {
             @Volatile private var process: Process? = null
@@ -72,7 +86,11 @@ class FlatBuffersFormattingService : AsyncDocumentFormattingService() {
                 try {
                     temp.writeText(source, Charsets.UTF_8)
 
-                    val cmd = mutableListOf(cliPath)
+                    // The prefix is either `<binary>` or `<node> <script>`
+                    // — a bundled JS engine has no executable path of
+                    // its own, which is why this is a list and not the
+                    // single String this code used to build.
+                    val cmd = engine.commandPrefix().toMutableList()
                     settings.extraArgs
                         .split(' ', '\t', '\n')
                         .filter { it.isNotBlank() }
@@ -124,5 +142,8 @@ class FlatBuffersFormattingService : AsyncDocumentFormattingService() {
 
     companion object {
         private val LOG = Logger.getInstance(FlatBuffersFormattingService::class.java)
+
+        /** Must match the `<notificationGroup id=…>` in plugin.xml. */
+        const val NOTIFICATION_GROUP: String = "FlatBuffers"
     }
 }
