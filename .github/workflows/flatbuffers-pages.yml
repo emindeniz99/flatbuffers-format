@@ -151,6 +151,11 @@ jobs:
                 </div>
                 <div class="links">
                   <a href="https://www.npmjs.com/package/flatbuffers-format">npm</a>
+                  <!-- List a marketplace here only once its listing is live.
+                       This site previously advertised installs that did not
+                       exist; a dead link is worse than a missing one. VS Code
+                       and Open VSX get added when they are actually published. -->
+                  <a href="https://plugins.jetbrains.com/plugin/33417-flatbuffers-format">JetBrains plugin</a>
                   <a href="https://github.com/emindeniz99/flatbuffers-format/tree/main/flatbuffers-formatter">GitHub</a>
                   <a href="https://github.com/emindeniz99/flatbuffers-format/blob/main/flatbuffers-formatter/docs/cookbook.md">Cookbook</a>
                 </div>
