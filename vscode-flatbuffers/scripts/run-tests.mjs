@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Cross-platform test runner. Same pattern as the formatter's runner —
-// see projects/flatbuffers-formatter/scripts/run-tests.mjs for the
+// see flatbuffers-formatter/scripts/run-tests.mjs for the
 // full rationale.
 
 import { readdirSync, existsSync } from "node:fs";

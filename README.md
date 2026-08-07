@@ -1,23 +1,20 @@
-# projects/flatbuffers — FlatBuffers tooling family
+# flatbuffers-format — FlatBuffers tooling family
 
-> Seven sibling projects, one source of truth for FlatBuffers
+> Seven sibling packages, one source of truth for FlatBuffers
 > (`.fbs`) schema formatting.
 
-This subtree is the FlatBuffers tooling family. All seven projects
+This repo is the FlatBuffers tooling family. All seven packages
 ultimately delegate to the same engine
 ([`flatbuffers-formatter/`](./flatbuffers-formatter)) and therefore
 produce byte-identical output — whether you're calling the CLI, a
 Prettier plugin, an editor extension, or the WASM build.
 
-The rest of the monorepo (`projects/markets/`, `projects/_template/`,
-etc.) is orthogonal and not part of this family.
-
 ## What's here
 
-| Folder | Stack | Distributed as | What it is |
+| Package | Stack | Distributed as | What it is |
 |---|---|---|---|
-| [`flatbuffers-formatter/`](./flatbuffers-formatter) | TS + ANTLR4 | npm: [`flatbuffers-format`](https://www.npmjs.com/package/flatbuffers-format), `.wasm` + native binaries via GitHub Releases | **The engine.** Opinionated `.fbs` formatter, pure TypeScript (no JVM, no install-time codegen), exposes a CLI and a programmatic `format()` API. Every other project in this folder calls into it. |
-| [`flatbuffers-formatter-handrolled/`](./flatbuffers-formatter-handrolled) | TS (zero deps) | not published | **Differential oracle.** Second, hand-rolled recursive-descent parser+printer. Every corpus file must produce byte-identical output through both implementations before a release ships. Kept private. |
+| [`flatbuffers-formatter/`](./flatbuffers-formatter) | TS + ANTLR4 | npm: [`flatbuffers-format`](https://www.npmjs.com/package/flatbuffers-format), `.wasm` + native binaries via GitHub Releases | **The engine.** Opinionated `.fbs` formatter, pure TypeScript (no JVM, no install-time codegen), exposes a CLI and a programmatic `format()` API. Every other package in this repo calls into it. |
+| [`flatbuffers-formatter-handrolled/`](./flatbuffers-formatter-handrolled) | TS (zero deps) | not published | **Differential oracle.** Second, hand-rolled recursive-descent parser+printer. Every corpus file must produce byte-identical output through both implementations before a release ships. Never published. |
 | [`prettier-plugin-flatbuffers/`](./prettier-plugin-flatbuffers) | TS | npm: [`prettier-plugin-flatbuffers`](https://www.npmjs.com/package/prettier-plugin-flatbuffers) | **Prettier 3 plugin.** Add to `.prettierrc` and `.fbs` files format alongside everything else Prettier already touches. Thin shim — routes to the engine, honours Prettier's `tabWidth` / `printWidth` / `endOfLine`. |
 | [`tree-sitter-flatbuffers/`](./tree-sitter-flatbuffers) | tree-sitter DSL → generated C | npm: [`tree-sitter-flatbuffers`](https://www.npmjs.com/package/tree-sitter-flatbuffers) | **Tree-sitter grammar.** Drives syntax highlighting + incremental parsing in editors that consume tree-sitter (Neovim, Helix, Zed, GitHub.com). Grammar mirrors the engine's ANTLR4 grammar; corpus round-trips against the formatter on every CI run. |
 | [`vscode-flatbuffers/`](./vscode-flatbuffers) | TS (ESM) | VS Code Marketplace + Open VSX: [`emindeniz99.vscode-flatbuffers`](https://marketplace.visualstudio.com/items?itemName=emindeniz99.vscode-flatbuffers) | **VS Code extension.** TextMate highlighting + a native ESM format-on-save provider that delegates to the engine. No third-party "Run on Save" plugin needed. |
@@ -69,15 +66,15 @@ A new grammar feature lands like this:
    engine.
 
 Full instructions, including the test layers and EBNF audit
-requirements, live in the root [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
+requirements, live in [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 ## Dev loop
 
-This folder is the pnpm workspace root. Bootstrap once, then operate on
-individual packages via filters:
+The repo root is the pnpm workspace root. Bootstrap once, then operate
+on individual packages via filters:
 
 ```bash
-# from projects/flatbuffers/
+# from the repo root
 pnpm install                                                  # installs everything, once
 
 # scoped: just the engine
@@ -93,46 +90,45 @@ bash flatbuffers-formatter/test/crosscheck.sh
 # All four test layers (matches what prepublishOnly does)
 pnpm --filter flatbuffers-format test
 pnpm --filter flatbuffers-format-handrolled test
-bash projects/flatbuffers/flatbuffers-formatter/test/crosscheck.sh
-bash projects/flatbuffers/flatbuffers-formatter/scripts/flatc-conform.sh   # needs flatc on PATH
+bash flatbuffers-formatter/test/crosscheck.sh
+bash flatbuffers-formatter/scripts/flatc-conform.sh   # needs flatc on PATH
 ```
 
 The IntelliJ plugin (Kotlin/Gradle) is the one outlier — its dev loop
-is `./gradlew runIde` from its own folder, not part of the pnpm
+is `./gradlew runIde` from its own directory, not part of the pnpm
 workspace. See its own [README](./intellij-flatbuffers/README.md).
 
 ## Test surface (what CI gates each PR on)
 
-Eight workflows run on every PR. Five are this family's:
+Seven workflows run on every PR:
 
 | Workflow | Gate |
 |---|---|
-| [`flatbuffers-ci.yml`](../../.github/workflows/flatbuffers-ci.yml) | Engine + handrolled unit tests on `{linux, macOS, Windows} × node {20, 22, 24, 26}` matrix, plus the byte-identical crosscheck and `flatc-conform` (against the upstream `flatc` binary, SHA256-pinned). |
-| [`prettier-plugin-flatbuffers.yml`](../../.github/workflows/prettier-plugin-flatbuffers.yml) | Prettier plugin build + 7 unit tests. |
-| [`tree-sitter-flatbuffers.yml`](../../.github/workflows/tree-sitter-flatbuffers.yml) | tree-sitter generate + 9 grammar tests + 24-corpus round-trip. |
-| [`vscode-flatbuffers.yml`](../../.github/workflows/vscode-flatbuffers.yml) | VS Code extension build + 5 unit tests on a node matrix. |
-| [`intellij-flatbuffers.yml`](../../.github/workflows/intellij-flatbuffers.yml) | Gradle `buildPlugin` + `verifyPlugin` (IntelliJ Plugin Verifier against every recommended IDE). |
-| [`flatbuffers-format-editors.yml`](../../.github/workflows/flatbuffers-format-editors.yml) | Editors package lint + build + tests. |
-| [`flatbuffers-perf-regression.yml`](../../.github/workflows/flatbuffers-perf-regression.yml) | Engine bench, median-of-3, sticky-comment regression report against `scripts/bench-baseline.json`. |
-| [`codeql.yml`](../../.github/workflows/codeql.yml) | Static analysis. |
+| [`flatbuffers-ci.yml`](./.github/workflows/flatbuffers-ci.yml) | Engine + handrolled unit tests on `{linux, macOS, Windows} × node {20, 22, 24, 26}` matrix, plus the byte-identical crosscheck and `flatc-conform` (against the upstream `flatc` binary, SHA256-pinned). |
+| [`prettier-plugin-flatbuffers.yml`](./.github/workflows/prettier-plugin-flatbuffers.yml) | Prettier plugin build + 7 unit tests. |
+| [`tree-sitter-flatbuffers.yml`](./.github/workflows/tree-sitter-flatbuffers.yml) | tree-sitter generate + 9 grammar tests + 24-corpus round-trip. |
+| [`vscode-flatbuffers.yml`](./.github/workflows/vscode-flatbuffers.yml) | VS Code extension build + 5 unit tests on a node matrix. |
+| [`intellij-flatbuffers.yml`](./.github/workflows/intellij-flatbuffers.yml) | Gradle `buildPlugin` + `verifyPlugin` (IntelliJ Plugin Verifier against every recommended IDE). |
+| [`flatbuffers-format-editors.yml`](./.github/workflows/flatbuffers-format-editors.yml) | Editors package lint + build + tests. |
+| [`flatbuffers-perf-regression.yml`](./.github/workflows/flatbuffers-perf-regression.yml) | Engine bench, median-of-3, sticky-comment regression report against `scripts/bench-baseline.json`. |
 
 On `release: released`, three more workflows fire:
-- [`flatbuffers-native-binaries.yml`](../../.github/workflows/flatbuffers-native-binaries.yml)
+- [`flatbuffers-native-binaries.yml`](./.github/workflows/flatbuffers-native-binaries.yml)
   — 5-platform Node SEA matrix, attaches signed binaries to the
   release.
-- [`flatbuffers-wasm-binary.yml`](../../.github/workflows/flatbuffers-wasm-binary.yml) — Javy
+- [`flatbuffers-wasm-binary.yml`](./.github/workflows/flatbuffers-wasm-binary.yml) — Javy
   build + round-trip-equivalence smoke vs native + asset upload.
-- [`flatbuffers-post-publish-smoke.yml`](../../.github/workflows/flatbuffers-post-publish-smoke.yml)
+- [`flatbuffers-post-publish-smoke.yml`](./.github/workflows/flatbuffers-post-publish-smoke.yml)
   — install each just-published artifact from the public registry
   and exercise its public surface.
 
 ## Releases
 
-Every publishable artifact in this folder is released by
+Every publishable artifact in this repo is released by
 [release-please](https://github.com/googleapis/release-please) from
 the repo root:
 
-| Project | Registry | Identifier |
+| Package | Registry | Identifier |
 |---|---|---|
 | `flatbuffers-formatter/` | npm | `flatbuffers-format` |
 | `prettier-plugin-flatbuffers/` | npm | `prettier-plugin-flatbuffers` |
@@ -143,11 +139,14 @@ the repo root:
 
 You don't bump `version` fields by hand. The flow:
 
-1. Land a Conventional Commit on `main` with a leaf-package scope:
-   - `feat(flatbuffers-format): …`
-   - `feat(vscode-flatbuffers): …`
-   - `feat(intellij-flatbuffers): …`
-   - etc.
+1. Land a Conventional Commit on `main` with an area scope:
+   - `feat(formatter): …`
+   - `feat(vscode): …`
+   - `feat(intellij): …`
+   - etc. — the full scope list is in
+     [`CONTRIBUTING.md`](./CONTRIBUTING.md#commit-conventions).
+     release-please routes the commit to a package by the files it
+     touches, not by the scope string.
 2. release-please opens (or updates) a single combined release PR that
    bumps each affected package's `version` + regenerates its
    `CHANGELOG.md`.
@@ -156,18 +155,20 @@ You don't bump `version` fields by hand. The flow:
    matching GitHub Release.
 4. The publish job for each package fires automatically, scoped by tag.
 
-`workspace:^` deps between in-folder packages are resolved natively by
-`pnpm publish` at tarball-build time. No manual rewrite step in the
+`workspace:^` deps between packages in this repo are resolved natively
+by `pnpm publish` at tarball-build time. No manual rewrite step in the
 publish workflows.
 
 Full details, including required secrets and the deploy-tree dance
-for `vsce`, are in [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
+for `vsce`, are in [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 ## Cross-runtime + cross-package-manager testing
 
 Beyond the npm registry, we test downstream consumers across multiple
-runtimes and package managers. The matrix is documented in
-[`CONTRIBUTING.md → cross-runtime + cross-PM`](../../CONTRIBUTING.md#cross-runtime--cross-package-manager-matrix);
+runtimes and package managers. The matrix lives in
+[`flatbuffers-pm-compat.yml`](./.github/workflows/flatbuffers-pm-compat.yml)
+and
+[`flatbuffers-runtime-compat.yml`](./.github/workflows/flatbuffers-runtime-compat.yml);
 TL;DR:
 
 - **Node**: 20, 22, 24, 26 (LTS + current).
@@ -183,37 +184,10 @@ follow-ups, release-infra to-dos, maintainer action items, and an
 explicit "not planned" list (so settled decisions don't get
 re-litigated).
 
-## Lifting this folder out into its own repo
+## Contributing
 
-Everything in this family is self-contained: no cross-references to
-`projects/markets/` or `projects/_template/`, and `workspace:^` deps
-are sibling-relative. If you ever want the FlatBuffers family in its
-own repo, here's the recipe:
-
-```bash
-# 1. Filter the FlatBuffers subtree into a fresh checkout
-git clone https://github.com/emindeniz99/playground.git playground-orig
-cd playground-orig
-git filter-repo --subdirectory-filter projects/flatbuffers
-
-# 2. Workspace + manifest already live in this folder (package.json,
-#    pnpm-workspace.yaml, pnpm-lock.yaml, release-please config/manifest),
-#    so the subdirectory filter carries them along — just rename
-#    "flatbuffers-workspace" if desired.
-
-# 3. Update path-prefix references
-#    - release-please-config.json + .release-please-manifest.json: drop
-#      `projects/flatbuffers/` from each path key
-#    - .github/workflows/*: drop `projects/flatbuffers/` from path filters + working-directory
-#    - Each package.json's `repository.directory` + `homepage` URL
-#    - README cross-links
-
-# 4. Re-init git, push to the new origin
-git remote remove origin
-git remote add origin https://github.com/<you>/flatbuffers-tooling.git
-git push -u origin main
-```
-
-About an hour of mechanical work; nothing structural would need to
-change. The pnpm workspace, the `workspace:^` protocol, and the
-release-please manifest all support the move without code edits.
+Setup, the four test layers, the grammar-change procedure, commit
+conventions, and the release process are all in
+[`CONTRIBUTING.md`](./CONTRIBUTING.md). Security-sensitive reports go
+through [`SECURITY.md`](./SECURITY.md), not the issue tracker. Licensed
+[MIT](./LICENSE).

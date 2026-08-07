@@ -71,7 +71,7 @@ function walk(dir: string, out: string[]) {
     const full = join(dir, entry.name);
     // Skip symlinks during automatic walks — prevents `--write` from
     // following an attacker-planted link out of the tree. See the
-    // matching comment in projects/flatbuffers-formatter/src/cli.ts.
+    // matching comment in flatbuffers-formatter/src/cli.ts.
     if (entry.isSymbolicLink()) continue;
     if (entry.isDirectory()) {
       if (SKIP_DIRS.has(entry.name)) continue;

@@ -23,7 +23,7 @@
        renaming it would churn every source file for no gain. -->
   <id>io.github.emindeniz99.fbs</id>
   <name>FlatBuffers</name>
-  <vendor email="" url="https://github.com/emindeniz99/playground/tree/main/projects/flatbuffers/intellij-flatbuffers">emindeniz99</vendor>
+  <vendor email="" url="https://github.com/emindeniz99/flatbuffers-format/tree/main/intellij-flatbuffers">emindeniz99</vendor>
 
   <description><![CDATA[
     <p>

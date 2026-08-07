@@ -17,12 +17,12 @@
   "author": "emindeniz99",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/emindeniz99/playground.git",
-    "directory": "projects/flatbuffers/flatbuffers-format-editors"
+    "url": "git+https://github.com/emindeniz99/flatbuffers-format.git",
+    "directory": "flatbuffers-format-editors"
   },
-  "homepage": "https://github.com/emindeniz99/playground/tree/main/projects/flatbuffers/flatbuffers-format-editors#readme",
+  "homepage": "https://github.com/emindeniz99/flatbuffers-format/tree/main/flatbuffers-format-editors#readme",
   "bugs": {
-    "url": "https://github.com/emindeniz99/playground/issues"
+    "url": "https://github.com/emindeniz99/flatbuffers-format/issues"
   },
   "type": "module",
   "exports": {

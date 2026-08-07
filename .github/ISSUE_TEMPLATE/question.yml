@@ -1,0 +1,26 @@
+name: Question / help
+description: You're stuck and the README didn't answer it.
+title: "[question] "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before opening this, please check:
+
+        - The engine's [README](https://github.com/emindeniz99/flatbuffers-format/blob/main/flatbuffers-formatter/README.md)
+        - The [usage cookbook](https://github.com/emindeniz99/flatbuffers-format/blob/main/flatbuffers-formatter/docs/cookbook.md)
+          — most "how do I X" answers live there
+        - The [CHANGELOG](https://github.com/emindeniz99/flatbuffers-format/blob/main/flatbuffers-formatter/CHANGELOG.md)
+          — the answer may be "added in vN.M"
+        - Existing closed issues with the `question` label
+
+        If you've checked all those and still need help, go ahead.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: What are you trying to do?
+      description: "Describe the goal first, then what you tried. A small repro (`.fbs` + the command you ran) is almost always faster than a long prose description."
+    validations:
+      required: true

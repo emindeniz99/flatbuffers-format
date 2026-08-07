@@ -31,5 +31,5 @@ do not hand-edit released entries.
   integrations honest against the engine grammar; smoke-tested by
   `test/tokens.test.ts`.
 
-[Unreleased]: https://github.com/emindeniz99/playground/compare/flatbuffers-format-editors@0.1.0...HEAD
-[0.1.0]: https://github.com/emindeniz99/playground/releases/tag/flatbuffers-format-editors@0.1.0
+[Unreleased]: https://github.com/emindeniz99/flatbuffers-format/compare/flatbuffers-format-editors@0.1.0...HEAD
+[0.1.0]: https://github.com/emindeniz99/flatbuffers-format/releases/tag/flatbuffers-format-editors@0.1.0

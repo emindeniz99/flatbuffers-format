@@ -1,0 +1,83 @@
+name: Bug report
+description: The formatter produced wrong output, crashed, or rejected valid FlatBuffers.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file this. Please fill in the
+        fields below — the more concrete the repro, the faster the fix.
+
+  - type: dropdown
+    id: project
+    attributes:
+      label: Which package?
+      options:
+        - flatbuffers-format (the engine — CLI, API, native/WASM builds)
+        - prettier-plugin-flatbuffers
+        - tree-sitter-flatbuffers
+        - vscode-flatbuffers (VS Code extension)
+        - intellij-flatbuffers (JetBrains plugin)
+        - flatbuffers-format-editors (CodeMirror / Monaco / Web Component)
+        - flatbuffers-format-handrolled (unpublished differential oracle)
+        - other / not sure
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: "Output of `npx flatbuffers-format --version` (or the package.json version if you cloned the repo). For the IDE plugins, the plugin/extension version."
+      placeholder: "0.1.0"
+    validations:
+      required: true
+
+  - type: input
+    id: node
+    attributes:
+      label: Node version
+      description: "Output of `node --version`."
+      placeholder: "v22.7.0"
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: OS
+      placeholder: "Ubuntu 24.04 / macOS 14.5 / Windows 11"
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal `.fbs` input that triggers the bug
+      description: "Paste the smallest schema you can find that reproduces the issue. We will use this directly as a test fixture."
+      render: fbs
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+      description: "What output you expected, or which spec rule says the input should be accepted/rejected."
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: What actually happened
+      description: "Paste the actual output, error message, or stack trace."
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: "Optional: links to the FlatBuffers spec, output of `flatc`, screenshots, etc."

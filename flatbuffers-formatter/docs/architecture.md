@@ -78,7 +78,7 @@ We picked ANTLR anyway because:
 
 To hedge bet #1 (i.e. "is our grammar actually right?"), there's a
 **hand-rolled recursive-descent parser** in
-`projects/flatbuffers-formatter-handrolled/` — a private sibling
+`flatbuffers-formatter-handrolled/` — a private sibling
 package, not published. The cross-check at
 `test/crosscheck.sh` runs every corpus file through both engines and
 requires byte-identical output. Two independent implementations

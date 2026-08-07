@@ -1,0 +1,54 @@
+name: Feature request
+description: Suggest a new capability or behavior change.
+title: "[feat] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before opening a feature request, please skim
+        [`flatbuffers-formatter/docs/ebnf-conformance.md`](https://github.com/emindeniz99/flatbuffers-format/blob/main/flatbuffers-formatter/docs/ebnf-conformance.md)
+        — if the feature is a known gap, that's already tracked there.
+
+  - type: dropdown
+    id: project
+    attributes:
+      label: Which package?
+      options:
+        - flatbuffers-format (the engine — CLI, API, native/WASM builds)
+        - prettier-plugin-flatbuffers
+        - tree-sitter-flatbuffers
+        - vscode-flatbuffers (VS Code extension)
+        - intellij-flatbuffers (JetBrains plugin)
+        - flatbuffers-format-editors (CodeMirror / Monaco / Web Component)
+        - repo-wide (CI, docs, tooling)
+    validations:
+      required: true
+
+  - type: textarea
+    id: want
+    attributes:
+      label: What do you want?
+      description: "One sentence is fine. Concrete is better than abstract."
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does it solve?
+      description: "What were you trying to do when you noticed the gap? Concrete user scenarios help us prioritize."
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+      description: "Workarounds you tried, other tools that solve this differently, related issues. Optional."
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: "Links to specs, prior art, sketches of an API. Optional."

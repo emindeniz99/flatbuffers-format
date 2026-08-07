@@ -8,7 +8,7 @@
 # Quickstart for contributors using mise:
 #   mise trust            # one-time, allows this file's pins
 #   mise install          # installs every tool listed below
-#   # `cd`ing into projects/flatbuffers/ now auto-switches versions
+#   # `cd`ing into this repo now auto-switches versions
 #
 # Why duplicate the Node pin between .nvmrc and here:
 # nvm / fnm / volta / asdf consumers see .nvmrc; mise users see this.

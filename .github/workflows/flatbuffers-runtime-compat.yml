@@ -42,11 +42,13 @@ jobs:
     name: build + pack tarball
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           package_json_file: package.json
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22
           cache: pnpm
@@ -60,7 +62,7 @@ jobs:
         run: |
           mkdir -p "$GITHUB_WORKSPACE/_pack"
           pnpm --filter flatbuffers-format pack --pack-destination "$GITHUB_WORKSPACE/_pack"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: flatbuffers-format-tarball
           path: _pack/*.tgz
@@ -74,17 +76,17 @@ jobs:
     needs: pack
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: flatbuffers-format-tarball
           path: _pack
-      - uses: denoland/setup-deno@v2
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
         with:
           deno-version: v2.x
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22
-      - name: Install tarball into a node_modules tree Deno can read
+      - name: Install tarball into a node_modules tree Deno can read # zizmor: ignore[adhoc-packages]
         run: |
           set -eux
           tgz=$(ls _pack/*.tgz | head -1)
@@ -112,11 +114,11 @@ jobs:
     needs: pack
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: flatbuffers-format-tarball
           path: _pack
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: latest
       - name: Install + smoke
@@ -144,14 +146,14 @@ jobs:
     needs: pack
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: flatbuffers-format-tarball
           path: _pack
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22
-      - name: Build Worker bundle and run smoke via miniflare
+      - name: Build Worker bundle and run smoke via miniflare # zizmor: ignore[adhoc-packages]
         run: |
           set -eux
           tgz=$(ls _pack/*.tgz | head -1)
@@ -211,19 +213,19 @@ jobs:
     needs: pack
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: flatbuffers-format-tarball
           path: _pack
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.12"
       - name: Install SAM CLI
         run: pip install --upgrade aws-sam-cli
-      - name: Scaffold Lambda + invoke
+      - name: Scaffold Lambda + invoke # zizmor: ignore[adhoc-packages]
         run: |
           set -eux
           tgz=$(ls _pack/*.tgz | head -1)

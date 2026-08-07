@@ -4,7 +4,7 @@
 > the public [`flatbuffers-format`](../flatbuffers-formatter) package.
 > If you want to install a FlatBuffers formatter, use that one.
 
-[![CI](https://github.com/emindeniz99/playground/actions/workflows/flatbuffers-ci.yml/badge.svg?branch=main)](https://github.com/emindeniz99/playground/actions/workflows/flatbuffers-ci.yml)
+[![CI](https://github.com/emindeniz99/flatbuffers-format/actions/workflows/flatbuffers-ci.yml/badge.svg?branch=main)](https://github.com/emindeniz99/flatbuffers-format/actions/workflows/flatbuffers-ci.yml)
 
 Hand-rolled recursive-descent FlatBuffers (`.fbs`) schema formatter with
 **zero runtime dependencies**. Lives in this monorepo to cross-check the

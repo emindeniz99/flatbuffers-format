@@ -12,16 +12,23 @@ name: flatbuffers-format publish (dry-run)
 on:
   workflow_dispatch:
 
+# Nothing here writes: the job builds, tests and `--dry-run`s. Read-only
+# is all it needs.
+permissions:
+  contents: read
+
 jobs:
   dry-run:
     name: build + test + pnpm publish --dry-run
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           package_json_file: package.json
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22
           cache: pnpm

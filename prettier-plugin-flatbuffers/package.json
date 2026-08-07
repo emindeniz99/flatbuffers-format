@@ -13,12 +13,12 @@
   "author": "emindeniz99",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/emindeniz99/playground.git",
-    "directory": "projects/flatbuffers/prettier-plugin-flatbuffers"
+    "url": "git+https://github.com/emindeniz99/flatbuffers-format.git",
+    "directory": "prettier-plugin-flatbuffers"
   },
-  "homepage": "https://github.com/emindeniz99/playground/tree/main/projects/flatbuffers/prettier-plugin-flatbuffers#readme",
+  "homepage": "https://github.com/emindeniz99/flatbuffers-format/tree/main/prettier-plugin-flatbuffers#readme",
   "bugs": {
-    "url": "https://github.com/emindeniz99/playground/issues"
+    "url": "https://github.com/emindeniz99/flatbuffers-format/issues"
   },
   "type": "module",
   "main": "./dist/src/index.js",

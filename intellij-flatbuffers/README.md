@@ -38,7 +38,7 @@ Or via JetBrains Toolbox `jb plugin install io.github.emindeniz99.fbs`.
 ### From a `.zip`
 
 Grab the latest release from
-[GitHub Releases](https://github.com/emindeniz99/playground/releases?q=intellij-flatbuffers)
+[GitHub Releases](https://github.com/emindeniz99/flatbuffers-format/releases?q=intellij-flatbuffers)
 and install it via **Settings → Plugins → ⚙ → Install from disk…**.
 
 ### Install the engine
@@ -122,7 +122,7 @@ that's what lets one `.zip` cover the entire matrix.
 ## Dev setup
 
 ```bash
-cd projects/intellij-flatbuffers
+cd intellij-flatbuffers
 ./gradlew runIde            # boots a sandbox IDE with the plugin loaded
 ./gradlew buildPlugin       # produces build/distributions/*.zip
 ./gradlew verifyPlugin      # Marketplace pre-flight validation
@@ -138,7 +138,7 @@ JDK 21 required (matches what IntelliJ 2024.2 ships).
 ## How releases happen
 
 This package is part of the
-[playground monorepo](https://github.com/emindeniz99/playground) and
+[flatbuffers-format repo](https://github.com/emindeniz99/flatbuffers-format) and
 its release flow is governed by
 [release-please](https://github.com/googleapis/release-please) —
 exactly the same flow as the four npm packages in the repo. You don't

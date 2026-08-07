@@ -14,12 +14,12 @@
   "author": "emindeniz99",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/emindeniz99/playground.git",
-    "directory": "projects/flatbuffers/tree-sitter-flatbuffers"
+    "url": "git+https://github.com/emindeniz99/flatbuffers-format.git",
+    "directory": "tree-sitter-flatbuffers"
   },
-  "homepage": "https://github.com/emindeniz99/playground/tree/main/projects/flatbuffers/tree-sitter-flatbuffers#readme",
+  "homepage": "https://github.com/emindeniz99/flatbuffers-format/tree/main/tree-sitter-flatbuffers#readme",
   "bugs": {
-    "url": "https://github.com/emindeniz99/playground/issues"
+    "url": "https://github.com/emindeniz99/flatbuffers-format/issues"
   },
   "main": "bindings/node/index.js",
   "files": [

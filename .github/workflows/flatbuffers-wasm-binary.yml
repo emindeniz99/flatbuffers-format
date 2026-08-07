@@ -30,13 +30,10 @@ on:
         required: false
         type: string
 
+# Least privilege at the top of the file; each job below asks for
+# exactly the extra scopes it needs and nothing more.
 permissions:
-  contents: write
-  # SLSA build-provenance attestations need the OIDC token + the
-  # attestations API. See flatbuffers-native-binaries.yml for the consumer-side
-  # verification flow.
-  id-token: write
-  attestations: write
+  contents: read
 
 env:
   # Pin Javy. Newer Javy releases occasionally rename CLI flags
@@ -53,19 +50,32 @@ jobs:
   build:
     name: build wasm
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # SLSA build-provenance attestations need the OIDC token + the
+      # attestations API. See flatbuffers-native-binaries.yml for the
+      # consumer-side verification flow.
+      id-token: write
+      attestations: write
     defaults:
       run:
         working-directory: flatbuffers-formatter
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           package_json_file: package.json
-      - uses: actions/setup-node@v7
+      # Deliberately NO dependency cache here. This job's output is
+      # attested and attached to a GitHub Release, so a poisoned restore
+      # would become the published .wasm. `package-manager-cache: false`
+      # is required as well as dropping `cache:` — setup-node v7 turns
+      # caching on by itself when package.json declares `packageManager`.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
+          package-manager-cache: false
       - name: Install
         working-directory: .
         run: pnpm install --frozen-lockfile
@@ -142,13 +152,13 @@ jobs:
       # see flatbuffers-native-binaries.yml for the verification flow.
       - name: Attest build provenance
         working-directory: ${{ github.workspace }}
-        uses: actions/attest-build-provenance@v4
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4
         with:
           subject-path: |
             flatbuffers-formatter/build/wasm/flatbuffers-format.wasm
             flatbuffers-formatter/build/wasm/flatbuffers-format.wasm.sha256
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: flatbuffers-format-wasm
           path: |
@@ -167,30 +177,40 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: flatbuffers-format-wasm
           path: _wasm-artifact
+      # Caller-supplied strings (release tag / dispatch input) go through
+      # env vars, never into the shell source. See the same pair of steps
+      # in flatbuffers-native-binaries.yml.
       - name: Determine release tag
         id: tag
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          INPUT_TAG: ${{ inputs.tag }}
         run: |
-          if [ "${{ github.event_name }}" = "release" ]; then
-            echo "value=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
+          if [ "$EVENT_NAME" = "release" ]; then
+            echo "value=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
           else
-            echo "value=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+            echo "value=$INPUT_TAG" >> "$GITHUB_OUTPUT"
           fi
       - name: Upload to release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.value }}
+          REPO: ${{ github.repository }}
         run: |
-          tag='${{ steps.tag.outputs.value }}'
-          case "$tag" in
+          case "$TAG" in
             flatbuffers-format@*) ;;
-            *) echo "Skipping: tag '$tag' is not a flatbuffers-format release"; exit 0 ;;
+            *) echo "Skipping: tag '$TAG' is not a flatbuffers-format release"; exit 0 ;;
           esac
-          gh release upload "$tag" \
+          gh release upload "$TAG" \
             _wasm-artifact/flatbuffers-format.wasm \
             _wasm-artifact/flatbuffers-format.wasm.sha256 \
             --clobber \
-            --repo "${{ github.repository }}"
+            --repo "$REPO"

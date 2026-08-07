@@ -118,7 +118,7 @@ default in Python-heavy stacks, common in mixed-language monorepos),
 add to `.pre-commit-config.yaml`:
 
 ```yaml
-- repo: https://github.com/emindeniz99/playground
+- repo: https://github.com/emindeniz99/flatbuffers-format
   rev: flatbuffers-format@v0.1.0   # bump on each release
   hooks:
     - id: flatbuffers-format        # rewrites in place

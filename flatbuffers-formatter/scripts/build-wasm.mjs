@@ -26,7 +26,7 @@
 //     `wasi_snapshot_preview1`.
 //
 // Local usage:
-//   cd projects/flatbuffers-formatter
+//   cd flatbuffers-formatter
 //   npm run build                     # produce dist/
 //   node scripts/build-wasm.mjs       # writes build/wasm/flatbuffers-format.wasm
 //   wasmtime build/wasm/flatbuffers-format.wasm < test/corpus/01-monster.fbs

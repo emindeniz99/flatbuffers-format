@@ -27,7 +27,7 @@
 //   windows-2022/x64} and uploads the artifacts.
 //
 // Local usage:
-//   cd projects/flatbuffers-formatter
+//   cd flatbuffers-formatter
 //   npm run build          # produces dist/
 //   node scripts/build-native.mjs
 //   ./build/native/flatbuffers-format --version

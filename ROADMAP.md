@@ -5,8 +5,7 @@ family, so the next person — human or AI agent — can pick up without
 re-deriving everything from conversation history.
 
 **Convention.** Discuss-but-don't-ship → add a one-liner here.
-Ship it → delete the entry in the same commit. (See repo-root
-[`CONVENTIONS.md` → Recording follow-ups](../../CONVENTIONS.md).)
+Ship it → delete the entry in the same commit.
 
 Each bullet is a direction, not a promise — if a row matters to you,
 file an issue and we can prioritise it.
@@ -123,12 +122,11 @@ So a future session doesn't re-litigate decisions already made.
 
 ---
 
-## Repo-wide CI / security (flatbuffers-driven, but touches the whole repo)
+## Repo-wide CI / security
 
 These live in repo-shared infra (`.github/workflows/`, root config)
-but were raised while hardening this family's supply chain. If another
-project later needs its own engineering roadmap, it gets its own
-`projects/<name>/ROADMAP.md` rather than these moving to the root.
+rather than in a single package, but were raised while hardening this
+family's supply chain.
 
 - **OSSF Scorecard workflow.** `ossf/scorecard-action@v2` runs weekly
   + badges the root README; catches posture drift (unpinned actions,

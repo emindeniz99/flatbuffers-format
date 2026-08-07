@@ -8,7 +8,7 @@ verify conformance at a glance.
 - Upstream spec: <https://flatbuffers.dev/grammar/>
   (formerly <https://flatbuffers.dev/flatbuffers_grammar.html>; the
   legacy URL now redirects).
-- Local grammar: `projects/flatbuffers-formatter/grammar/FlatBuffers.g4`.
+- Local grammar: `flatbuffers-formatter/grammar/FlatBuffers.g4`.
 - Audit date: **2026-05-14**.
 
 The EBNF on flatbuffers.dev can change upstream without us noticing.

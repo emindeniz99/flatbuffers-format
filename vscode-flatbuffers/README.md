@@ -73,8 +73,8 @@ the bundled dependency is bumped.
 ## Development
 
 ```bash
-git clone https://github.com/emindeniz99/playground.git
-cd playground/projects/vscode-flatbuffers
+git clone https://github.com/emindeniz99/flatbuffers-format.git
+cd flatbuffers-format/vscode-flatbuffers
 npm ci --no-audit --no-fund
 npm run build
 npm test

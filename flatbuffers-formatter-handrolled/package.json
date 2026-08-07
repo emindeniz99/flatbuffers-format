@@ -7,8 +7,8 @@
   "author": "emindeniz99",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/emindeniz99/playground.git",
-    "directory": "projects/flatbuffers/flatbuffers-formatter-handrolled"
+    "url": "git+https://github.com/emindeniz99/flatbuffers-format.git",
+    "directory": "flatbuffers-formatter-handrolled"
   },
   "type": "module",
   "main": "./dist/index.js",

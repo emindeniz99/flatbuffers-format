@@ -168,7 +168,7 @@ object BundledEngine {
                         "Refusing to install. The release artefact may have been tampered " +
                         "with, or the network corrupted the download. Retry; if the failure " +
                         "persists, file a SECURITY advisory at https://github.com/" +
-                        "emindeniz99/playground/security/advisories/new.",
+                        "emindeniz99/flatbuffers-format/security/advisories/new.",
                 )
             }
             LOG.info("SHA256 verified: $actualSha")

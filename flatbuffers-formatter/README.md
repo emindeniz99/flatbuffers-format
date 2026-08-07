@@ -3,13 +3,13 @@
 **The opinionated, zero-config formatter for FlatBuffers (`.fbs`) schemas — fast, byte-stable, type-safe, runs anywhere.**
 
 [![npm](https://img.shields.io/npm/v/flatbuffers-format.svg)](https://www.npmjs.com/package/flatbuffers-format)
-[![CI](https://github.com/emindeniz99/playground/actions/workflows/flatbuffers-ci.yml/badge.svg?branch=main)](https://github.com/emindeniz99/playground/actions/workflows/flatbuffers-ci.yml)
+[![CI](https://github.com/emindeniz99/flatbuffers-format/actions/workflows/flatbuffers-ci.yml/badge.svg?branch=main)](https://github.com/emindeniz99/flatbuffers-format/actions/workflows/flatbuffers-ci.yml)
 [![License](https://img.shields.io/npm/l/flatbuffers-format.svg)](LICENSE)
 [![Node](https://img.shields.io/node/v/flatbuffers-format.svg)](package.json)
 [![Types](https://img.shields.io/badge/types-included-blue.svg)](dist/src/index.d.ts)
 [![Bundle](https://img.shields.io/bundlephobia/minzip/flatbuffers-format.svg?label=min%2Bgzip)](https://bundlephobia.com/package/flatbuffers-format)
 
-> **▸ [Try it in your browser](https://emindeniz99.github.io/playground/)** — no install. Paste a `.fbs`, see canonical output as you type. API docs at the same URL.
+> **▸ [Try it in your browser](https://emindeniz99.github.io/flatbuffers-format/playground/)** — no install. Paste a `.fbs`, see canonical output as you type. [API docs](https://emindeniz99.github.io/flatbuffers-format/api/) are on the same site.
 
 ```bash
 # Format a single file (prints to stdout)
@@ -155,7 +155,7 @@ so consumers don't need to install Node or npm:
 
 ```bash
 curl -fsSL -o flatbuffers-format \
-  https://github.com/emindeniz99/playground/releases/latest/download/flatbuffers-format-linux-x64
+  https://github.com/emindeniz99/flatbuffers-format/releases/latest/download/flatbuffers-format-linux-x64
 chmod +x flatbuffers-format
 ./flatbuffers-format --version
 ```
@@ -177,7 +177,7 @@ language-specific bindings.
 
 ```bash
 curl -fsSL -o flatbuffers-format.wasm \
-  https://github.com/emindeniz99/playground/releases/latest/download/flatbuffers-format.wasm
+  https://github.com/emindeniz99/flatbuffers-format/releases/latest/download/flatbuffers-format.wasm
 wasmtime flatbuffers-format.wasm < schema.fbs > schema.formatted.fbs
 ```
 
@@ -245,7 +245,7 @@ vim.api.nvim_create_autocmd("BufWritePost", {
 ### Browser
 
 A hosted playground is available at
-<https://emindeniz99.github.io/playground/playground/> — paste a schema
+<https://emindeniz99.github.io/flatbuffers-format/playground/> — paste a schema
 and watch it format live, no install needed. The page also ships a
 curated set of corpus fixtures behind a *load example* dropdown, a
 *share* button (encodes the current input into the URL fragment, copies
@@ -407,8 +407,8 @@ from real-world FlatBuffers (which is not).
 ## Build from source
 
 ```bash
-git clone https://github.com/emindeniz99/playground.git
-cd playground/projects/flatbuffers-formatter
+git clone https://github.com/emindeniz99/flatbuffers-format.git
+cd flatbuffers-format/flatbuffers-formatter
 npm install
 npm run build          # antlr-ng codegen → tsc
 node dist/src/cli.js examples/sample.fbs

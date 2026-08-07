@@ -2,7 +2,7 @@
  * Tree-sitter grammar for FlatBuffers (.fbs) schema files.
  *
  * Mirrors the dialect accepted by `flatbuffers-format`'s ANTLR4 grammar
- * (projects/flatbuffers-formatter/grammar/FlatBuffers.g4) — including
+ * (flatbuffers-formatter/grammar/FlatBuffers.g4) — including
  * per-enum-value metadata, union with explicit underlying type, C99 hex
  * floats, bare `inf`/`nan` floats, namespace re-opening, fixed-size
  * arrays `[T:N]`, `native_include` directives, end-of-file object

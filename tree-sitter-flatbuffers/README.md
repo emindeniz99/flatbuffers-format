@@ -28,9 +28,9 @@ manually. In your Neovim config:
 local parser_config = require("nvim-treesitter.parsers").get_parser_configs()
 parser_config.flatbuffers = {
   install_info = {
-    url = "https://github.com/emindeniz99/playground", -- or your fork
+    url = "https://github.com/emindeniz99/flatbuffers-format", -- or your fork
     branch = "main",
-    location = "projects/tree-sitter-flatbuffers",
+    location = "tree-sitter-flatbuffers",
     files = { "src/parser.c" },
   },
   filetype = "fbs",
@@ -56,7 +56,7 @@ roots = []
 
 [[grammar]]
 name = "flatbuffers"
-source = { git = "https://github.com/emindeniz99/playground", subpath = "projects/flatbuffers/tree-sitter-flatbuffers" }
+source = { git = "https://github.com/emindeniz99/flatbuffers-format", subpath = "tree-sitter-flatbuffers" }
 ```
 
 Then `hx --grammar fetch && hx --grammar build`. Drop the
@@ -71,9 +71,9 @@ Add a language extension entry pointing at the grammar:
 ```toml
 # extension.toml
 [grammars.flatbuffers]
-repository = "https://github.com/emindeniz99/playground"
+repository = "https://github.com/emindeniz99/flatbuffers-format"
 commit = "<pin a commit SHA here>"
-path = "projects/tree-sitter-flatbuffers"
+path = "tree-sitter-flatbuffers"
 
 [languages.flatbuffers]
 name = "FlatBuffers"

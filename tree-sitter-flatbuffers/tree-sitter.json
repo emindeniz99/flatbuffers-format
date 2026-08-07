@@ -19,8 +19,8 @@
     "description": "Tree-sitter grammar for FlatBuffers (.fbs) schema files.",
     "authors": [{ "name": "emindeniz99" }],
     "links": {
-      "repository": "https://github.com/emindeniz99/playground",
-      "homepage": "https://github.com/emindeniz99/playground/tree/main/projects/flatbuffers/tree-sitter-flatbuffers"
+      "repository": "https://github.com/emindeniz99/flatbuffers-format",
+      "homepage": "https://github.com/emindeniz99/flatbuffers-format/tree/main/tree-sitter-flatbuffers"
     }
   },
   "bindings": {

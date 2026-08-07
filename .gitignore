@@ -1,6 +1,8 @@
-# Scoped to the FlatBuffers workspace — the repo root .gitignore only
-# carries repo-wide junk (OS/editor files); Node build state is this
-# project's own concern.
+# Repo-wide ignores. Package-specific build state can also live in the
+# owning package's own .gitignore (git applies nested .gitignore files
+# per directory tree).
+
+# Node build state
 node_modules/
 dist/
 build/
@@ -8,3 +10,32 @@ deploy/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Secrets — universal safety net, kept at the root on purpose so a
+# package without its own .gitignore can never leak an env file.
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors — local IDE state only (no .vscode/ or .idea/ is committed;
+# the VS Code extension and IntelliJ plugin keep their config in their
+# own package manifests, not in editor dot-dirs).
+.vscode/
+.idea/
+*.swp
+*.swo
+.history
+
+# Claude Code — ignore only local/transient state; shared config
+# (.claude/settings.json, .claude/rules/, .claude/agents/, .claude/commands/)
+# is committed so contributors + AI assistants share it.
+.claude/settings.local.json
+.claude/todos/
+.claude/projects/
+.claude/shell-snapshots/
+.claude/statsig/
+.claude/.credentials.json

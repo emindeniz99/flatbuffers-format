@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Layer-2 round-trip test:
-//   parse every .fbs file in projects/flatbuffers-formatter/test/corpus/
+//   parse every .fbs file in flatbuffers-formatter/test/corpus/
 //   and assert the parse tree contains zero ERROR / MISSING nodes.
 //
 // This is the "real schemas don't break" check. The formatter's corpus

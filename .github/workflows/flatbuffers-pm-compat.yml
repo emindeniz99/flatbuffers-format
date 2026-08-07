@@ -43,11 +43,13 @@ jobs:
     name: build + pack tarball
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           package_json_file: package.json
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22
           cache: pnpm
@@ -65,7 +67,7 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/_pack"
           pnpm --filter flatbuffers-format pack --pack-destination "$GITHUB_WORKSPACE/_pack"
           ls -la "$GITHUB_WORKSPACE/_pack"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: flatbuffers-format-tarball
           path: _pack/*.tgz
@@ -81,27 +83,27 @@ jobs:
       matrix:
         pm: [npm, pnpm, yarn-classic, yarn-berry, bun]
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: flatbuffers-format-tarball
           path: _pack
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22
 
       - name: Setup pnpm
         if: matrix.pm == 'pnpm'
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 10
           run_install: false
 
-      - name: Setup Yarn Classic (v1)
+      - name: Setup Yarn Classic (v1) # zizmor: ignore[adhoc-packages]
         if: matrix.pm == 'yarn-classic'
         run: npm install -g yarn@1.22.22
 
-      - name: Setup Yarn Berry (v4)
+      - name: Setup Yarn Berry (v4) # zizmor: ignore[adhoc-packages]
         if: matrix.pm == 'yarn-berry'
         # Yarn 4 is the current stable Berry. We install the
         # "yarn 1" shim globally; per-project `yarn set version` then
@@ -113,7 +115,7 @@ jobs:
 
       - name: Setup Bun
         if: matrix.pm == 'bun'
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: latest
 
@@ -124,11 +126,14 @@ jobs:
           echo "path=$GITHUB_WORKSPACE/$tgz" >> "$GITHUB_OUTPUT"
           echo "Tarball: $tgz"
 
-      - name: Init scratch consumer + install tarball
+      - name: Init scratch consumer + install tarball # zizmor: ignore[adhoc-packages]
+        env:
+          TARBALL: ${{ steps.t.outputs.path }}
+          PM: ${{ matrix.pm }}
         run: |
           set -eux
           mkdir consumer && cd consumer
-          tarball='${{ steps.t.outputs.path }}'
+          tarball="$TARBALL"
 
           # Skip `<pm> init -y` — each PM's interpretation of `-y` and
           # default field set differs (bun's `init -y` creates an
@@ -138,7 +143,7 @@ jobs:
           { "name": "consumer", "version": "0.0.0", "private": true, "type": "module" }
           JSON
 
-          case "${{ matrix.pm }}" in
+          case "$PM" in
             npm)
               npm install --no-audit --no-fund "$tarball"
               ;;

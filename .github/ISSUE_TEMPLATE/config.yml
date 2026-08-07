@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Read the contributing guide first
+    url: https://github.com/emindeniz99/flatbuffers-format/blob/main/CONTRIBUTING.md
+    about: How to set up locally, run the four test layers, and what we expect in a PR.
+  - name: Usage cookbook for flatbuffers-format
+    url: https://github.com/emindeniz99/flatbuffers-format/blob/main/flatbuffers-formatter/docs/cookbook.md
+    about: CI gates, pre-commit hooks, programmatic use, browser, Prettier integration, migration tips.
+  - name: Security advisory (private)
+    url: https://github.com/emindeniz99/flatbuffers-format/security/advisories/new
+    about: For anything where public disclosure would put users at risk before a fix lands.

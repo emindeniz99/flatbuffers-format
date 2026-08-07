@@ -83,7 +83,7 @@ the sibling project via a relative `file:` install:
 That means the sibling must be built first:
 
 ```bash
-cd projects/flatbuffers-formatter && npm ci && npm run build
+cd flatbuffers-formatter && npm ci && npm run build
 cd ../prettier-plugin-flatbuffers && npm ci && npm run build && npm test
 ```
 
