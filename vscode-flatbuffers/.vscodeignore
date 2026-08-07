@@ -6,6 +6,7 @@ dist-test/**
 scripts/**
 node_modules/**
 .gitignore
+icon.svg
 .eslintrc*
 .editorconfig
 biome.json
@@ -13,4 +14,3 @@ tsconfig.json
 tsconfig.test.json
 **/*.map
 **/*.ts
-!dist/**/*.d.ts

@@ -45,3 +45,52 @@ jobs:
       - name: Test
         working-directory: .
         run: pnpm --filter vscode-flatbuffers test
+
+  # Packaging used to happen for the first time during a release, which is
+  # how four separate defects (an SVG icon, a `main` pointing at a path the
+  # build never emitted, a @types/vscode newer than engines.vscode, and an
+  # ESM entry point with its dependency ignored out of the archive) all sat
+  # undetected in the manifest. Build the real .vsix on every PR, then
+  # ACTIVATE it — `vsce package` never loads the entry point, so packaging
+  # alone would still let a non-loadable extension through.
+  vscode-flatbuffers-vsix:
+    name: vscode-flatbuffers / vsix
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          package_json_file: package.json
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install (workspace)
+        working-directory: .
+        run: pnpm install --frozen-lockfile
+      - name: Build engine + extension
+        working-directory: .
+        run: pnpm --filter flatbuffers-format --filter vscode-flatbuffers build
+      # Package the way release-please.yml does — same deploy tree, same
+      # pinned vsce, same flags — so a release is never the first run of
+      # this path. `--no-dependencies` is required, not cosmetic: vsce
+      # collects files by shelling out to `npm list --production
+      # --parseable --depth=99999` and treats a non-zero exit as fatal,
+      # and npm exits 1 (ELSPROBLEMS) on both pnpm's symlinked store and
+      # the verbatim `workspace:^` spec `pnpm deploy --legacy` leaves in
+      # the manifest. The extension is bundled into one file, so there
+      # are no runtime dependencies left to collect anyway.
+      - name: Materialise deploy tree (pnpm deploy)
+        working-directory: .
+        run: |
+          rm -rf deploy/vscode
+          pnpm deploy --filter vscode-flatbuffers --prod --legacy deploy/vscode
+      - name: Package .vsix
+        working-directory: deploy/vscode
+        run: npx --yes @vscode/vsce@3.9.2 package --no-dependencies --out vscode-flatbuffers.vsix
+      - name: Verify the packaged .vsix activates
+        working-directory: .
+        run: node vscode-flatbuffers/scripts/verify-vsix.mjs deploy/vscode/vscode-flatbuffers.vsix

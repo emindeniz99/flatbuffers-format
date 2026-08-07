@@ -24,3 +24,9 @@ allowBuilds:
   # building it here only broke the 24/26 matrix legs. Consumers build it
   # against their own Node; the packed-tarball job covers that path.
   tree-sitter: false
+  # Explicitly NOT built. esbuild's postinstall only validates and relinks
+  # the platform binary; its JS API resolves @esbuild/<platform>/bin/esbuild
+  # directly, so the vscode-flatbuffers bundle step works with the script
+  # blocked. Without an explicit entry pnpm 11 fails the whole workspace
+  # with ERR_PNPM_IGNORED_BUILDS — an error, not a warning.
+  esbuild: false

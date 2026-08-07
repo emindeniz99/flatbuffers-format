@@ -4,7 +4,7 @@
   "description": "Syntax highlighting and format-on-save for FlatBuffers (.fbs) schema files. Format provider delegates to the flatbuffers-format engine.",
   "version": "0.1.1",
   "private": true,
-  "icon": "icon.svg",
+  "icon": "icon.png",
   "license": "MIT",
   "author": "emindeniz99",
   "publisher": "emindeniz99",
@@ -32,7 +32,7 @@
     "vscode": "^1.94.0",
     "node": ">=20"
   },
-  "main": "./dist/src/extension.js",
+  "main": "./dist/extension.cjs",
   "type": "module",
   "activationEvents": [
     "onLanguage:flatbuffers"
@@ -105,20 +105,20 @@
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --noEmit && node scripts/bundle.mjs",
     "lint": "biome lint src",
     "test": "tsc -p tsconfig.test.json && node scripts/run-tests.mjs",
-    "package": "vsce package",
-    "publish": "vsce publish"
-  },
-  "dependencies": {
-    "flatbuffers-format": "workspace:^"
+    "package": "vsce package --no-dependencies",
+    "verify:vsix": "node scripts/verify-vsix.mjs",
+    "publish": "vsce publish --no-dependencies"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.5",
     "@types/node": "^22.10.0",
-    "@types/vscode": "^1.125.0",
+    "@types/vscode": "^1.94.0",
     "@vscode/vsce": "^3.9.2",
+    "esbuild": "^0.28.1",
+    "flatbuffers-format": "workspace:^",
     "typescript": "^5.6.0"
   }
 }
