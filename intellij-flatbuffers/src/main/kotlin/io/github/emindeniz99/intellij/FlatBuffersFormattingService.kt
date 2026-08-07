@@ -38,19 +38,22 @@ class FlatBuffersFormattingService : AsyncDocumentFormattingService() {
 
     override fun getFeatures(): Set<FormattingService.Feature> = emptySet()
 
-    // Claim a file only when the IDE has actually assigned it to OUR
-    // language — never on the raw `.fbs` extension.
+    // Deliberately matches the `.fbs` extension as well as our own
+    // language, so this formatter keeps working when another FlatBuffers
+    // plugin (e.g. "Flatbuffers Support") owns the file type.
     //
-    // Other FlatBuffers plugins exist (e.g. "Flatbuffers Support") and
-    // register the same `*.fbs` pattern. When both are installed the IDE
-    // assigns the pattern to exactly one file type and offers the user a
-    // confirm/revert choice. Matching on the extension ignored that
-    // decision: we claimed files the IDE had given to the other plugin,
-    // so two formatters could act on one document. Honouring the file
-    // type means whichever plugin the user picked is the one that
-    // formats, and the other steps aside.
+    // Those plugins are complementary, not competing: they provide
+    // language support — references, go-to-declaration — and we provide
+    // formatting that is byte-identical with the CLI, Prettier plugin
+    // and VS Code extension. A user who installs both should get both.
+    // Standing down whenever the IDE assigned `*.fbs` to the other
+    // plugin would silently disable formatting for exactly the users who
+    // wanted it most.
+    //
+    // Only one FormattingService is selected per file, so this does not
+    // put two formatters on one document.
     override fun canFormat(file: PsiFile): Boolean =
-        file.language === FlatBuffersLanguage
+        file.virtualFile?.extension == "fbs" || file.language === FlatBuffersLanguage
 
     override fun getName(): String = "flatbuffers-format"
 
@@ -87,6 +90,31 @@ class FlatBuffersFormattingService : AsyncDocumentFormattingService() {
             override fun run() {
                 if (cancelled) return
                 val source = request.documentText
+
+                // The engine formats a whole schema; it cannot format a
+                // fragment, because a lone `union { … }` body is not a
+                // parseable file. getFeatures() advertises no
+                // FORMAT_FRAGMENTS for that reason.
+                //
+                // Refuse rather than trust that. If a partial range ever
+                // reaches us and we hand back the whole formatted
+                // document, the platform substitutes that text FOR THE
+                // RANGE — the file gets its own contents spliced into
+                // the middle of itself. A user reported exactly that:
+                // union members duplicated and concatenated. Declining
+                // is recoverable; corrupting the user's schema is not.
+                val ranges = request.formattingRanges
+                val coversWholeFile = ranges.isEmpty() ||
+                    (ranges.size == 1 && ranges[0].startOffset == 0 && ranges[0].endOffset >= source.length)
+                if (!coversWholeFile) {
+                    request.onError(
+                        "FlatBuffers format failed",
+                        "flatbuffers-format formats whole files only. " +
+                            "Reformat without a selection, or set Actions on Save → " +
+                            "Reformat code to the whole file rather than changed lines.",
+                    )
+                    return
+                }
                 val temp: File = try {
                     Files.createTempFile("flatbuffers-format-", ".fbs").toFile()
                 } catch (t: Throwable) {
