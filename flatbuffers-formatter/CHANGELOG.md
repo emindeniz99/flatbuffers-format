@@ -3,7 +3,13 @@
 All notable changes to `flatbuffers-format` are documented in this file.
 This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.0] - Unreleased
+> **First published release: `0.1.0`.** This package was developed inside a
+> monorepo beforehand, so notes generated from that history — including
+> "breaking changes" between internal package names — describe
+> pre-publication development. Nothing installed from the registry needs
+> to migrate for them.
+
+## [0.1.0] - 2026-08-07
 
 First public release of `flatbuffers-format`, an opinionated formatter
 for FlatBuffers (`.fbs`) schema files.
