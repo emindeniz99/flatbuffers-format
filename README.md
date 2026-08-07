@@ -39,14 +39,14 @@ flowchart TB
   end
 
   HR[flatbuffers-formatter-handrolled<br/>hand-rolled parser+printer]
-  HR -. byte-identical via crosscheck.sh .-> F
+  HR -.->|byte-identical via crosscheck.sh| F
 
   F --> PRT[prettier-plugin-flatbuffers]
   F --> VSC[vscode-flatbuffers]
   F --> EDT[flatbuffers-format-editors<br/>CodeMirror + Monaco + Web Component]
-  CLI -. shells out to .-> IJ[intellij-flatbuffers]
+  CLI -.->|shells out to| IJ[intellij-flatbuffers]
 
-  G -. mirrored as grammar.js .-> TS[tree-sitter-flatbuffers]
+  G -.->|mirrored as grammar.js| TS[tree-sitter-flatbuffers]
 ```
 
 A new grammar feature lands like this:
