@@ -9,6 +9,19 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > pre-publication development. Nothing installed from the registry needs
 > to migrate for them.
 
+## [0.3.0](https://github.com/emindeniz99/flatbuffers-format/compare/flatbuffers-format-v0.2.0...flatbuffers-format-v0.3.0) (2026-08-07)
+
+
+### Features
+
+* **intellij:** ship the engine as a bundled JS script, not a 105 MB download ([4a7550f](https://github.com/emindeniz99/flatbuffers-format/commit/4a7550f0142242923bba14400f6c0e1adbfd9412))
+
+
+### Bug Fixes
+
+* **formatter:** resolve esbuild from the lockfile instead of npx ([bbf424d](https://github.com/emindeniz99/flatbuffers-format/commit/bbf424d82b7ba565720d74b094730399a2361efc))
+* **formatter:** stop the shell from eating esbuild's --define quotes ([62664cb](https://github.com/emindeniz99/flatbuffers-format/commit/62664cb7f79911514e10fbb883a348e2fd4f6459))
+
 ## [0.2.0](https://github.com/emindeniz99/flatbuffers-format/compare/flatbuffers-format-v0.1.0...flatbuffers-format-v0.2.0) (2026-08-07)
 
 

@@ -8,6 +8,14 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > "breaking changes" between internal names — describe pre-publication
 > development rather than migrations for an installed version.
 
+## [0.1.2](https://github.com/emindeniz99/flatbuffers-format/compare/vscode-flatbuffers-v0.1.1...vscode-flatbuffers-v0.1.2) (2026-08-07)
+
+
+### Bug Fixes
+
+* **vscode:** make the extension actually packageable and loadable ([c74d712](https://github.com/emindeniz99/flatbuffers-format/commit/c74d712ddc302f2c5f4fbb07a91af036f05b001a))
+* **vscode:** pin @types/vscode to the 1.94 line so packaging can't re-break ([2e75531](https://github.com/emindeniz99/flatbuffers-format/commit/2e755314b4dbd8e0bc1966174772968fcd42a5a3))
+
 ## [0.1.1](https://github.com/emindeniz99/flatbuffers-format/compare/vscode-flatbuffers-v0.1.0...vscode-flatbuffers-v0.1.1) (2026-08-07)
 
 
