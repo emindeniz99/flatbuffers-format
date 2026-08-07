@@ -13,7 +13,7 @@ discrimination, and bad-faith behavior aren't welcome.
 If you witness or experience behavior that breaks the Covenant:
 
 - **Preferred:** open a private security advisory on this repository
-  ([GitHub Security Advisories](https://github.com/emindeniz99/playground/security/advisories/new))
+  ([GitHub Security Advisories](https://github.com/emindeniz99/flatbuffers-format/security/advisories/new))
   — it's the only built-in private reporting channel and the
   maintainer gets a notification.
 - **Alternative:** open a regular issue if it's not sensitive, or DM
