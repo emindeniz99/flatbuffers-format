@@ -47,9 +47,10 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
       # Generate the wrapper on-the-fly so we don't have to check in
       # gradle-wrapper.jar (binary jars in source are a maintenance smell).
-      # `gradle wrapper --gradle-version` is idempotent.
+      # The version comes from gradle.properties via the `wrapper` task,
+      # so it is not repeated here. `gradle wrapper` is idempotent.
       - name: Generate Gradle wrapper
-        run: gradle wrapper --gradle-version 9.5.1
+        run: gradle wrapper
       - name: Build plugin
         run: ./gradlew --no-daemon buildPlugin
       - name: Test
