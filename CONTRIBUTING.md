@@ -282,7 +282,7 @@ All six publishable artifacts are released by
 | `prettier-plugin-flatbuffers/` | npm | `prettier-plugin-flatbuffers` |
 | `tree-sitter-flatbuffers/` | npm | `tree-sitter-flatbuffers` |
 | `vscode-flatbuffers/` | VS Code Marketplace (+ Open VSX, best-effort) | `emindeniz99.vscode-flatbuffers` |
-| `intellij-flatbuffers/` | JetBrains Marketplace | `io.github.emindeniz99.fbs` |
+| `intellij-flatbuffers/` | JetBrains Marketplace | `io.github.emindeniz99.flatbuffers` |
 | `flatbuffers-format-editors/` | npm | `flatbuffers-format-editors` |
 
 You do not bump `version` in any `package.json` and you do not edit any

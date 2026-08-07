@@ -10,7 +10,7 @@ This policy covers every publishable artefact in this repo.
 | Prettier plugin | npm | `prettier-plugin-flatbuffers` |
 | Tree-sitter grammar | npm | `tree-sitter-flatbuffers` |
 | VS Code extension | VS Code Marketplace + Open VSX | `emindeniz99.vscode-flatbuffers` |
-| JetBrains plugin | JetBrains Marketplace | `io.github.emindeniz99.fbs` |
+| JetBrains plugin | JetBrains Marketplace | `io.github.emindeniz99.flatbuffers` |
 | Browser editor integrations | npm | `flatbuffers-format-editors` |
 | Native binaries | GitHub Releases | `flatbuffers-format-{linux,macos,windows}-{x64,arm64}` |
 | WASI module | GitHub Releases | `flatbuffers-format.wasm` |

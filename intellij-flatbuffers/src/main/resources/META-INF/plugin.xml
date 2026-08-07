@@ -14,14 +14,17 @@
     listing, one CI job.
   -->
 
-  <!-- Marketplace policy (since 2024-03-26) rejects plugin IDs
-       containing the word "intellij" — it implies an official
-       JetBrains plugin. We use the `.fbs` suffix instead (matches
-       the file extension the plugin handles). Kotlin class FQNs
-       still live under `io.github.emindeniz99.intellij.*`
-       because that's a code namespace, not a Marketplace ID, and
-       renaming it would churn every source file for no gain. -->
-  <id>io.github.emindeniz99.fbs</id>
+  <!-- PERMANENT after the first Marketplace upload — it cannot be
+       changed later, so it matches the rest of the project (repo,
+       npm family, Gradle group, and the <name> below) rather than
+       being abbreviated.
+
+       It deliberately does NOT mirror the Kotlin package
+       `io.github.emindeniz99.intellij.*`: Marketplace policy (since
+       2024-03-26) rejects plugin IDs containing the word "intellij",
+       because that implies an official JetBrains plugin. The package
+       stays as it is — a code namespace is not a Marketplace ID. -->
+  <id>io.github.emindeniz99.flatbuffers</id>
   <name>FlatBuffers</name>
   <vendor email="emindeniz99@gmail.com" url="https://github.com/emindeniz99/flatbuffers-format/tree/main/intellij-flatbuffers">emindeniz99</vendor>
 
