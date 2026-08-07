@@ -294,7 +294,7 @@ You do not bump `version` in any `package.json` and you do not edit any
    that bumps `package.json` and regenerates `CHANGELOG.md` for every
    package with eligible commits.
 3. The maintainer reviews and merges the release PR.
-4. CI tags each released package (e.g. `flatbuffers-format@0.1.1`),
+4. CI tags each released package (e.g. `flatbuffers-format-v0.1.1`),
    creates GitHub Releases, and publishes to the corresponding
    registry automatically. The VS Code extension is also uploaded as
    a `.vsix` asset on its GitHub Release.

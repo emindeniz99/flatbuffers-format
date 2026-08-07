@@ -119,7 +119,7 @@ add to `.pre-commit-config.yaml`:
 
 ```yaml
 - repo: https://github.com/emindeniz99/flatbuffers-format
-  rev: flatbuffers-format@v0.1.0   # bump on each release
+  rev: flatbuffers-format-v0.2.0   # bump on each release
   hooks:
     - id: flatbuffers-format        # rewrites in place
     # …or for the silent CI variant:

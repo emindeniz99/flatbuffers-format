@@ -59,6 +59,3 @@ do not hand-edit released entries.
 
 ### Compatible with
 - All JetBrains IDEs built on IntelliJ Platform 2024.2 or newer.
-
-[Unreleased]: https://github.com/emindeniz99/flatbuffers-format/compare/intellij-flatbuffers@0.1.0...HEAD
-[0.1.0]: https://github.com/emindeniz99/flatbuffers-format/releases/tag/intellij-flatbuffers@0.1.0

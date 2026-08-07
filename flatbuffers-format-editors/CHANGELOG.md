@@ -36,6 +36,3 @@ do not hand-edit released entries.
 - Shared token vocabulary (`src/tokens.ts`) keeps the three
   integrations honest against the engine grammar; smoke-tested by
   `test/tokens.test.ts`.
-
-[Unreleased]: https://github.com/emindeniz99/flatbuffers-format/compare/flatbuffers-format-editors@0.1.0...HEAD
-[0.1.0]: https://github.com/emindeniz99/flatbuffers-format/releases/tag/flatbuffers-format-editors@0.1.0

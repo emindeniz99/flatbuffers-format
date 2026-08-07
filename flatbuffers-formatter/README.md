@@ -139,7 +139,7 @@ npx flatbuffers-format ...          # one-shot, no install
 ### Native binary (no Node required)
 
 Prebuilt single-file binaries are attached to every GitHub Release
-(starting with `flatbuffers-format@0.1.0`). Drop one on `PATH` and run
+(starting with `flatbuffers-format-v0.2.0`). Drop one on `PATH` and run
 — the embedded Node 22 runtime is byte-glued in via [Node SEA][node-sea],
 so consumers don't need to install Node or npm:
 

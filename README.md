@@ -151,7 +151,7 @@ You don't bump `version` fields by hand. The flow:
    bumps each affected package's `version` + regenerates its
    `CHANGELOG.md`.
 3. On merge, release-please creates one git tag per released package
-   (`flatbuffers-format@X.Y.Z`, `vscode-flatbuffers@X.Y.Z`, …), plus a
+   (`flatbuffers-format-vX.Y.Z`, `vscode-flatbuffers-vX.Y.Z`, …), plus a
    matching GitHub Release.
 4. The publish job for each package fires automatically, scoped by tag.
 

@@ -120,9 +120,12 @@ binary artefact:
 
 To verify a download end-to-end:
 
+Release tags are `<package>-v<version>` — substitute the release you
+actually downloaded for the versions below.
+
 ```bash
 # Native binary
-gh release download flatbuffers-format@0.1.0 \
+gh release download flatbuffers-format-v0.2.0 \
   --repo emindeniz99/flatbuffers-format \
   --pattern 'flatbuffers-format-linux-x64*'
 sha256sum --check flatbuffers-format-linux-x64.sha256        # bytes match sidecar
@@ -130,7 +133,7 @@ gh attestation verify flatbuffers-format-linux-x64 \
   --repo emindeniz99/flatbuffers-format                      # provenance match
 
 # WASM module
-gh release download flatbuffers-format@0.1.0 \
+gh release download flatbuffers-format-v0.2.0 \
   --repo emindeniz99/flatbuffers-format \
   --pattern 'flatbuffers-format.wasm*'
 sha256sum --check flatbuffers-format.wasm.sha256
@@ -138,11 +141,11 @@ gh attestation verify flatbuffers-format.wasm \
   --repo emindeniz99/flatbuffers-format
 
 # IntelliJ plugin .zip
-gh release download intellij-flatbuffers@0.1.0 \
+gh release download intellij-flatbuffers-v0.2.0 \
   --repo emindeniz99/flatbuffers-format \
   --pattern 'intellij-flatbuffers-*.zip*'
-sha256sum --check intellij-flatbuffers-0.1.0.zip.sha256
-gh attestation verify intellij-flatbuffers-0.1.0.zip \
+sha256sum --check intellij-flatbuffers-0.2.0.zip.sha256
+gh attestation verify intellij-flatbuffers-0.2.0.zip \
   --repo emindeniz99/flatbuffers-format
 ```
 
