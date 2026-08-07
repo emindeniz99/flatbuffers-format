@@ -58,7 +58,6 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.5",
-    "tree-sitter": "^0.25.0",
     "tree-sitter-cli": "^0.26.11"
   }
 }

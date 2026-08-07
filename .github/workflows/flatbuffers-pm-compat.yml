@@ -159,7 +159,12 @@ jobs:
               # Node's resolution algorithm sees flatbuffers-format
               # the same way npm/pnpm/bun expose it — testing PnP is
               # a separate, more nuanced exercise.
-              echo "nodeLinker: node-modules" > .yarnrc.yml
+              #
+              # APPEND, never truncate: `yarn set version berry` wrote
+              # `yarnPath:` into this file. Overwriting it strands the v1
+              # shim, which then refuses the `packageManager: yarn@4` that
+              # the same command just added to package.json.
+              echo "nodeLinker: node-modules" >> .yarnrc.yml
               yarn add "$tarball"
               ;;
             bun)

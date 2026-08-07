@@ -11,10 +11,16 @@
 packages:
   - "*"
 # Lifecycle-script allowlist (pnpm 11 home of package.json's former
-# pnpm.onlyBuiltDependencies): the four packages we actively build/test/
+# pnpm.onlyBuiltDependencies): the packages we actively build/test/
 # publish with; everything else stays sandboxed.
 allowBuilds:
   '@vscode/vsce-sign': true
   keytar: true
-  tree-sitter: true
   tree-sitter-cli: true
+  # Explicitly NOT built. `tree-sitter` is an OPTIONAL PEER of
+  # tree-sitter-flatbuffers (consumers supply the runtime), and nothing in
+  # this workspace imports it. Its native build wants a C++20 toolchain
+  # that Node 24+ headers require but its binding.gyp never requests, so
+  # building it here only broke the 24/26 matrix legs. Consumers build it
+  # against their own Node; the packed-tarball job covers that path.
+  tree-sitter: false

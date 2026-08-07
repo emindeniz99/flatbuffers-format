@@ -151,7 +151,6 @@ jobs:
       # SLSA build-provenance over both the .wasm and its sidecar —
       # see flatbuffers-native-binaries.yml for the verification flow.
       - name: Attest build provenance
-        working-directory: ${{ github.workspace }}
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4
         with:
           subject-path: |

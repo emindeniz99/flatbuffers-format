@@ -98,8 +98,14 @@ jobs:
       - name: Smoke test under Deno
         working-directory: consumer
         run: |
+          # Bare specifier, NOT `npm:flatbuffers-format`: the `npm:` form
+          # resolves from the registry and would ignore the local tarball
+          # this job just installed — testing the published package instead
+          # of the one being validated (and failing outright before the
+          # first release). `--node-modules-dir=auto` below makes Deno
+          # resolve bare specifiers out of consumer/node_modules.
           cat > smoke.ts <<'EOF'
-          import { format, check } from "npm:flatbuffers-format";
+          import { format, check } from "flatbuffers-format";
           const out = format("namespace X;\ntable T{x:int;}");
           if (!out.includes("table T")) throw new Error("Unexpected output: " + out);
           if (check(out) !== true) throw new Error("check() rejected formatted output");
