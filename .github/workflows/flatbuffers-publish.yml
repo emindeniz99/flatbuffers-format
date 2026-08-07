@@ -20,27 +20,27 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          package_json_file: projects/flatbuffers/package.json
+          package_json_file: package.json
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: projects/flatbuffers/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
           registry-url: https://registry.npmjs.org
       - name: Install
-        working-directory: projects/flatbuffers
+        working-directory: .
         run: pnpm install --frozen-lockfile
       - name: Build engine + handrolled (for crosscheck)
-        working-directory: projects/flatbuffers
+        working-directory: .
         run: pnpm --filter flatbuffers-format --filter flatbuffers-format-handrolled build
       - name: Test engine
-        working-directory: projects/flatbuffers
+        working-directory: .
         run: pnpm --filter flatbuffers-format test
       - name: Cross-check
-        run: bash projects/flatbuffers/flatbuffers-formatter/test/crosscheck.sh
+        run: bash flatbuffers-formatter/test/crosscheck.sh
       - name: pnpm publish --dry-run
-        working-directory: projects/flatbuffers
+        working-directory: .
         run: pnpm --filter flatbuffers-format publish --dry-run --no-git-checks --provenance --access public
       - name: List tarball contents
-        working-directory: projects/flatbuffers/flatbuffers-formatter
+        working-directory: flatbuffers-formatter
         run: pnpm pack --pack-destination /tmp/pack && tar -tzf /tmp/pack/*.tgz | sort

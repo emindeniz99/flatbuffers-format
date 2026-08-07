@@ -10,17 +10,17 @@ on:
     branches:
       - main
     paths:
-      - projects/flatbuffers/flatbuffers-formatter/**
-      - projects/flatbuffers/flatbuffers-format-editors/**
-      - projects/flatbuffers/pnpm-lock.yaml
-      - projects/flatbuffers/pnpm-workspace.yaml
+      - flatbuffers-formatter/**
+      - flatbuffers-format-editors/**
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
       - .github/workflows/flatbuffers-format-editors.yml
   pull_request:
     paths:
-      - projects/flatbuffers/flatbuffers-formatter/**
-      - projects/flatbuffers/flatbuffers-format-editors/**
-      - projects/flatbuffers/pnpm-lock.yaml
-      - projects/flatbuffers/pnpm-workspace.yaml
+      - flatbuffers-formatter/**
+      - flatbuffers-format-editors/**
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
       - .github/workflows/flatbuffers-format-editors.yml
 
 permissions:
@@ -34,21 +34,21 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          package_json_file: projects/flatbuffers/package.json
+          package_json_file: package.json
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: projects/flatbuffers/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
       - name: Install
-        working-directory: projects/flatbuffers
+        working-directory: .
         run: pnpm install --frozen-lockfile
       - name: Build engine + editors
-        working-directory: projects/flatbuffers
+        working-directory: .
         run: pnpm --filter flatbuffers-format --filter flatbuffers-format-editors build
       - name: Lint
-        working-directory: projects/flatbuffers
+        working-directory: .
         run: pnpm --filter flatbuffers-format-editors lint
       - name: Test
-        working-directory: projects/flatbuffers
+        working-directory: .
         run: pnpm --filter flatbuffers-format-editors test

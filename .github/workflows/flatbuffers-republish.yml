@@ -49,21 +49,21 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          package_json_file: projects/flatbuffers/package.json
+          package_json_file: package.json
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: projects/flatbuffers/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
           registry-url: https://registry.npmjs.org
       - name: Install
-        working-directory: projects/flatbuffers
+        working-directory: .
         run: pnpm install --frozen-lockfile
       - name: Build
-        working-directory: projects/flatbuffers
+        working-directory: .
         run: pnpm --filter flatbuffers-format build
       - name: Publish to npm with provenance
-        working-directory: projects/flatbuffers
+        working-directory: .
         run: pnpm --filter flatbuffers-format publish --no-git-checks --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -79,21 +79,21 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          package_json_file: projects/flatbuffers/package.json
+          package_json_file: package.json
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: projects/flatbuffers/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
           registry-url: https://registry.npmjs.org
       - name: Install
-        working-directory: projects/flatbuffers
+        working-directory: .
         run: pnpm install --frozen-lockfile
       - name: Build engine + plugin
-        working-directory: projects/flatbuffers
+        working-directory: .
         run: pnpm --filter flatbuffers-format --filter prettier-plugin-flatbuffers build
       - name: Publish to npm with provenance
-        working-directory: projects/flatbuffers
+        working-directory: .
         run: pnpm --filter prettier-plugin-flatbuffers publish --no-git-checks --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -109,18 +109,18 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          package_json_file: projects/flatbuffers/package.json
+          package_json_file: package.json
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: projects/flatbuffers/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
           registry-url: https://registry.npmjs.org
       - name: Install
-        working-directory: projects/flatbuffers
+        working-directory: .
         run: pnpm install --frozen-lockfile
       - name: Publish to npm with provenance
-        working-directory: projects/flatbuffers
+        working-directory: .
         run: pnpm --filter tree-sitter-flatbuffers publish --no-git-checks --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -145,35 +145,35 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          package_json_file: projects/flatbuffers/package.json
+          package_json_file: package.json
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: projects/flatbuffers/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
       - name: Install
-        working-directory: projects/flatbuffers
+        working-directory: .
         run: pnpm install --frozen-lockfile
       - name: Build engine + extension
-        working-directory: projects/flatbuffers
+        working-directory: .
         run: pnpm --filter flatbuffers-format --filter vscode-flatbuffers build
       - name: Materialise deploy tree (pnpm deploy)
-        working-directory: projects/flatbuffers
+        working-directory: .
         run: |
           rm -rf deploy/vscode
           pnpm deploy --filter vscode-flatbuffers --prod --legacy deploy/vscode
       - name: Package .vsix
-        working-directory: projects/flatbuffers/deploy/vscode
+        working-directory: deploy/vscode
         run: npx --yes @vscode/vsce package --out vscode-flatbuffers.vsix
       - name: Publish to VS Code Marketplace
-        working-directory: projects/flatbuffers/deploy/vscode
+        working-directory: deploy/vscode
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: npx --yes @vscode/vsce publish --packagePath vscode-flatbuffers.vsix
       - name: Publish to Open VSX (optional)
         if: ${{ env.OVSX_PAT != '' }}
         continue-on-error: true
-        working-directory: projects/flatbuffers/deploy/vscode
+        working-directory: deploy/vscode
         run: npx --yes ovsx publish vscode-flatbuffers.vsix --pat "$OVSX_PAT"
 
   republish-intellij-flatbuffers:
@@ -186,7 +186,7 @@ jobs:
       HAS_SIGNING_KEY: ${{ secrets.JETBRAINS_PRIVATE_KEY != '' && 'true' || 'false' }}
     defaults:
       run:
-        working-directory: projects/flatbuffers/intellij-flatbuffers
+        working-directory: intellij-flatbuffers
     steps:
       - name: Fail fast if JETBRAINS_MARKETPLACE_TOKEN is missing
         env:
@@ -230,21 +230,21 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          package_json_file: projects/flatbuffers/package.json
+          package_json_file: package.json
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: projects/flatbuffers/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
           registry-url: https://registry.npmjs.org
       - name: Install
-        working-directory: projects/flatbuffers
+        working-directory: .
         run: pnpm install --frozen-lockfile
       - name: Build engine + editors
-        working-directory: projects/flatbuffers
+        working-directory: .
         run: pnpm --filter flatbuffers-format --filter flatbuffers-format-editors build
       - name: Publish to npm with provenance
-        working-directory: projects/flatbuffers
+        working-directory: .
         run: pnpm --filter flatbuffers-format-editors publish --no-git-checks --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -4,7 +4,7 @@
 # Driven by Node 22's Single Executable Application feature
 # (https://nodejs.org/api/single-executable-applications.html). The
 # per-platform build logic lives in
-# `projects/flatbuffers/flatbuffers-formatter/scripts/build-native.mjs`; this
+# `flatbuffers-formatter/scripts/build-native.mjs`; this
 # workflow just orchestrates the matrix.
 #
 # When this runs:
@@ -35,9 +35,9 @@ on:
     branches:
       - main
     paths:
-      - projects/flatbuffers/flatbuffers-formatter/src/**
-      - projects/flatbuffers/flatbuffers-formatter/grammar/**
-      - projects/flatbuffers/flatbuffers-formatter/scripts/build-native.mjs
+      - flatbuffers-formatter/src/**
+      - flatbuffers-formatter/grammar/**
+      - flatbuffers-formatter/scripts/build-native.mjs
       - .github/workflows/flatbuffers-native-binaries.yml
   release:
     types: [released]
@@ -87,22 +87,22 @@ jobs:
       HAS_APPLE_NOTARIZATION: ${{ secrets.APPLE_DEVELOPER_ID_CERT_P12_BASE64 != '' && 'true' || 'false' }}
     defaults:
       run:
-        working-directory: projects/flatbuffers/flatbuffers-formatter
+        working-directory: flatbuffers-formatter
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          package_json_file: projects/flatbuffers/package.json
+          package_json_file: package.json
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: projects/flatbuffers/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
       - name: Install
-        working-directory: projects/flatbuffers
+        working-directory: .
         run: pnpm install --frozen-lockfile
       - name: Build
-        working-directory: projects/flatbuffers
+        working-directory: .
         run: pnpm --filter flatbuffers-format build
 
       # ── macOS: import Developer ID certificate into a temporary keychain

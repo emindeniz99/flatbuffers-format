@@ -1,7 +1,7 @@
 name: Pages (live demo + API docs)
 
 # Publishes a small GitHub Pages site assembled from
-# projects/flatbuffers/flatbuffers-formatter/. Three things are deployed:
+# flatbuffers-formatter/. Three things are deployed:
 #
 #   /                 — minimal landing page (this workflow writes it inline)
 #   /playground/      — the existing web/index.html, unmodified
@@ -37,29 +37,29 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: projects/flatbuffers/flatbuffers-formatter
+        working-directory: flatbuffers-formatter
     steps:
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
         with:
-          package_json_file: projects/flatbuffers/package.json
+          package_json_file: package.json
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: projects/flatbuffers/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install
-        working-directory: projects/flatbuffers
+        working-directory: .
         run: pnpm install --frozen-lockfile
 
       - name: Build (codegen + tsc)
-        working-directory: projects/flatbuffers
+        working-directory: .
         run: pnpm --filter flatbuffers-format build
 
       - name: Install TypeDoc (ephemeral, workspace-root, not saved)
-        working-directory: projects/flatbuffers
+        working-directory: .
         run: pnpm add -w --save-dev typedoc
 
       - name: Assemble site
@@ -145,8 +145,8 @@ jobs:
                 </div>
                 <div class="links">
                   <a href="https://www.npmjs.com/package/flatbuffers-format">npm</a>
-                  <a href="https://github.com/emindeniz99/playground/tree/main/projects/flatbuffers/flatbuffers-formatter">GitHub</a>
-                  <a href="https://github.com/emindeniz99/playground/blob/main/projects/flatbuffers/flatbuffers-formatter/docs/cookbook.md">Cookbook</a>
+                  <a href="https://github.com/emindeniz99/playground/tree/main/flatbuffers-formatter">GitHub</a>
+                  <a href="https://github.com/emindeniz99/playground/blob/main/flatbuffers-formatter/docs/cookbook.md">Cookbook</a>
                 </div>
               </main>
             </body>
@@ -155,7 +155,7 @@ jobs:
 
       - uses: actions/upload-pages-artifact@v5
         with:
-          path: projects/flatbuffers/flatbuffers-formatter/site-out
+          path: flatbuffers-formatter/site-out
 
   deploy:
     name: deploy to GitHub Pages

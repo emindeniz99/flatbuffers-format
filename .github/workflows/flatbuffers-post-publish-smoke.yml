@@ -80,7 +80,7 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             v="${{ inputs.flatbuffers_format_version }}"
           else
-            v=$(python3 -c 'import json; print(json.load(open("projects/flatbuffers/.release-please-manifest.json"))["projects/flatbuffers/flatbuffers-formatter"])' 2>/dev/null || echo "")
+            v=$(python3 -c 'import json; print(json.load(open(".release-please-manifest.json"))["flatbuffers-formatter"])' 2>/dev/null || echo "")
           fi
           if [ -z "$v" ]; then
             echo "No version to smoke (manifest missing or input empty); skipping."
@@ -194,10 +194,10 @@ jobs:
           set -euo pipefail
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             v="${{ inputs.prettier_plugin_version }}"
-            engine="$(python3 -c 'import json; print(json.load(open("projects/flatbuffers/.release-please-manifest.json"))["projects/flatbuffers/flatbuffers-formatter"])' 2>/dev/null || echo "")"
+            engine="$(python3 -c 'import json; print(json.load(open(".release-please-manifest.json"))["flatbuffers-formatter"])' 2>/dev/null || echo "")"
           else
-            v="$(python3 -c 'import json; print(json.load(open("projects/flatbuffers/.release-please-manifest.json"))["projects/flatbuffers/prettier-plugin-flatbuffers"])' 2>/dev/null || echo "")"
-            engine="$(python3 -c 'import json; print(json.load(open("projects/flatbuffers/.release-please-manifest.json"))["projects/flatbuffers/flatbuffers-formatter"])' 2>/dev/null || echo "")"
+            v="$(python3 -c 'import json; print(json.load(open(".release-please-manifest.json"))["prettier-plugin-flatbuffers"])' 2>/dev/null || echo "")"
+            engine="$(python3 -c 'import json; print(json.load(open(".release-please-manifest.json"))["flatbuffers-formatter"])' 2>/dev/null || echo "")"
           fi
           if [ -z "$v" ] || [ -z "$engine" ]; then
             echo "Missing plugin or engine version; skipping."
@@ -265,7 +265,7 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             v="${{ inputs.tree_sitter_version }}"
           else
-            v="$(python3 -c 'import json; print(json.load(open("projects/flatbuffers/.release-please-manifest.json"))["projects/flatbuffers/tree-sitter-flatbuffers"])' 2>/dev/null || echo "")"
+            v="$(python3 -c 'import json; print(json.load(open(".release-please-manifest.json"))["tree-sitter-flatbuffers"])' 2>/dev/null || echo "")"
           fi
           if [ -z "$v" ]; then
             echo "No version to smoke; skipping."
@@ -335,7 +335,7 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             v="${{ inputs.vscode_extension_version }}"
           else
-            v="$(python3 -c 'import json; print(json.load(open("projects/flatbuffers/.release-please-manifest.json"))["projects/flatbuffers/vscode-flatbuffers"])' 2>/dev/null || echo "")"
+            v="$(python3 -c 'import json; print(json.load(open(".release-please-manifest.json"))["vscode-flatbuffers"])' 2>/dev/null || echo "")"
           fi
           if [ -z "$v" ]; then
             echo "No version to smoke; skipping."

@@ -17,9 +17,9 @@ on:
     branches:
       - main
     paths:
-      - projects/flatbuffers/flatbuffers-formatter/src/**
-      - projects/flatbuffers/flatbuffers-formatter/grammar/**
-      - projects/flatbuffers/flatbuffers-formatter/scripts/build-wasm.mjs
+      - flatbuffers-formatter/src/**
+      - flatbuffers-formatter/grammar/**
+      - flatbuffers-formatter/scripts/build-wasm.mjs
       - .github/workflows/flatbuffers-wasm-binary.yml
   release:
     types: [released]
@@ -55,22 +55,22 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: projects/flatbuffers/flatbuffers-formatter
+        working-directory: flatbuffers-formatter
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          package_json_file: projects/flatbuffers/package.json
+          package_json_file: package.json
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: projects/flatbuffers/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
       - name: Install
-        working-directory: projects/flatbuffers
+        working-directory: .
         run: pnpm install --frozen-lockfile
       - name: Build
-        working-directory: projects/flatbuffers
+        working-directory: .
         run: pnpm --filter flatbuffers-format build
       # javy compiles the .wasm we publish (attested) to GitHub Releases, so
       # the download is pinned AND checksum-verified — same treatment flatc
@@ -145,15 +145,15 @@ jobs:
         uses: actions/attest-build-provenance@v4
         with:
           subject-path: |
-            projects/flatbuffers/flatbuffers-formatter/build/wasm/flatbuffers-format.wasm
-            projects/flatbuffers/flatbuffers-formatter/build/wasm/flatbuffers-format.wasm.sha256
+            flatbuffers-formatter/build/wasm/flatbuffers-format.wasm
+            flatbuffers-formatter/build/wasm/flatbuffers-format.wasm.sha256
 
       - uses: actions/upload-artifact@v4
         with:
           name: flatbuffers-format-wasm
           path: |
-            projects/flatbuffers/flatbuffers-formatter/build/wasm/flatbuffers-format.wasm
-            projects/flatbuffers/flatbuffers-formatter/build/wasm/flatbuffers-format.wasm.sha256
+            flatbuffers-formatter/build/wasm/flatbuffers-format.wasm
+            flatbuffers-formatter/build/wasm/flatbuffers-format.wasm.sha256
           if-no-files-found: error
           retention-days: 30
 
