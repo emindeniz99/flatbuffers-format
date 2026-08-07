@@ -1,8 +1,8 @@
 {
-  "flatbuffers-formatter": "0.1.0",
-  "prettier-plugin-flatbuffers": "0.1.0",
-  "tree-sitter-flatbuffers": "0.1.0",
-  "vscode-flatbuffers": "0.1.0",
-  "intellij-flatbuffers": "0.1.0",
+  "flatbuffers-formatter": "0.2.0",
+  "prettier-plugin-flatbuffers": "0.1.1",
+  "tree-sitter-flatbuffers": "0.1.1",
+  "vscode-flatbuffers": "0.1.1",
+  "intellij-flatbuffers": "0.2.0",
   "flatbuffers-format-editors": "0.1.0"
 }

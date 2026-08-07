@@ -3,6 +3,13 @@
 All notable changes to the `FlatBuffers` VS Code extension are documented here.
 This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1](https://github.com/emindeniz99/flatbuffers-format/compare/vscode-flatbuffers-v0.1.0...vscode-flatbuffers-v0.1.1) (2026-08-07)
+
+
+### Bug Fixes
+
+* **flatbuffers:** make the family publish-ready before it graduates ([d7379d4](https://github.com/emindeniz99/flatbuffers-format/commit/d7379d4eae51c36d0dd98c44cf4f96c5b19ba137))
+
 ## [0.1.0] - Unreleased
 
 First release of the FlatBuffers VS Code extension.

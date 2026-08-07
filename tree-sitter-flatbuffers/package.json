@@ -1,6 +1,6 @@
 {
   "name": "tree-sitter-flatbuffers",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Tree-sitter grammar for FlatBuffers (.fbs) schema files. Syntax highlighting + incremental parsing for Neovim, Helix, Zed, and any editor with a tree-sitter consumer.",
   "keywords": [
     "tree-sitter",

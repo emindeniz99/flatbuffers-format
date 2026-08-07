@@ -1,6 +1,6 @@
 {
   "name": "prettier-plugin-flatbuffers",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Prettier plugin that formats FlatBuffers (.fbs) schemas via the flatbuffers-format engine.",
   "keywords": [
     "prettier",

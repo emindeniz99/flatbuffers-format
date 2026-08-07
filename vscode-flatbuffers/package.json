@@ -2,7 +2,7 @@
   "name": "vscode-flatbuffers",
   "displayName": "FlatBuffers",
   "description": "Syntax highlighting and format-on-save for FlatBuffers (.fbs) schema files. Format provider delegates to the flatbuffers-format engine.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "icon": "icon.svg",
   "license": "MIT",
