@@ -202,19 +202,28 @@ jobs:
       contents: write
     env:
       OVSX_PAT: ${{ secrets.OVSX_PAT }}
+      VSCE_PAT: ${{ secrets.VSCE_PAT }}
     steps:
-      - name: Fail fast if VSCE_PAT secret is missing
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      # The two registries are independent: Open VSX (Eclipse) needs only
+      # an Eclipse account and a token, while the VS Code Marketplace
+      # needs an Azure DevOps PAT — which now requires an Azure
+      # subscription, and which Microsoft retires on 2026-12-01. So this
+      # job publishes to whichever registries have credentials and fails
+      # only when NEITHER does. Requiring VSCE_PAT up front would have
+      # killed the job before checkout and taken Open VSX down with it.
+      - name: Fail fast if no registry token is configured
         run: |
-          if [ -z "$VSCE_PAT" ]; then
-            echo "::error::VSCE_PAT secret is not configured. Create an"
-            echo "::error::Azure DevOps PAT with Marketplace 'Manage' scope at"
-            echo "::error::https://dev.azure.com/<org>/_usersSettings/tokens and add"
-            echo "::error::it as a repository secret. See:"
-            echo "::error::https://code.visualstudio.com/api/working-with-extensions/publishing-extension#get-a-personal-access-token"
+          if [ -z "$VSCE_PAT" ] && [ -z "$OVSX_PAT" ]; then
+            echo "::error::Neither VSCE_PAT nor OVSX_PAT is configured, so"
+            echo "::error::this release cannot be published anywhere."
+            echo "::error::VSCE_PAT  — Azure DevOps PAT, Marketplace 'Manage' scope:"
+            echo "::error::  https://code.visualstudio.com/api/working-with-extensions/publishing-extension#get-a-personal-access-token"
+            echo "::error::OVSX_PAT  — Open VSX token (no Azure account needed):"
+            echo "::error::  https://open-vsx.org/user-settings/tokens"
             exit 1
           fi
+          [ -n "$VSCE_PAT" ] || echo "::warning::VSCE_PAT unset — skipping the VS Code Marketplace."
+          [ -n "$OVSX_PAT" ] || echo "::warning::OVSX_PAT unset — skipping Open VSX."
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
@@ -259,18 +268,22 @@ jobs:
         working-directory: deploy/vscode
         run: npx --yes @vscode/vsce@3.9.2 package --no-dependencies --out vscode-flatbuffers.vsix
       - name: Publish to VS Code Marketplace
+        if: ${{ env.VSCE_PAT != '' }}
         working-directory: deploy/vscode
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: npx --yes @vscode/vsce@3.9.2 publish --packagePath vscode-flatbuffers.vsix
-      # Open VSX is the Eclipse Foundation registry used by VSCodium,
-      # Gitpod, Theia, etc. It's a separate publisher namespace from
-      # Marketplace and uses its own token. We treat it as best-effort:
-      # if OVSX_PAT is missing or the publish fails, the Marketplace
-      # release still stands.
-      - name: Publish to Open VSX (optional)
+      # Open VSX is the Eclipse Foundation registry that VSCodium,
+      # Cursor, Windsurf, Gitpod and Theia install from — Microsoft's
+      # terms bar those editors from the VS Marketplace, so this is the
+      # only channel that reaches them. It has its own namespace and
+      # token, unrelated to Azure.
+      #
+      # Not best-effort. It was `continue-on-error: true` back when the
+      # Marketplace was the primary channel and this was a bonus; with
+      # the Marketplace gated behind a credential we may not have, a
+      # silent Open VSX failure could mean a release that published
+      # NOWHERE while the job stayed green.
+      - name: Publish to Open VSX
         if: ${{ env.OVSX_PAT != '' }}
-        continue-on-error: true
         working-directory: deploy/vscode
         run: npx --yes ovsx@1.0.2 publish vscode-flatbuffers.vsix --pat "$OVSX_PAT"
       - name: Upload .vsix to GitHub Release
