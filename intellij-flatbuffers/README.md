@@ -10,7 +10,7 @@
 [marketplace-badge]: https://img.shields.io/jetbrains/plugin/v/io.github.emindeniz99.flatbuffers?label=Marketplace
 [marketplace-url]: https://plugins.jetbrains.com/plugin/io.github.emindeniz99.flatbuffers
 
-Syntax highlighting and format-on-save for FlatBuffers
+Syntax highlighting and code formatting for FlatBuffers
 (`.fbs`) schema files. Format delegates to the published
 [`flatbuffers-format`][engine-npm] CLI so the output is byte-for-byte
 identical to what you'd get from the VS Code extension, the Prettier
@@ -83,8 +83,9 @@ in a notification carrying the action that fixes it.
   on the current `.fbs` file. The plugin uses
   `AsyncDocumentFormattingService` (since IntelliJ 2022.2) so
   formatting happens off the EDT and you can cancel it mid-flight.
-- **Format on save** — opt-in toggle under Settings → Tools →
-  FlatBuffers; off by default.
+- **Format on save** — enable Settings → Tools → Actions on Save →
+  Reformat code. The IDE drives this formatter through the platform's
+  formatting service; no extra plugin and no toggle here.
 - **Line/block comment toggle** — Ctrl/⌘ + / inserts `//`; Ctrl/⌘
   + Shift + / wraps with `/* … */`.
 - **Color scheme entry** — Preferences → Editor → Color Scheme →
@@ -96,12 +97,20 @@ in a notification carrying the action that fixes it.
 | Setting          | Default       | What it does |
 |------------------|---------------|--------------|
 | Binary path      | *(auto)*      | Absolute path to `flatbuffers-format`. Leave blank to auto-detect (see [Getting an engine](#getting-an-engine)); the page shows which engine is in use. |
-| Extra arguments  | *(none)*      | Whitespace-separated CLI args appended to every invocation. Example: `--use-tabs --line-width 120`. |
-| Format on save   | off           | Runs the formatter on every save. Independent of any "Save Actions" plugin. |
+| Indent width     | 2             | Spaces per indent level — or tab stops, with the next setting (`--indent`). |
+| Indent with tabs | off           | Indent with tab characters instead of spaces (`--use-tabs`). |
+| Line width       | 80            | Target column the engine wraps and collapses against (`--line-width`). |
+| Collapse small enum, union and single-field bodies onto one line | on | Untick to keep every body multi-line (`--no-compact-single-line`). |
+| Max blank lines  | 1             | Consecutive blank lines kept between declarations; `0` removes them all (`--max-blank-lines`). |
+| Reflow long line comments | off  | Re-wrap long `//` comments at whitespace (`--wrap-comments`). |
+| Comment width    | 0             | Column the reflow above wraps at; `0` follows the line width, which is the engine's default (`--comment-width`). |
+| Extra arguments  | *(none)*      | Whitespace-separated CLI args for anything not covered above, e.g. `--no-gitignore`. Appended after the settings above, so a flag repeated here wins. |
 
-The full CLI option set is documented in the
-[engine's README](../flatbuffers-formatter/README.md#cli) — every
-flag works here too.
+A format option is passed to the engine **only when you change it**, so
+everything you leave alone keeps whatever the engine's own default is —
+the plugin never pins a default of its own. The full CLI option set is
+documented in the [engine's README](../flatbuffers-formatter/README.md#cli);
+options with no field above go in **Extra arguments**.
 
 ## Supported IDEs
 

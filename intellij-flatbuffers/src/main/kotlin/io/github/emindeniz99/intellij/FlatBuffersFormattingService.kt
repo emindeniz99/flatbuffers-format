@@ -91,10 +91,7 @@ class FlatBuffersFormattingService : AsyncDocumentFormattingService() {
                     // its own, which is why this is a list and not the
                     // single String this code used to build.
                     val cmd = engine.commandPrefix().toMutableList()
-                    settings.extraArgs
-                        .split(' ', '\t', '\n')
-                        .filter { it.isNotBlank() }
-                        .forEach { cmd.add(it) }
+                    cmd.addAll(settings.formatterArgs())
                     cmd.add(temp.absolutePath)
 
                     val proc = ProcessBuilder(cmd)

@@ -52,8 +52,8 @@
         usual <i>Reformat Code</i> shortcut) — shells out to
         <code>flatbuffers-format</code> asynchronously.</li>
       <li>Settings page at <i>Preferences → Tools → FlatBuffers</i>
-        for CLI path discovery, format options, and a "format on save"
-        toggle.</li>
+        for engine discovery and every format option the engine
+        exposes.</li>
     </ul>
 
     <h3>Prerequisites</h3>
@@ -102,6 +102,15 @@
         CLI isn't on your <code>PATH</code>, the settings page can fetch a
         matching prebuilt binary from the project's GitHub Release and
         verify it against its published SHA256 sidecar.</li>
+      <li>The formatter's options are now real fields on the settings page —
+        indent width, indent with tabs, line width, single-line collapsing of
+        small enum/union/single-field bodies, max blank lines, comment
+        reflow and comment width — each labelled with the engine's default
+        and validated before it is saved. They used to be reachable only by
+        typing flags into the free-text "Extra arguments" box, where a typo
+        did nothing and said nothing. That box stays, for options the fields
+        don't cover; anything you leave alone is still decided by the engine,
+        not by the plugin.</li>
       <li>Removed a non-functional "Format on save" checkbox. Use
         <i>Settings → Tools → Actions on Save → Reformat code</i>, which
         drives this formatter through the platform's formatting service.</li>
