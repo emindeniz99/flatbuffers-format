@@ -7,8 +7,8 @@
 [![JetBrains Marketplace][marketplace-badge]][marketplace-url]
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-[marketplace-badge]: https://img.shields.io/jetbrains/plugin/v/io.github.emindeniz99.flatbuffers?label=Marketplace
-[marketplace-url]: https://plugins.jetbrains.com/plugin/io.github.emindeniz99.flatbuffers
+[marketplace-badge]: https://img.shields.io/jetbrains/plugin/v/33417?label=Marketplace
+[marketplace-url]: https://plugins.jetbrains.com/plugin/33417-flatbuffers-format
 
 Syntax highlighting and code formatting for FlatBuffers
 (`.fbs`) schema files. Format delegates to the published
