@@ -111,7 +111,11 @@ jobs:
           if (check(out) !== true) throw new Error("check() rejected formatted output");
           console.log("Deno OK:", out.length, "bytes");
           EOF
-          deno run --allow-read --allow-env --node-modules-dir=auto smoke.ts
+          # `manual` (not `auto`): the package came from a local tarball via
+          # `npm install`, and Deno only resolves file:-installed npm
+          # packages when it is told the node_modules dir is managed
+          # externally.
+          deno run --allow-read --allow-env --node-modules-dir=manual smoke.ts
 
   # ---------- Bun (runtime, not installer) --------------------------------
 

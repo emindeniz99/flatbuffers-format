@@ -75,13 +75,21 @@ jobs:
           retention-days: 7
 
   install:
-    name: install via ${{ matrix.pm }}
+    name: install via ${{ matrix.pm }} (node ${{ matrix.node-version }})
     needs: pack
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         pm: [npm, pnpm, yarn-classic, yarn-berry, bun]
+        node-version: [22]
+        include:
+          # The floor of `engines: node >=20`. It can only be checked here:
+          # pnpm 11 refuses to run on Node 20, so the workspace matrices
+          # cannot cover it — but a consumer installing the tarball with
+          # npm can, and that is exactly what the claim promises.
+          - pm: npm
+            node-version: 20
     steps:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
@@ -90,7 +98,7 @@ jobs:
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 22
+          node-version: ${{ matrix.node-version }}
 
       - name: Setup pnpm
         if: matrix.pm == 'pnpm'

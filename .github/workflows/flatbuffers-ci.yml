@@ -52,7 +52,12 @@ jobs:
         # Apr 2026; 22 = active LTS until Apr 2027; 24 = current LTS;
         # 26 = current. Odd-numbered (21/23/25) are short-lived
         # (six-month EOL) — intentionally skipped.
-        node-version: [20, 22, 24, 26]
+        # Node 20 is absent on purpose: pnpm 11 requires Node >=22.13, so a
+        # 20 leg dies before running a single test. The `engines: >=20`
+        # claim is a CONSUMER claim, and it is validated where consumers
+        # actually live — the packed-tarball install jobs in
+        # flatbuffers-pm-compat.yml, which use npm, not pnpm.
+        node-version: [22, 24, 26]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -82,7 +87,12 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        node-version: [20, 22, 24, 26]
+        # Node 20 is absent on purpose: pnpm 11 requires Node >=22.13, so a
+        # 20 leg dies before running a single test. The `engines: >=20`
+        # claim is a CONSUMER claim, and it is validated where consumers
+        # actually live — the packed-tarball install jobs in
+        # flatbuffers-pm-compat.yml, which use npm, not pnpm.
+        node-version: [22, 24, 26]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
