@@ -38,8 +38,19 @@ class FlatBuffersFormattingService : AsyncDocumentFormattingService() {
 
     override fun getFeatures(): Set<FormattingService.Feature> = emptySet()
 
+    // Claim a file only when the IDE has actually assigned it to OUR
+    // language — never on the raw `.fbs` extension.
+    //
+    // Other FlatBuffers plugins exist (e.g. "Flatbuffers Support") and
+    // register the same `*.fbs` pattern. When both are installed the IDE
+    // assigns the pattern to exactly one file type and offers the user a
+    // confirm/revert choice. Matching on the extension ignored that
+    // decision: we claimed files the IDE had given to the other plugin,
+    // so two formatters could act on one document. Honouring the file
+    // type means whichever plugin the user picked is the one that
+    // formats, and the other steps aside.
     override fun canFormat(file: PsiFile): Boolean =
-        file.virtualFile?.extension == "fbs" || file.language === FlatBuffersLanguage
+        file.language === FlatBuffersLanguage
 
     override fun getName(): String = "flatbuffers-format"
 
