@@ -76,13 +76,13 @@ jobs:
         run: pnpm --filter flatbuffers-format --filter vscode-flatbuffers build
       # Package the way release-please.yml does — same deploy tree, same
       # pinned vsce, same flags — so a release is never the first run of
-      # this path. `--no-dependencies` is required, not cosmetic: vsce
-      # collects files by shelling out to `npm list --production
-      # --parseable --depth=99999` and treats a non-zero exit as fatal,
-      # and npm exits 1 (ELSPROBLEMS) on both pnpm's symlinked store and
-      # the verbatim `workspace:^` spec `pnpm deploy --legacy` leaves in
-      # the manifest. The extension is bundled into one file, so there
-      # are no runtime dependencies left to collect anyway.
+      # this path. Keep `--no-dependencies`: vsce collects files by
+      # shelling out to `npm list --production --parseable
+      # --depth=99999` and treats a non-zero exit as fatal, and npm exits
+      # 1 (ELSPROBLEMS) as soon as that walk reaches pnpm's symlinked
+      # store or the verbatim `workspace:` spec `pnpm deploy --legacy`
+      # leaves in the manifest. The extension is bundled into one file,
+      # so there is nothing for that walk to find anyway.
       - name: Materialise deploy tree (pnpm deploy)
         working-directory: .
         run: |
