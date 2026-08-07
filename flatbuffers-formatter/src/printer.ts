@@ -645,14 +645,15 @@ function splitForWrap(body: string): string[] {
   const out: string[] = [];
   const urlRe = /(https?:\/\/\S+)/g;
   let lastIdx = 0;
-  let m: RegExpExecArray | null;
-  while ((m = urlRe.exec(body)) !== null) {
+  let m: RegExpExecArray | null = urlRe.exec(body);
+  while (m !== null) {
     if (m.index > lastIdx) {
       const segment = body.slice(lastIdx, m.index);
       for (const w of segment.split(/\s+/)) if (w) out.push(w);
     }
     out.push(m[0]);
     lastIdx = m.index + m[0].length;
+    m = urlRe.exec(body);
   }
   if (lastIdx < body.length) {
     for (const w of body.slice(lastIdx).split(/\s+/)) if (w) out.push(w);

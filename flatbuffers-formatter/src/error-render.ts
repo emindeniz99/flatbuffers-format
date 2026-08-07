@@ -2,7 +2,7 @@
 // IDE-link-friendly error report. No IO, no color, no Node deps —
 // trivially unit-testable.
 
-import { FormatError } from "./index.js";
+import type { FormatError } from "./index.js";
 
 /**
  * Build a multi-line error report with source-snippet context.

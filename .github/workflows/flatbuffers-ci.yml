@@ -33,9 +33,15 @@ jobs:
           node-version: 22
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
+      # Scoped to the two TypeScript packages this workflow tests. A
+      # workspace-wide install would also compile tree-sitter-flatbuffers'
+      # native binding, which this workflow never touches — and which
+      # node-gyp cannot link on Windows + Node 26 (the LTO flag Node 26
+      # passes is rejected by the runner's MSVC linker). That grammar has
+      # its own workflow.
       - name: Install
         working-directory: .
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --filter flatbuffers-format... --filter flatbuffers-format-handrolled...
       - name: Lint
         working-directory: .
         run: pnpm --filter flatbuffers-format lint
@@ -69,9 +75,15 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
+      # Scoped to the two TypeScript packages this workflow tests. A
+      # workspace-wide install would also compile tree-sitter-flatbuffers'
+      # native binding, which this workflow never touches — and which
+      # node-gyp cannot link on Windows + Node 26 (the LTO flag Node 26
+      # passes is rejected by the runner's MSVC linker). That grammar has
+      # its own workflow.
       - name: Install
         working-directory: .
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --filter flatbuffers-format... --filter flatbuffers-format-handrolled...
       - name: Build
         working-directory: .
         run: pnpm --filter flatbuffers-format build
@@ -103,9 +115,15 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
+      # Scoped to the two TypeScript packages this workflow tests. A
+      # workspace-wide install would also compile tree-sitter-flatbuffers'
+      # native binding, which this workflow never touches — and which
+      # node-gyp cannot link on Windows + Node 26 (the LTO flag Node 26
+      # passes is rejected by the runner's MSVC linker). That grammar has
+      # its own workflow.
       - name: Install
         working-directory: .
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --filter flatbuffers-format... --filter flatbuffers-format-handrolled...
       - name: Build
         working-directory: .
         run: pnpm --filter flatbuffers-format-handrolled build
@@ -134,9 +152,15 @@ jobs:
           node-version: 22
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
+      # Scoped to the two TypeScript packages this workflow tests. A
+      # workspace-wide install would also compile tree-sitter-flatbuffers'
+      # native binding, which this workflow never touches — and which
+      # node-gyp cannot link on Windows + Node 26 (the LTO flag Node 26
+      # passes is rejected by the runner's MSVC linker). That grammar has
+      # its own workflow.
       - name: Install
         working-directory: .
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --filter flatbuffers-format... --filter flatbuffers-format-handrolled...
       - name: Build both engines
         working-directory: .
         run: pnpm --filter flatbuffers-format --filter flatbuffers-format-handrolled build
@@ -221,9 +245,15 @@ jobs:
         run: echo "${{ github.workspace }}/tools/flatc" >> "$GITHUB_PATH"
       - name: Verify flatc on PATH
         run: flatc --version
+      # Scoped to the two TypeScript packages this workflow tests. A
+      # workspace-wide install would also compile tree-sitter-flatbuffers'
+      # native binding, which this workflow never touches — and which
+      # node-gyp cannot link on Windows + Node 26 (the LTO flag Node 26
+      # passes is rejected by the runner's MSVC linker). That grammar has
+      # its own workflow.
       - name: Install
         working-directory: .
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --filter flatbuffers-format... --filter flatbuffers-format-handrolled...
       - name: Build engine
         working-directory: .
         run: pnpm --filter flatbuffers-format build
