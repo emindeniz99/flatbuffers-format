@@ -53,12 +53,17 @@ object BundledEngine {
 
     /**
      * GitHub Release tag format used by release-please:
-     * `flatbuffers-format@X.Y.Z`. The native-binaries.yml workflow
-     * uploads platform binaries to that tag. The repository comes
-     * from the `pluginRepository` Gradle property.
+     * `flatbuffers-format-vX.Y.Z` (release-please's default
+     * `<component>-v<version>` tag pattern — the published tags are
+     * the proof). The native-binaries.yml workflow uploads platform
+     * binaries to that tag. The repository comes from the
+     * `pluginRepository` Gradle property.
+     *
+     * `internal` rather than private so `BundledEngineTest` can pin
+     * the tag convention: getting it wrong 404s every download.
      */
-    private val RELEASE_BASE =
-        "https://github.com/$GENERATED_RELEASE_REPO/releases/download/flatbuffers-format@$ENGINE_VERSION"
+    internal val RELEASE_BASE =
+        "https://github.com/$GENERATED_RELEASE_REPO/releases/download/flatbuffers-format-v$ENGINE_VERSION"
 
     class BundledEngineException(message: String, cause: Throwable? = null) :
         IOException(message, cause)

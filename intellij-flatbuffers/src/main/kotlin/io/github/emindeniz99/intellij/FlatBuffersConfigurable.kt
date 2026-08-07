@@ -118,7 +118,7 @@ class FlatBuffersConfigurable : BoundConfigurable("FlatBuffers") {
                     .comment(
                         if (asset != null) {
                             "Will fetch <code>$asset</code> (~30 MiB) from the " +
-                                "<code>flatbuffers-format@${BundledEngine.ENGINE_VERSION}</code> GitHub Release. " +
+                                "<code>flatbuffers-format-v${BundledEngine.ENGINE_VERSION}</code> GitHub Release. " +
                                 "Cached under the IDE system directory."
                         } else {
                             "Prebuilt binaries are published for linux-x64, linux-arm64, " +

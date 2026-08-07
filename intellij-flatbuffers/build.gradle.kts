@@ -69,7 +69,7 @@ tasks.wrapper {
 
 // ---- generated engine coordinates -------------------------------------
 // The plugin downloads the engine binary from the GitHub Release tagged
-// `flatbuffers-format@<version>`. Both halves of that URL are generated
+// `flatbuffers-format-v<version>`. Both halves of that URL are generated
 // rather than hand-copied into Kotlin: the version is read from the
 // engine's own package.json (the single source release-please maintains),
 // and the repository comes from gradle.properties. A hand-maintained copy
