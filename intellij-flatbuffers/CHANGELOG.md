@@ -13,6 +13,23 @@ do not hand-edit released entries.
 > "breaking changes" between internal names — describe pre-publication
 > development rather than migrations for an installed version.
 
+## [0.3.0](https://github.com/emindeniz99/flatbuffers-format/compare/intellij-flatbuffers-v0.2.0...intellij-flatbuffers-v0.3.0) (2026-08-07)
+
+
+### Features
+
+* **intellij:** expose every engine format option as a typed setting ([40108d3](https://github.com/emindeniz99/flatbuffers-format/commit/40108d349697c8125070c53d20d40dc8a92944f7))
+* **intellij:** ship the engine as a bundled JS script, not a 105 MB download ([4a7550f](https://github.com/emindeniz99/flatbuffers-format/commit/4a7550f0142242923bba14400f6c0e1adbfd9412))
+
+
+### Bug Fixes
+
+* **intellij:** build the engine download URL from the real tag shape ([66fcd39](https://github.com/emindeniz99/flatbuffers-format/commit/66fcd39b7bb9014de5fb67e35642fea713815795))
+* **intellij:** fill the empty vendor email required by Marketplace review ([a1676df](https://github.com/emindeniz99/flatbuffers-format/commit/a1676df5bfb828fc97bcc0c5ec755f870e64c876))
+* **intellij:** only format files the IDE assigned to our language ([80f4b56](https://github.com/emindeniz99/flatbuffers-format/commit/80f4b5620809484a3b9c8f397c56da621f862b1b))
+* **intellij:** refuse partial-range formatting instead of corrupting the file ([1bc0ece](https://github.com/emindeniz99/flatbuffers-format/commit/1bc0ecee46e100b9dc10e632040a1d1b21639d2f))
+* **intellij:** rename the plugin id to .flatbuffers before it is permanent ([4e959b9](https://github.com/emindeniz99/flatbuffers-format/commit/4e959b9815a9d0f5b3bb2714123d036f457f1e0e))
+
 ## [0.2.0](https://github.com/emindeniz99/flatbuffers-format/compare/intellij-flatbuffers-v0.1.0...intellij-flatbuffers-v0.2.0) (2026-08-07)
 
 
