@@ -3,8 +3,11 @@
 # release-please watches Conventional Commits on main and maintains a
 # single release PR (`separate-pull-requests: false`) that bumps every
 # package whose scope saw changes. Merging that PR creates one GitHub
-# Release per bumped package, tagged `<component>@<version>`, which is
-# what wakes the publish jobs below.
+# Release per bumped package, tagged `<component>-v<version>` (the shape
+# release-please's `include-component-in-tag` produces with no
+# `tag-separator` override), which is what wakes the publish jobs below.
+# Tags already exist in that shape — changing the separator now would
+# orphan them, so every consumer of the tag string matches `-v`.
 #
 # npm publishes go through `pnpm publish`, never `npm publish`: the
 # packages depend on each other with `workspace:^`, and only pnpm
@@ -228,23 +231,38 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Build engine + extension
         run: pnpm --filter flatbuffers-format --filter vscode-flatbuffers build
-      # vsce doesn't understand `workspace:^`, so we materialise a
-      # standalone deploy tree (with workspace deps resolved to real
-      # version ranges) via `pnpm deploy`, then run vsce against that
-      # tree. The source on disk keeps `workspace:^` — deploy/ is a
-      # disposable build artefact.
+      # `pnpm deploy` materialises a standalone tree we can run vsce in;
+      # the source on disk keeps `workspace:^` and deploy/ is a
+      # disposable build artefact. Note what `--legacy` does NOT do: it
+      # copies the manifest VERBATIM — `workspace:` specs are not
+      # rewritten to real version ranges the way `pnpm publish` rewrites
+      # them, so they reach deploy/vscode/package.json intact. That is
+      # why the vsce calls below pass `--no-dependencies`: vsce's
+      # packaging path shells out to `npm list --production --parseable
+      # --depth=99999` and treats a non-zero exit as fatal, and npm exits
+      # 1 (ELSPROBLEMS) on a `workspace:` spec it cannot resolve. The
+      # extension is bundled into a single file, so there are no runtime
+      # dependencies to collect anyway.
       - name: Materialise deploy tree (pnpm deploy)
         run: |
           rm -rf deploy/vscode
           pnpm deploy --filter vscode-flatbuffers --prod --legacy deploy/vscode
+      # vsce and ovsx are pinned to exact versions. This job holds
+      # VSCE_PAT, OVSX_PAT and a contents:write token, and bare
+      # `npx --yes <pkg>` runs whatever `latest` happens to be at job
+      # time — including a version published minutes ago, since npx knows
+      # nothing about the repo's `minimum-release-age` cooldown (that
+      # setting is pnpm-only). Bump these deliberately, and only past the
+      # 7-day cooldown .npmrc sets — which is why ovsx sits at 1.0.2
+      # rather than the newer 1.1.0.
       - name: Package .vsix
         working-directory: deploy/vscode
-        run: npx --yes @vscode/vsce package --out vscode-flatbuffers.vsix
+        run: npx --yes @vscode/vsce@3.9.2 package --no-dependencies --out vscode-flatbuffers.vsix
       - name: Publish to VS Code Marketplace
         working-directory: deploy/vscode
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: npx --yes @vscode/vsce publish --packagePath vscode-flatbuffers.vsix
+        run: npx --yes @vscode/vsce@3.9.2 publish --packagePath vscode-flatbuffers.vsix
       # Open VSX is the Eclipse Foundation registry used by VSCodium,
       # Gitpod, Theia, etc. It's a separate publisher namespace from
       # Marketplace and uses its own token. We treat it as best-effort:
@@ -254,7 +272,7 @@ jobs:
         if: ${{ env.OVSX_PAT != '' }}
         continue-on-error: true
         working-directory: deploy/vscode
-        run: npx --yes ovsx publish vscode-flatbuffers.vsix --pat "$OVSX_PAT"
+        run: npx --yes ovsx@1.0.2 publish vscode-flatbuffers.vsix --pat "$OVSX_PAT"
       - name: Upload .vsix to GitHub Release
         if: ${{ needs.release-please.outputs.vscode_tag_name != '' }}
         env:
@@ -276,7 +294,8 @@ jobs:
       #     --repo emindeniz99/flatbuffers-format
       id-token: write
       attestations: write
-    # JOB-LEVEL env var so the optional-signing step's `if:` can read it.
+    # JOB-LEVEL env var so the publish steps' `if:` can read it — and so
+    # the sidecar step below picks the same archive those steps published.
     # `secrets.*` is not directly accessible in `if:` conditions; the
     # standard workaround is to hoist the secret to a job env var and
     # check whether the env var is non-empty.
@@ -286,7 +305,14 @@ jobs:
       run:
         working-directory: intellij-flatbuffers
     steps:
+      # `working-directory: .` is load-bearing: this step runs BEFORE
+      # actions/checkout, so the job-level `intellij-flatbuffers`
+      # default doesn't exist on disk yet and the runner fails to even
+      # start bash ("No such file or directory") — before the script
+      # body, so the check never runs and the error names the wrong
+      # cause. Same reason the assert step below sets it.
       - name: Fail fast if JETBRAINS_MARKETPLACE_TOKEN is missing
+        working-directory: .
         env:
           JETBRAINS_MARKETPLACE_TOKEN: ${{ secrets.JETBRAINS_MARKETPLACE_TOKEN }}
         run: |
@@ -301,7 +327,7 @@ jobs:
         with:
           persist-credentials: false
       # The plugin downloads the engine binary from the GitHub Release
-      # tagged `flatbuffers-format@<engine version>`. That version is
+      # tagged `flatbuffers-format-v<engine version>`. That version is
       # generated from the engine's package.json at build time, so it
       # cannot drift — but the release itself may not exist yet if the
       # engine was never published at that version. Fail here, loudly,
@@ -313,7 +339,7 @@ jobs:
         run: |
           set -euo pipefail
           engine=$(python3 -c 'import json; print(json.load(open("flatbuffers-formatter/package.json"))["version"])')
-          tag="flatbuffers-format@${engine}"
+          tag="flatbuffers-format-v${engine}"
           if ! gh release view "$tag" >/dev/null 2>&1; then
             echo "::error::The plugin targets engine $engine but no release '$tag' exists."
             echo "::error::Publish the engine first, or the plugin's engine download will 404."
@@ -339,29 +365,64 @@ jobs:
         run: ./gradlew --no-daemon buildPlugin
       - name: Verify plugin against recommended IDEs
         run: ./gradlew --no-daemon verifyPlugin
-      # Signing keys are optional. If they're set, ./gradlew signPlugin
-      # produces a signed .zip; if not, publish unsigned (Marketplace
-      # allows it, the listing just won't carry a verification badge).
-      - name: Sign plugin (optional)
+      # Signing keys are optional: without them the plugin publishes
+      # unsigned (Marketplace allows it, the listing just won't carry a
+      # verification badge).
+      #
+      # There is deliberately NO separate `./gradlew signPlugin` step —
+      # the keys must be in the environment of the invocation that
+      # PUBLISHES. `publishPlugin` dependsOn `signPlugin` and picks its
+      # upload with `signPlugin.didWork ? signedArchiveFile :
+      # buildPlugin.archiveFile` (intellij-platform-gradle-plugin 2.16.0,
+      # PublishPluginTask.register). `didWork` is a fact about THIS Gradle
+      # run, so a separate sign step loses twice: with the keys only on
+      # that step, signPlugin's `onlyIf` is false here → skipped → didWork
+      # false; with the keys on both, signPlugin is UP-TO-DATE here
+      # (signedArchiveFile is an @OutputFile) → didWork false again.
+      # Either way the UNSIGNED zip goes to the Marketplace.
+      - name: Publish to JetBrains Marketplace (signed)
         if: env.HAS_SIGNING_KEY == 'true'
         env:
+          JETBRAINS_MARKETPLACE_TOKEN: ${{ secrets.JETBRAINS_MARKETPLACE_TOKEN }}
           JETBRAINS_CERTIFICATE_CHAIN: ${{ secrets.JETBRAINS_CERTIFICATE_CHAIN }}
           JETBRAINS_PRIVATE_KEY: ${{ secrets.JETBRAINS_PRIVATE_KEY }}
           JETBRAINS_PRIVATE_KEY_PASSWORD: ${{ secrets.JETBRAINS_PRIVATE_KEY_PASSWORD }}
-        run: ./gradlew --no-daemon signPlugin
-      - name: Publish to JetBrains Marketplace
+        run: ./gradlew --no-daemon publishPlugin
+      # Same command, but the signing vars are OMITTED rather than bound
+      # to an unset secret: GitHub would set them to "", and signPlugin's
+      # `onlyIf` treats a file property as specified when the resolved
+      # path merely exists — an empty path resolves to the project dir,
+      # which does. That would switch signing on with nothing to sign
+      # with, and fail a publish that is meant to succeed unsigned.
+      - name: Publish to JetBrains Marketplace (unsigned)
+        if: env.HAS_SIGNING_KEY != 'true'
         env:
           JETBRAINS_MARKETPLACE_TOKEN: ${{ secrets.JETBRAINS_MARKETPLACE_TOKEN }}
         run: ./gradlew --no-daemon publishPlugin
+      # What we hash, attest and attach to the Release must be the exact
+      # zip the Marketplace got. With signing on, build/distributions/
+      # holds BOTH `<name>-<version>.zip` (buildPlugin) and
+      # `<name>-<version>-signed.zip` (signPlugin's signedArchiveFile
+      # convention), and publishPlugin uploaded the signed one — so
+      # `find … -print -quit`, which returns whatever the directory walk
+      # reaches first, can describe a different file than was published.
+      # Select by the same rule publishPlugin used, and refuse to guess.
       - name: Emit SHA256 sidecar
         id: zip
         run: |
           set -euo pipefail
-          zip_path=$(find build/distributions -name '*.zip' -print -quit)
-          if [ -z "$zip_path" ]; then
-            echo "::error::No .zip produced under build/distributions/"
+          if [ "$HAS_SIGNING_KEY" = 'true' ]; then
+            matches=$(find build/distributions -maxdepth 1 -name '*-signed.zip' | sort)
+          else
+            matches=$(find build/distributions -maxdepth 1 -name '*.zip' -not -name '*-signed.zip' | sort)
+          fi
+          count=$(printf '%s\n' "$matches" | grep -c '^.' || true)
+          if [ "$count" -ne 1 ]; then
+            echo "::error::Expected exactly one published .zip under build/distributions/ (HAS_SIGNING_KEY=$HAS_SIGNING_KEY), found $count."
+            find build/distributions -maxdepth 1 -name '*.zip' >&2 || true
             exit 1
           fi
+          zip_path=$matches
           (cd "$(dirname "$zip_path")" && sha256sum "$(basename "$zip_path")" > "$(basename "$zip_path").sha256")
           echo "zip_path=$zip_path" >> "$GITHUB_OUTPUT"
           echo "sha_path=$zip_path.sha256" >> "$GITHUB_OUTPUT"

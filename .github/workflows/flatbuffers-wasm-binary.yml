@@ -26,7 +26,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: GitHub Release tag to upload to (e.g. flatbuffers-format@0.1.1)
+        description: GitHub Release tag to upload to (e.g. flatbuffers-format-v0.1.1)
         required: false
         type: string
 
@@ -204,8 +204,11 @@ jobs:
           TAG: ${{ steps.tag.outputs.value }}
           REPO: ${{ github.repository }}
         run: |
+          # `<component>-v<version>` per release-please's
+          # `include-component-in-tag: true`. See the same guard in
+          # flatbuffers-native-binaries.yml.
           case "$TAG" in
-            flatbuffers-format@*) ;;
+            flatbuffers-format-v*) ;;
             *) echo "Skipping: tag '$TAG' is not a flatbuffers-format release"; exit 0 ;;
           esac
           gh release upload "$TAG" \

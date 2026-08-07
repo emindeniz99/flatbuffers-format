@@ -70,7 +70,7 @@ jobs:
         run: pnpm --filter tree-sitter-flatbuffers pack --pack-destination "$RUNNER_TEMP"
       # Deliberately outside the workspace: inside it, pnpm would link the
       # source directory and the packaged artifact would never be tested.
-      - name: Install into a clean consumer and parse
+      - name: Install into a clean consumer and parse # zizmor: ignore[adhoc-packages]
         run: |
           set -euo pipefail
           consumer="$RUNNER_TEMP/consumer"
