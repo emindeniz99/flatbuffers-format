@@ -59,7 +59,7 @@ pnpm -r test                                           # test every package
 
 Requirements:
 
-- **Node `>=20`** (the published packages target 20; CI matrices 20/22/24/26).
+- **Node `>=22`** (the published packages target 22; CI matrices 22/24/26).
 - **pnpm `>=11`** (pinned via the `packageManager` field on the root
   `package.json`). `corepack enable && corepack prepare` picks the
   pinned version up automatically.

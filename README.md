@@ -104,7 +104,7 @@ Seven workflows run on every PR:
 
 | Workflow | Gate |
 |---|---|
-| [`flatbuffers-ci.yml`](./.github/workflows/flatbuffers-ci.yml) | Engine + handrolled unit tests on `{linux, macOS, Windows} × node {20, 22, 24, 26}` matrix, plus the byte-identical crosscheck and `flatc-conform` (against the upstream `flatc` binary, SHA256-pinned). |
+| [`flatbuffers-ci.yml`](./.github/workflows/flatbuffers-ci.yml) | Engine + handrolled unit tests on `{linux, macOS, Windows} × node {22, 24, 26}` matrix, plus the byte-identical crosscheck and `flatc-conform` (against the upstream `flatc` binary, SHA256-pinned). |
 | [`prettier-plugin-flatbuffers.yml`](./.github/workflows/prettier-plugin-flatbuffers.yml) | Prettier plugin build + 7 unit tests. |
 | [`tree-sitter-flatbuffers.yml`](./.github/workflows/tree-sitter-flatbuffers.yml) | tree-sitter generate + 9 grammar tests + 24-corpus round-trip. |
 | [`vscode-flatbuffers.yml`](./.github/workflows/vscode-flatbuffers.yml) | VS Code extension build + 5 unit tests on a node matrix. |
@@ -171,7 +171,7 @@ and
 [`flatbuffers-runtime-compat.yml`](./.github/workflows/flatbuffers-runtime-compat.yml);
 TL;DR:
 
-- **Node**: 20, 22, 24, 26 (LTS + current).
+- **Node**: 22, 24, 26 (LTS + current).
 - **Package managers** (install the published tarball): npm, pnpm,
   Yarn Classic v1, Yarn Berry v3/v4, Bun.
 - **Runtimes**: Deno (`npm:` specifier), Bun (runtime), Cloudflare

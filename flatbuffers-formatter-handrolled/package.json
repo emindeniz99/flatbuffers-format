@@ -2,7 +2,7 @@
   "name": "flatbuffers-format-handrolled",
   "version": "0.1.0",
   "private": true,
-  "description": "Hand-rolled recursive-descent FlatBuffers (.fbs) formatter. Kept as a differential oracle for the published flatbuffers-format (ANTLR-backed) — not published to npm.",
+  "description": "Hand-rolled recursive-descent FlatBuffers (.fbs) formatter. Kept as a differential oracle for the published flatbuffers-format (ANTLR-backed) \u2014 not published to npm.",
   "license": "MIT",
   "author": "emindeniz99",
   "repository": {
@@ -23,7 +23,7 @@
     "flatbuffers-format-handrolled": "./dist/cli.js"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "scripts": {
     "build": "tsc",

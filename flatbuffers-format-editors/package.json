@@ -48,7 +48,7 @@
     "CHANGELOG.md"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "scripts": {
     "build": "tsc",
@@ -66,11 +66,21 @@
     "monaco-editor": "*"
   },
   "peerDependenciesMeta": {
-    "@codemirror/language": { "optional": true },
-    "@codemirror/state": { "optional": true },
-    "@codemirror/view": { "optional": true },
-    "@lezer/highlight": { "optional": true },
-    "monaco-editor": { "optional": true }
+    "@codemirror/language": {
+      "optional": true
+    },
+    "@codemirror/state": {
+      "optional": true
+    },
+    "@codemirror/view": {
+      "optional": true
+    },
+    "@lezer/highlight": {
+      "optional": true
+    },
+    "monaco-editor": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.5",

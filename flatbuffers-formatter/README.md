@@ -431,14 +431,13 @@ Releases are automated via [release-please](https://github.com/googleapis/releas
 
 | Runtime | Status | Notes |
 |---|---|---|
-| **Node.js 20.x** | ✅ supported | Minimum supported version (`engines.node: ">=20"`). |
-| **Node.js 22.x** | ✅ supported | CI matrix runs against both 20 and 22. |
-| **Node.js 24.x** | ✅ expected to work | Not in CI yet; the package uses only stable Node APIs. |
+| **Node.js 22.x** | ✅ supported | Minimum supported version (`engines.node: ">=22"`). |
+| **Node.js 24.x / 26.x** | ✅ supported | Covered by the CI matrix on Linux, macOS and Windows. |
 | **Modern browsers** | ✅ supported | ESM-only. The core (`src/index.ts`) has zero Node imports; the CLI is the only Node-only entry. |
 | **Bun** | ✅ supported | Installs from npm via `bun add flatbuffers-format`; the ESM entry resolves natively. |
 | **Deno** | ✅ supported | Installs from npm via `npm:flatbuffers-format` or `deno add npm:flatbuffers-format`. |
 | **Cloudflare Workers** | ✅ supported | ESM + zero Node imports in the core. |
-| **OS** | ✅ Linux / macOS / Windows | All three covered in CI (Node 20 + 22 × ubuntu + macos + windows). |
+| **OS** | ✅ Linux / macOS / Windows | All three covered in CI (node 22/24/26 × ubuntu + macos + windows). |
 
 ## Versioning policy
 

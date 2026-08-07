@@ -34,7 +34,7 @@
     "src/"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "scripts": {
     "generate": "tree-sitter generate",
