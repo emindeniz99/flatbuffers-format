@@ -6,18 +6,30 @@
       "camelcase": "FlatBuffers",
       "scope": "source.fbs",
       "path": ".",
-      "file-types": ["fbs"],
-      "highlights": ["queries/highlights.scm"],
-      "injections": ["queries/injections.scm"],
-      "tags": ["queries/tags.scm"],
+      "file-types": [
+        "fbs"
+      ],
+      "highlights": [
+        "queries/highlights.scm"
+      ],
+      "injections": [
+        "queries/injections.scm"
+      ],
+      "tags": [
+        "queries/tags.scm"
+      ],
       "injection-regex": "^(flatbuffers|fbs)$"
     }
   ],
   "metadata": {
-    "version": "0.1.0",
+    "version": "0.1.1",
     "license": "MIT",
     "description": "Tree-sitter grammar for FlatBuffers (.fbs) schema files.",
-    "authors": [{ "name": "emindeniz99" }],
+    "authors": [
+      {
+        "name": "emindeniz99"
+      }
+    ],
     "links": {
       "repository": "https://github.com/emindeniz99/flatbuffers-format",
       "homepage": "https://github.com/emindeniz99/flatbuffers-format/tree/main/tree-sitter-flatbuffers"
