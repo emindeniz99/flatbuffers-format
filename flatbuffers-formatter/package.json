@@ -1,7 +1,7 @@
 {
   "name": "flatbuffers-format",
-  "version": "0.1.0",
-  "description": "Opinionated FlatBuffers (.fbs) schema formatter, built on an ANTLR4 grammar. Pure TypeScript runtime (antlr4ng) \u2014 no JVM, no codegen at install time. Runs in Node and the browser, ships a CLI.",
+  "version": "0.2.0",
+  "description": "Opinionated FlatBuffers (.fbs) schema formatter, built on an ANTLR4 grammar. Pure TypeScript runtime (antlr4ng) — no JVM, no codegen at install time. Runs in Node and the browser, ships a CLI.",
   "keywords": [
     "flatbuffers",
     "fbs",

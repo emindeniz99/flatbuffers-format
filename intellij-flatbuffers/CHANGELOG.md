@@ -13,6 +13,22 @@ do not hand-edit released entries.
 > "breaking changes" between internal names — describe pre-publication
 > development rather than migrations for an installed version.
 
+## [0.2.0](https://github.com/emindeniz99/flatbuffers-format/compare/intellij-flatbuffers-v0.1.0...intellij-flatbuffers-v0.2.0) (2026-08-07)
+
+
+### Features
+
+* **intellij-flatbuffers:** bundled-engine download to drop Node prerequisite ([943ca70](https://github.com/emindeniz99/flatbuffers-format/commit/943ca7018e213ff20e60878a83e13d41c75102f7))
+* **repo:** SHA256 sidecars + Apple notarization for native binaries ([dbbadd6](https://github.com/emindeniz99/flatbuffers-format/commit/dbbadd697b4bfb17ae062b0a1942420200097bbb))
+
+
+### Bug Fixes
+
+* **flatbuffers:** make the family publish-ready before it graduates ([d7379d4](https://github.com/emindeniz99/flatbuffers-format/commit/d7379d4eae51c36d0dd98c44cf4f96c5b19ba137))
+* **intellij-flatbuffers:** clean verifier output, add Rider to matrix ([3edcd94](https://github.com/emindeniz99/flatbuffers-format/commit/3edcd940b7657684321026c9a737e8d3dd1a9272))
+* **intellij-flatbuffers:** generate the engine coordinates instead of copying them ([fce00bd](https://github.com/emindeniz99/flatbuffers-format/commit/fce00bddbcb8ad46579ea03c1a036afa0cf869a1))
+* **repo:** native binary --version, wasm build, intellij plugin id ([747217e](https://github.com/emindeniz99/flatbuffers-format/commit/747217e9949c5b12336d07bc4abfa51cb54d1293))
+
 ## [Unreleased]
 
 ## [0.1.0] - Unreleased
