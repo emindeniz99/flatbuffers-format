@@ -55,6 +55,7 @@ import { copyFileSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync 
 import { createHash } from "node:crypto";
 import { join, dirname, resolve, basename } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 import { platform, arch } from "node:os";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -98,8 +99,20 @@ rmSync(outDir, { recursive: true, force: true });
 mkdirSync(outDir, { recursive: true });
 
 // --- 2. Bundle the CLI into a single, dep-free .js --------------------------
-// esbuild is invoked via `npx --yes` so we don't need it as a devDep.
-// Same pattern used by scripts/bench.mjs for the size-measurement bundle.
+// esbuild is a declared devDependency, invoked through its resolved
+// entry point rather than through `npx --yes esbuild`.
+//
+// The npx form avoided declaring a devDep and never worked: every leg
+// of flatbuffers-native-binaries.yml died with `sh: 1: esbuild: not
+// found`, so that workflow had never once succeeded and no release ever
+// received a binary. npx resolves against the working directory, and in
+// a pnpm workspace this package's node_modules has no esbuild to find.
+// It looked fine locally only because an unrelated sibling package had
+// pulled esbuild into the store.
+//
+// Resolving it here also pins the version to the lockfile instead of
+// running whatever npm serves at build time — no unpinned download
+// during a release.
 
 // Read the version out of the engine's package.json so we can bake
 // it into the bundle — the SEA blob has no runtime access to a real
@@ -110,11 +123,11 @@ const pkgVersion = JSON.parse(
 console.log(`Embedding version: ${pkgVersion}`);
 
 console.log("Bundling CLI with esbuild...");
+const esbuildBin = createRequire(import.meta.url).resolve("esbuild/bin/esbuild");
 const esbuildRes = spawnSync(
-  "npx",
+  process.execPath,
   [
-    "--yes",
-    "esbuild",
+    esbuildBin,
     cliEntry,
     "--bundle",
     "--platform=node",
