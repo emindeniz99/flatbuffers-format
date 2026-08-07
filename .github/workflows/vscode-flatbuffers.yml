@@ -19,8 +19,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 22 is the supported floor (`engines: node >=22`) — it is also
-        # what pnpm 11 itself requires.
+        # Starts at 22 because pnpm 11 requires >=22.13, not because 20 is
+        # unsupported: `engines` allows >=20, and that floor is verified in
+        # flatbuffers-pm-compat.yml, which installs the packed tarball with
+        # npm on Node 20.
         node-version: [22, 24, 26]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4

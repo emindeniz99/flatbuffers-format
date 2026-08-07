@@ -30,7 +30,7 @@
   ],
   "engines": {
     "vscode": "^1.94.0",
-    "node": ">=22"
+    "node": ">=20"
   },
   "main": "./dist/src/extension.js",
   "type": "module",

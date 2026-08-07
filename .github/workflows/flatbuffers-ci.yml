@@ -52,8 +52,10 @@ jobs:
         # Apr 2026; 22 = active LTS until Apr 2027; 24 = current LTS;
         # 26 = current. Odd-numbered (21/23/25) are short-lived
         # (six-month EOL) — intentionally skipped.
-        # 22 is the supported floor (`engines: node >=22`) — it is also
-        # what pnpm 11 itself requires.
+        # Starts at 22 because pnpm 11 requires >=22.13, not because 20 is
+        # unsupported: `engines` allows >=20, and that floor is verified in
+        # flatbuffers-pm-compat.yml, which installs the packed tarball with
+        # npm on Node 20.
         node-version: [22, 24, 26]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -84,8 +86,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        # 22 is the supported floor (`engines: node >=22`) — it is also
-        # what pnpm 11 itself requires.
+        # Starts at 22 because pnpm 11 requires >=22.13, not because 20 is
+        # unsupported: `engines` allows >=20, and that floor is verified in
+        # flatbuffers-pm-compat.yml, which installs the packed tarball with
+        # npm on Node 20.
         node-version: [22, 24, 26]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4

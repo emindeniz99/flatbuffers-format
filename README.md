@@ -171,7 +171,7 @@ and
 [`flatbuffers-runtime-compat.yml`](./.github/workflows/flatbuffers-runtime-compat.yml);
 TL;DR:
 
-- **Node**: 22, 24, 26 (LTS + current).
+- **Node**: `>=20` to consume (the 20 floor is verified against the packed tarball); 22, 24, 26 in the development matrix.
 - **Package managers** (install the published tarball): npm, pnpm,
   Yarn Classic v1, Yarn Berry v3/v4, Bun.
 - **Runtimes**: Deno (`npm:` specifier), Bun (runtime), Cloudflare

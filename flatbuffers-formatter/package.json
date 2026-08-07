@@ -46,7 +46,7 @@
     "LICENSE"
   ],
   "engines": {
-    "node": ">=22"
+    "node": ">=20"
   },
   "scripts": {
     "generate": "antlr-ng -Dlanguage=TypeScript -o generated grammar/FlatBuffers.g4",

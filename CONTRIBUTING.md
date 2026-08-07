@@ -59,7 +59,7 @@ pnpm -r test                                           # test every package
 
 Requirements:
 
-- **Node `>=22`** (the published packages target 22; CI matrices 22/24/26).
+- **Node `>=20`** for consuming the published packages; **`>=22` to develop here**, because pnpm 11 requires it. CI matrices run 22/24/26, and the 20 floor is verified by installing the packed tarball with npm on Node 20.
 - **pnpm `>=11`** (pinned via the `packageManager` field on the root
   `package.json`). `corepack enable && corepack prepare` picks the
   pinned version up automatically.
