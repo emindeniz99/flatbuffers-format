@@ -142,7 +142,15 @@ const esbuildRes = spawnSync(
     // package.json read.
     `--define:process.env.FLATBUFFERS_FORMAT_VERSION=${JSON.stringify(pkgVersion)}`,
   ],
-  { stdio: "inherit", shell: process.platform === "win32" },
+  // No `shell` here, deliberately. It was needed only while this
+  // spawned `npx` (which is `npx.cmd` on Windows and unrunnable without
+  // a shell). We now spawn node with an explicit script path, and
+  // routing that through cmd/pwsh STRIPS the quotes that JSON.stringify
+  // puts around the version, so esbuild received
+  // `--define:...=0.2.0` and rejected it with
+  // "Invalid define value (must be an entity name or JS literal)".
+  // Unix legs passed because shell was false there.
+  { stdio: "inherit" },
 );
 if (esbuildRes.status !== 0) {
   console.error("esbuild failed");
