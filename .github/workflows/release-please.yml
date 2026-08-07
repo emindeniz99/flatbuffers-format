@@ -14,6 +14,15 @@
 # The publish jobs pass `--provenance`, so npm shows a verified-build
 # badge linking back to this run — that needs `id-token: write`.
 #
+# There is deliberately NO npm token. Publishing uses npm's trusted
+# publishing (OIDC): the packages are configured to trust this repo and
+# this workflow file, and the registry exchanges the job's OIDC token for
+# short-lived publish rights. `npm access set mfa=publish` additionally
+# disallows tokens on these packages, so a leaked token is worthless.
+# Native `pnpm publish` is what reaches the OIDC path — the broken route
+# reported upstream is `changeset publish`, which spawns `npm publish`.
+# This requires pnpm/action-setup >= 6.0.6.
+#
 # THE FILENAME IS LOAD-BEARING, twice over:
 #   * flatbuffers-post-publish-smoke.yml triggers on
 #     `workflow_run: workflows: ["release-please"]`.
@@ -69,7 +78,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22
@@ -87,8 +96,6 @@ jobs:
       #   pnpm --filter flatbuffers-format publish --dry-run --no-git-checks --provenance --access public
       - name: Publish to npm with provenance
         run: pnpm --filter flatbuffers-format publish --no-git-checks --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   publish-prettier-plugin-flatbuffers:
     name: npm publish prettier-plugin-flatbuffers
@@ -102,7 +109,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22
@@ -121,8 +128,6 @@ jobs:
       # keeps the `workspace:^` spec. No manual rewrite step required.
       - name: Publish to npm with provenance
         run: pnpm --filter prettier-plugin-flatbuffers publish --no-git-checks --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   publish-tree-sitter-flatbuffers:
     name: npm publish tree-sitter-flatbuffers
@@ -136,7 +141,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22
@@ -152,8 +157,6 @@ jobs:
       # regenerates it from grammar.js + runs the corpus tests.
       - name: Publish to npm with provenance
         run: pnpm --filter tree-sitter-flatbuffers publish --no-git-checks --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   publish-flatbuffers-format-editors:
     name: npm publish flatbuffers-format-editors
@@ -167,7 +170,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22
@@ -186,8 +189,6 @@ jobs:
       # tarball. No manual rewrite step needed.
       - name: Publish to npm with provenance
         run: pnpm --filter flatbuffers-format-editors publish --no-git-checks --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   publish-vscode-flatbuffers:
     name: Marketplace publish vscode-flatbuffers
@@ -214,7 +215,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22

@@ -11,7 +11,8 @@
 # republish). That failure is intentional — it stops you from
 # accidentally shipping an inconsistent build.
 #
-# Same secrets as release-please.yml: NPM_TOKEN (3 packages), VSCE_PAT
+# Same publishing setup as release-please.yml: npm goes through trusted
+# publishing (OIDC, no token), Marketplace uses VSCE_PAT
 # + optional OVSX_PAT (vscode-flatbuffers), JETBRAINS_MARKETPLACE_TOKEN
 # + optional signing-key trio (intellij-flatbuffers). See
 # CONTRIBUTING.md.
@@ -54,7 +55,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           package_json_file: package.json
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
@@ -75,8 +76,6 @@ jobs:
       - name: Publish to npm with provenance
         working-directory: .
         run: pnpm --filter flatbuffers-format publish --no-git-checks --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   republish-prettier-plugin-flatbuffers:
     name: npm publish prettier-plugin-flatbuffers
@@ -89,7 +88,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           package_json_file: package.json
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
@@ -110,8 +109,6 @@ jobs:
       - name: Publish to npm with provenance
         working-directory: .
         run: pnpm --filter prettier-plugin-flatbuffers publish --no-git-checks --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   republish-tree-sitter-flatbuffers:
     name: npm publish tree-sitter-flatbuffers
@@ -124,7 +121,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           package_json_file: package.json
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
@@ -142,8 +139,6 @@ jobs:
       - name: Publish to npm with provenance
         working-directory: .
         run: pnpm --filter tree-sitter-flatbuffers publish --no-git-checks --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   republish-vscode-flatbuffers:
     name: Marketplace publish vscode-flatbuffers
@@ -165,7 +160,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           package_json_file: package.json
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
@@ -261,7 +256,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           package_json_file: package.json
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
@@ -282,5 +277,3 @@ jobs:
       - name: Publish to npm with provenance
         working-directory: .
         run: pnpm --filter flatbuffers-format-editors publish --no-git-checks --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
