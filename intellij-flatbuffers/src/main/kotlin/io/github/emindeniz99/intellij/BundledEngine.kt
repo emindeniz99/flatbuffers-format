@@ -38,23 +38,27 @@ object BundledEngine {
     private val LOG = Logger.getInstance(BundledEngine::class.java)
 
     /**
-     * Engine version the plugin's current release targets. This is
-     * a compile-time constant rather than a runtime lookup of
+     * Engine version the plugin's current release targets. A
+     * compile-time constant rather than a runtime lookup of
      * "latest" so that the plugin always has a known-good engine
      * to download — a future engine release with an incompatible
      * CLI surface won't silently break this plugin's users.
      *
-     * Bump in lockstep with the plugin's `pluginVersion` whenever
-     * a new engine-X.Y.Z lands.
+     * Generated at build time from the engine's own package.json
+     * (see `generateEngineVersion` in build.gradle.kts), so it
+     * cannot drift out of lockstep the way a hand-copied literal
+     * would.
      */
-    const val ENGINE_VERSION: String = "0.1.0"
+    const val ENGINE_VERSION: String = GENERATED_ENGINE_VERSION
 
     /**
      * GitHub Release tag format used by release-please:
      * `flatbuffers-format@X.Y.Z`. The native-binaries.yml workflow
-     * uploads platform binaries to that tag.
+     * uploads platform binaries to that tag. The repository comes
+     * from the `pluginRepository` Gradle property.
      */
-    private val RELEASE_BASE = "https://github.com/emindeniz99/playground/releases/download/flatbuffers-format@$ENGINE_VERSION"
+    private val RELEASE_BASE =
+        "https://github.com/$GENERATED_RELEASE_REPO/releases/download/flatbuffers-format@$ENGINE_VERSION"
 
     class BundledEngineException(message: String, cause: Throwable? = null) :
         IOException(message, cause)
