@@ -88,10 +88,22 @@
     </p>
   ]]></description>
 
+  <!-- KEEP THE TOP HEADING IN STEP WITH gradle.properties' pluginVersion.
+       release-please bumps that file (the only entry in this package's
+       `extra-files`) and never touches this block, so the two drift
+       silently and the Marketplace renders the wrong notes under the
+       right version — 0.3.0 shipped showing 0.2.0's list. Nothing checks
+       this at build time; it is on whoever cuts the release. -->
   <change-notes><![CDATA[
-    <h3>0.2.0</h3>
+    <h3>0.3.0</h3>
     <ul>
       <li>First public release on the JetBrains Marketplace.</li>
+      <li>Fixed a bug that could corrupt a schema: formatting a selection,
+        or saving with <i>Actions on Save → Reformat code</i> scoped to
+        changed lines, asked for a range but got the whole formatted file
+        back — splicing the file into itself. Partial-range requests are
+        now declined with an explanation; the engine formats whole
+        schemas only.</li>
       <li>The formatter now ships <i>inside</i> the plugin as a JavaScript
         bundle and runs on any Node 20+ on your machine, including one
         installed by nvm, fnm, Volta, asdf, nodenv or mise — which an IDE
