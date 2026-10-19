@@ -134,10 +134,16 @@ export type FormatOptions = {
    * or `@prettier`; leave every other file unchanged. Default: false.
    */
   requirePragma?: boolean;
+  /**
+   * Skip the checks that the output keeps every comment and code token
+   * of the input. Only for working around a bug in those checks.
+   * Default: false.
+   */
+  unsafe?: boolean;
 };
 
 type Resolved = Required<
-  Omit<FormatOptions, "commentWidth" | "endOfLine" | "checkIgnorePragma" | "requirePragma">
+  Omit<FormatOptions, "commentWidth" | "endOfLine" | "checkIgnorePragma" | "requirePragma" | "unsafe">
 > & {
   commentWidth: number;
 };
@@ -172,7 +178,7 @@ export class Printer {
   private out: string[] = [];
   private readonly opts: Resolved;
   constructor(private readonly stream: BufferedTokenStream, opts: FormatOptions) {
-    const { endOfLine: _, checkIgnorePragma: _i, requirePragma: _r, ...rest } = opts;
+    const { endOfLine: _, checkIgnorePragma: _i, requirePragma: _r, unsafe: _u, ...rest } = opts;
     const merged = { ...DEFAULTS, ...rest };
     this.opts = {
       ...merged,

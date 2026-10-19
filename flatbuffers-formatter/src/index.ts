@@ -68,6 +68,29 @@ export class CommentLossError extends Error {
   }
 }
 
+/**
+ * Thrown by {@link format} when the formatted output would not have the
+ * same code tokens as the input, in the same order — a printer bug that
+ * would change the schema's meaning. Only whitespace, comments and a
+ * comma before a `}` may differ. `index` is the position of the first
+ * differing token; `expected` and `actual` are the input's and the
+ * output's token there (`"<end>"` past the last one).
+ */
+export class CodeChangeError extends Error {
+  constructor(
+    public readonly index: number,
+    public readonly expected: string,
+    public readonly actual: string,
+  ) {
+    super(
+      `internal error: formatting would change token ${index + 1} from ${JSON.stringify(expected)} ` +
+        `to ${JSON.stringify(actual)}; refusing to format. ` +
+        "Please report this at https://github.com/emindeniz99/flatbuffers-format/issues",
+    );
+    this.name = "CodeChangeError";
+  }
+}
+
 function quoteAll(comments: string[]): string {
   return comments.map((c) => JSON.stringify(c)).join(", ");
 }
@@ -100,6 +123,8 @@ class CollectingErrorListener extends BaseErrorListener {
  *   the line and column of the first reported syntax problem.
  * @throws {CommentLossError} if the output would not contain every
  *   comment of the input. This is a formatter bug; the input is fine.
+ * @throws {CodeChangeError} if the output's code tokens would differ
+ *   from the input's. Also a formatter bug.
  *
  * @example
  * ```ts
@@ -139,7 +164,7 @@ export function format(source: string, options: FormatOptions = {}): string {
   }
 
   const output = new Printer(tokens, { ...options, newline: newlineFor(source, options) }).print(tree);
-  assertCommentsPreserved(source, output, options.wrapComments ?? false);
+  if (!options.unsafe) assertPreserved(scan(source), scan(output), options.wrapComments ?? false);
   return output;
 }
 
@@ -183,14 +208,15 @@ function newlineFor(source: string, options: FormatOptions): "\n" | "\r\n" {
 // Every comment of the input must appear in the output, compared as a
 // multiset of trimmed comment text. `wrapComments` legitimately splits
 // one long line comment into several, so with it on, line comments are
-// compared word by word instead.
-function assertCommentsPreserved(source: string, output: string, wrapComments: boolean): void {
+// compared word by word instead. The code tokens must match in order,
+// apart from a comma before a `}`, which `trailingComma` adds or drops.
+function assertPreserved(source: Scanned, output: Scanned, wrapComments: boolean): void {
   const counts = new Map<string, number>();
-  for (const key of commentKeys(source, wrapComments)) {
+  for (const key of commentKeys(source.comments, wrapComments)) {
     counts.set(key, (counts.get(key) ?? 0) + 1);
   }
   const added: string[] = [];
-  for (const key of commentKeys(output, wrapComments)) {
+  for (const key of commentKeys(output.comments, wrapComments)) {
     const n = counts.get(key) ?? 0;
     if (n === 0) added.push(key);
     else counts.set(key, n - 1);
@@ -198,11 +224,21 @@ function assertCommentsPreserved(source: string, output: string, wrapComments: b
   const missing: string[] = [];
   for (const [key, n] of counts) for (let k = 0; k < n; k++) missing.push(key);
   if (missing.length || added.length) throw new CommentLossError(missing, added);
+
+  const before = withoutTrailingCommas(source.code);
+  const after = withoutTrailingCommas(output.code);
+  for (let i = 0; i < Math.max(before.length, after.length); i++) {
+    if (before[i] !== after[i]) throw new CodeChangeError(i, before[i] ?? "<end>", after[i] ?? "<end>");
+  }
 }
 
-function commentKeys(text: string, splitLineComments: boolean): string[] {
+function withoutTrailingCommas(code: string[]): string[] {
+  return code.filter((t, i) => t !== "," || code[i + 1] !== "}");
+}
+
+function commentKeys(comments: string[], splitLineComments: boolean): string[] {
   const keys: string[] = [];
-  for (const comment of scanComments(text)) {
+  for (const comment of comments) {
     const words =
       splitLineComments && !comment.startsWith("///") && !comment.startsWith("/*")
         ? comment.slice(2).split(/\s+/).filter(Boolean)
@@ -213,20 +249,28 @@ function commentKeys(text: string, splitLineComments: boolean): string[] {
   return keys;
 }
 
-// The comments of `text`, trimmed, in order. Mirrors the grammar's
-// lexer rules for the only tokens that can hold `/`: string literals
-// (no newlines, backslash escapes) and the three comment kinds. Run on
-// both the input and the output, so the two sides are always read the
-// same way; it avoids a second ANTLR lex, which is the slow part.
-function scanComments(text: string): string[] {
+type Scanned = { comments: string[]; code: string[] };
+
+// The comments of `text`, trimmed, and its code tokens, both in order.
+// Mirrors the grammar's lexer rules for the only tokens that can hold
+// `/`: string literals (no newlines, backslash escapes) and the three
+// comment kinds. Other code is split into runs of word characters and
+// single punctuation characters, which is enough to see any change
+// besides whitespace: joining or splitting a word changes the runs.
+// `.` is punctuation, so `a . b` and `a.b` (a namespace) read the same. Run
+// on both the input and the output, so the two sides are always read
+// the same way; it avoids a second ANTLR lex, which is the slow part.
+function scan(text: string): Scanned {
   const comments: string[] = [];
+  const code: string[] = [];
   let i = 0;
   while (i < text.length) {
-    const c = text[i];
+    const c = text[i]!;
     if (c === '"') {
-      i++;
+      const start = i++;
       while (i < text.length && text[i] !== '"' && text[i] !== "\n") i += text[i] === "\\" ? 2 : 1;
       i++;
+      code.push(text.slice(start, i));
     } else if (c === "/" && text[i + 1] === "/") {
       let end = i;
       while (end < text.length && text[end] !== "\n" && text[end] !== "\r") end++;
@@ -237,12 +281,19 @@ function scanComments(text: string): string[] {
       const end = close < 0 ? text.length : close + 2;
       comments.push(text.slice(i, end).trim());
       i = end;
+    } else if (WORD.test(c)) {
+      const start = i;
+      while (i < text.length && WORD.test(text[i]!)) i++;
+      code.push(text.slice(start, i));
     } else {
+      if (!/\s/.test(c)) code.push(c);
       i++;
     }
   }
-  return comments;
+  return { comments, code };
 }
+
+const WORD = /\w/;
 
 /**
  * Return `true` iff `source` is already in canonical form — i.e. running

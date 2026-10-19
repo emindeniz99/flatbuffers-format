@@ -53,6 +53,7 @@ Options:
                               Line endings; auto keeps the file's own (default: lf)
       --check-ignore-pragma   Leave files whose top comment has @noformat or @noprettier
       --require-pragma        Format only files whose top comment has @format or @prettier
+      --unsafe                Skip the checks that every comment and code token survives
       --config <path>         Use this config file instead of looking one up
       --no-config             Ignore config files
       --stdin-filepath <path> With \`-\`, look up the config as if stdin were this file
@@ -190,6 +191,7 @@ async function main() {
     "end-of-line"?: string;
     "check-ignore-pragma"?: boolean;
     "require-pragma"?: boolean;
+    unsafe?: boolean;
     config?: string;
     "no-config"?: boolean;
     "stdin-filepath"?: string;
@@ -218,6 +220,7 @@ async function main() {
         "end-of-line": { type: "string" },
         "check-ignore-pragma": { type: "boolean" },
         "require-pragma": { type: "boolean" },
+        unsafe: { type: "boolean" },
         config: { type: "string" },
         "no-config": { type: "boolean" },
         "stdin-filepath": { type: "string" },
@@ -296,6 +299,7 @@ async function main() {
   if (endOfLine) opts.endOfLine = endOfLine;
   if (values["check-ignore-pragma"]) opts.checkIgnorePragma = true;
   if (values["require-pragma"]) opts.requirePragma = true;
+  if (values.unsafe) opts.unsafe = true;
 
   if (values.config !== undefined && values["no-config"]) {
     die("--config and --no-config are mutually exclusive");

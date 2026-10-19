@@ -118,6 +118,7 @@ Options:
 | `--end-of-line <lf\|crlf\|auto>` | Line endings; `auto` keeps the file's own (default: `lf`) |
 | `--check-ignore-pragma` | Leave files whose top comment has `@noformat` or `@noprettier` |
 | `--require-pragma` | Format only files whose top comment has `@format` or `@prettier` |
+| `--unsafe` | Skip the checks that every comment and code token survives (see below) |
 | `--config <path>` | Use this config file instead of looking one up |
 | `--no-config` | Ignore config files |
 | `--stdin-filepath <path>` | With `-`, look up the config as if stdin were this file |
@@ -355,7 +356,7 @@ formatted.
 ## API
 
 ```ts
-import { format, check, FormatError, CommentLossError } from "flatbuffers-format";
+import { format, check, FormatError, CommentLossError, CodeChangeError, VERSION } from "flatbuffers-format";
 
 format(source: string, opts?: FormatOptions): string
 check(source: string, opts?: FormatOptions): boolean   // true if already formatted
@@ -375,6 +376,7 @@ type FormatOptions = {
   endOfLine?: "lf" | "crlf" | "auto";     // default "lf" — overrides `newline`
   checkIgnorePragma?: boolean;            // default false — skip files with @noformat / @noprettier
   requirePragma?: boolean;                // default false — format only files with @format / @prettier
+  unsafe?: boolean;                       // default false — skip the comment and code-token checks
 };
 ```
 
@@ -387,8 +389,16 @@ every comment of the input, compared as a multiset of comment text
 formatter bug, not a problem with your schema: the check exists so a
 bug refuses to format instead of deleting comments. `.missing` lists the
 comments that would be dropped and `.added` any that would be
-duplicated. The CLI reports the file and the comments, exits 1, and
-leaves the file untouched (`--write`) or prints nothing (stdin).
+duplicated.
+
+They throw `CodeChangeError` if the output's code tokens would differ
+from the input's: a formatter may change whitespace, comments' places
+and a comma before a `}`, nothing else. `.index`, `.expected` and
+`.actual` name the first differing token.
+
+For both, the CLI reports the file and the problem, exits 1, and leaves
+the file untouched (`--write`) or prints nothing (stdin). `--unsafe`
+(`unsafe: true`) skips both checks, for working around a bug in them.
 
 ## Performance
 
