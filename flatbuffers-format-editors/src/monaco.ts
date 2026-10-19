@@ -95,9 +95,11 @@ function buildMonarchTokens() {
         [/[+-]?\.\d+/, "number.float"],
         [/[+-]?\d+/, "number"],
 
-        // Strings.
+        // Strings, in either quote style as flatc reads both.
         [/"([^"\\]|\\.)*$/, "string.invalid"], // unterminated
+        [/'([^'\\]|\\.)*$/, "string.invalid"],
         [/"/, { token: "string.quote", bracket: "@open", next: "@string" }],
+        [/'/, { token: "string.quote", bracket: "@open", next: "@stringSingle" }],
 
         // Punctuation.
         [/[{}()[\]]/, "@brackets"],
@@ -122,6 +124,12 @@ function buildMonarchTokens() {
         [/[^\\"]+/, "string"],
         [/\\./, "string.escape"],
         [/"/, { token: "string.quote", bracket: "@close", next: "@pop" }],
+      ],
+
+      stringSingle: [
+        [/[^\\']+/, "string"],
+        [/\\./, "string.escape"],
+        [/'/, { token: "string.quote", bracket: "@close", next: "@pop" }],
       ],
     },
   };
