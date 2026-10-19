@@ -10,7 +10,7 @@
 
 import * as vscode from "vscode";
 import type { FormatOptions } from "flatbuffers-format";
-import { formatText } from "./format.js";
+import { formatText, optionsFor } from "./format.js";
 
 export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
@@ -19,8 +19,17 @@ export function activate(context: vscode.ExtensionContext): void {
         document: vscode.TextDocument,
         options: vscode.FormattingOptions,
       ): vscode.TextEdit[] {
-        const config = vscode.workspace.getConfiguration("flatbuffers", document);
-        const formatOptions = readFormatOptions(config, options);
+        const filePath = document.uri.scheme === "file" ? document.uri.fsPath : undefined;
+        let formatOptions: FormatOptions;
+        try {
+          formatOptions = optionsFor(filePath, () =>
+            readFormatOptions(vscode.workspace.getConfiguration("flatbuffers", document), options),
+          );
+        } catch (err) {
+          // An invalid .flatbuffers-format.json: say which file and key.
+          void vscode.window.showErrorMessage(`flatbuffers-format: ${(err as Error).message}`);
+          return [];
+        }
 
         const result = formatText(document.getText(), formatOptions);
         if (result.kind === "noop") return [];

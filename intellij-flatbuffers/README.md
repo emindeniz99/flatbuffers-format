@@ -112,6 +112,18 @@ the plugin never pins a default of its own. The full CLI option set is
 documented in the [engine's README](../flatbuffers-formatter/README.md#cli);
 options with no field above go in **Extra arguments**.
 
+### Project config file
+
+If a schema has a `.flatbuffers-format.json` in its directory or any
+parent, the plugin formats it with that file (`--config <file>`) and
+ignores the format options and extra arguments above. The IDE then
+formats exactly as the CLI and CI do. The lookup is the engine's own:
+the nearest file wins, walking up past the project root if needed. When
+the open project has one, the settings page shows its path and disables
+the fields it overrides. See the
+[engine's config file docs](../flatbuffers-formatter/README.md#config-file)
+for the keys.
+
 ## Supported IDEs
 
 | IDE                        | Minimum version | Verified  |

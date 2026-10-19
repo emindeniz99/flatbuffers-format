@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.nio.file.Path
 
 /**
  * The command line the engine actually receives, pinned.
@@ -164,5 +165,22 @@ class FormatterCliArgsTest {
             args { extraArgs = "  --line-width\t100 \n --use-tabs  " },
         )
         assertEquals(emptyList<String>(), args { extraArgs = "   " })
+    }
+
+    @Test
+    fun aProjectConfigFileReplacesEverySettingIncludingTheExtraArgsBox() {
+        // The config file is how a team gets one output from the IDE, the
+        // CLI and CI. Any setting passed next to it — a typed option or
+        // the free-text box — would override it and break exactly that.
+        val state = FlatBuffersSettings.State().apply {
+            indent = 4
+            useTabs = true
+            extraArgs = "--line-width 100"
+        }
+        val config = Path.of("/repo/.flatbuffers-format.json")
+        assertEquals(listOf("--config", config.toString()), FormatterCliArgs.of(state, config))
+        // No config file: the settings apply, unchanged — so a user whose
+        // engine predates --config never receives it.
+        assertEquals(FormatterCliArgs.of(state), FormatterCliArgs.of(state, null))
     }
 }

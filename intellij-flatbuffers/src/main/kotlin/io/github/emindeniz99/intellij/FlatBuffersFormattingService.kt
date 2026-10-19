@@ -129,8 +129,15 @@ class FlatBuffersFormattingService : AsyncDocumentFormattingService() {
                     // — a bundled JS engine has no executable path of
                     // its own, which is why this is a list and not the
                     // single String this code used to build.
+                    // The document's own location, not the temp copy's,
+                    // decides which project config applies.
+                    val configFile = request.context.virtualFile
+                        ?.takeIf { it.isInLocalFileSystem }
+                        ?.toNioPath()
+                        ?.parent
+                        ?.let(ProjectConfig::findFrom)
                     val cmd = engine.commandPrefix().toMutableList()
-                    cmd.addAll(settings.formatterArgs())
+                    cmd.addAll(settings.formatterArgs(configFile))
                     cmd.add(temp.absolutePath)
 
                     val proc = ProcessBuilder(cmd)

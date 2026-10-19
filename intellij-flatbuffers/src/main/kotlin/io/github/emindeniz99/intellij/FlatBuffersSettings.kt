@@ -6,6 +6,7 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.util.xmlb.XmlSerializerUtil
+import java.nio.file.Path
 
 /**
  * App-level persistent settings. Stored in
@@ -141,6 +142,14 @@ class FlatBuffersSettings : PersistentStateComponent<FlatBuffersSettings.State> 
      * that differ from the engine's defaults, then [extraArgs].
      */
     fun formatterArgs(): List<String> = FormatterCliArgs.of(state)
+
+    /**
+     * The engine arguments for formatting a file whose project config is
+     * [configFile]: just that file when there is one (see
+     * [FormatterCliArgs.of]), else [formatterArgs].
+     */
+    fun formatterArgs(configFile: Path?): List<String> =
+        FormatterCliArgs.of(state, configFile)
 
     // Engine resolution deliberately does NOT live here any more. It
     // moved to [EngineResolver] + [IdeEngineEnvironment] when the

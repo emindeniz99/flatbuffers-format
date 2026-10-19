@@ -54,6 +54,9 @@
       <li>Settings page at <i>Preferences → Tools → FlatBuffers</i>
         for engine discovery and every format option the engine
         exposes.</li>
+      <li>Reads the project's <code>.flatbuffers-format.json</code>, so a
+        team commits its format options once and the IDE formats exactly
+        as the CLI and CI do.</li>
     </ul>
 
     <h3>Prerequisites</h3>
@@ -95,6 +98,19 @@
        right version — 0.3.0 shipped showing 0.2.0's list. Nothing checks
        this at build time; it is on whoever cuts the release. -->
   <change-notes><![CDATA[
+    <h3>Unreleased</h3>
+    <ul>
+      <li>Comments are no longer deleted. The bundled engine used to drop a
+        comment after the comma of an enum or union value, the comment in a
+        comment-only body, comments before a closing brace and comments
+        inside a declaration. It now keeps all of them, and refuses to
+        format a file rather than lose one.</li>
+      <li>Project config file: when a schema has a
+        <code>.flatbuffers-format.json</code> in its directory or a parent,
+        the plugin formats with it instead of the settings page, so the IDE
+        matches the CLI and CI. The settings page shows the file in use
+        and disables the options it overrides.</li>
+    </ul>
     <h3>0.3.0</h3>
     <ul>
       <li>First public release on the JetBrains Marketplace.</li>
@@ -183,8 +199,11 @@
     <applicationService
         serviceImplementation="io.github.emindeniz99.intellij.FlatBuffersSettings"/>
 
-    <!-- Settings UI under Preferences → Tools → FlatBuffers. -->
-    <applicationConfigurable
+    <!-- Settings UI under Preferences → Tools → FlatBuffers. Registered
+         per project only so the page knows which project it is shown
+         for and can say when a .flatbuffers-format.json overrides it;
+         what it edits is still the app-level service above. -->
+    <projectConfigurable
         parentId="tools"
         instance="io.github.emindeniz99.intellij.FlatBuffersConfigurable"
         id="io.github.emindeniz99.intellij.FlatBuffersConfigurable"

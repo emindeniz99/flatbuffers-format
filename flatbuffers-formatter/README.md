@@ -112,6 +112,9 @@ Options:
 | `--max-blank-lines <n>` | Max consecutive blank lines kept between decls (default: 1) |
 | `--wrap-comments` | Reflow long line comments at whitespace |
 | `--comment-width <n>` | Wrap column for `--wrap-comments` (defaults to `--line-width`) |
+| `--config <path>` | Use this config file instead of looking one up |
+| `--no-config` | Ignore config files |
+| `--stdin-filepath <path>` | With `-`, look up the config as if stdin were this file |
 | `--no-gitignore` | Don't consult `.gitignore` when walking directories |
 | `-V`, `--version` | Print version and exit |
 | `-h`, `--help` | Show help |
@@ -121,6 +124,46 @@ On a parse error, the CLI emits an IDE-link-friendly report
 offending column, so editors that auto-link compiler diagnostics
 (VS Code's terminal, neovim's `:cw`, IntelliJ's run console) jump
 straight to the problem.
+
+### Config file
+
+Commit a `.flatbuffers-format.json` so the CLI, CI and editor plugins
+all format the same way without per-developer flags or IDE settings:
+
+```json
+{
+  "indent": 4,
+  "compactSingleLine": false
+}
+```
+
+Keys are the format options: `indent`, `useTabs`, `lineWidth`,
+`compactSingleLine`, `maxBlankLines`, `wrapComments`, `commentWidth`.
+Omitted keys keep their defaults.
+
+- **Lookup:** for each file, the nearest `.flatbuffers-format.json` in
+  its directory or any parent, up to the filesystem root. Only that one
+  file applies; files higher up are not merged in. For stdin, the
+  lookup starts at `--stdin-filepath` if given, else the current
+  directory.
+- **Precedence:** flags, then the config file, then the defaults.
+  `--write`, `--check` and `--diff` all use it.
+- **Validation:** an unknown key or a value of the wrong type is an
+  error naming the file and the key, and the CLI exits 2 without
+  touching any file.
+
+Editor plugins can call the same lookup:
+
+```ts
+import { resolveConfig } from "flatbuffers-format/config";
+
+const options = resolveConfig("/repo/schemas/monster.fbs"); // FormatOptions | null
+```
+
+`resolveConfig` reads the filesystem, so it lives in the Node-only
+`flatbuffers-format/config` entry point; the main entry point stays
+browser-safe. It throws `ConfigError` (with `.file`) on an invalid
+config file.
 
 Directories are walked recursively. **Inside a git repository**,
 `.gitignore` is respected via `git ls-files` — pass `--no-gitignore`
@@ -457,7 +500,9 @@ Standard [semver](https://semver.org). Before `1.0`, the API surface is
 The "public API" — the surface where the semver promise applies once we
 reach `1.0` — is exactly the named exports of
 [`src/index.ts`](src/index.ts) (`format`, `check`, `FormatError`,
-`CommentLossError`, `FormatOptions`) and the CLI's documented flags. Everything else
+`CommentLossError`, `FormatOptions`), of
+[`src/config.ts`](src/config.ts) (`resolveConfig`, `loadConfig`,
+`findConfigFile`, `ConfigError`, `CONFIG_FILE_NAME`) and the CLI's documented flags. Everything else
 (internal printer/lexer/parser classes, the generated parser, the
 trivia helpers, the `scripts/` directory) is implementation detail
 and may change in any release.

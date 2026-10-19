@@ -6,7 +6,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { formatText } from "../src/format.js";
+import { formatText, optionsFor } from "../src/format.js";
 
 test("formatText: ugly input returns kind='ok' with canonical text", () => {
   // Multi-field input keeps the table expanded under default
@@ -53,4 +53,29 @@ test("formatText: new options round-trip — useTabs + compactSingleLine off", (
     // compactSingleLine=false → single-field table stays expanded.
     assert.equal(result.text, "table T {\n\tx: int;\n}\n");
   }
+});
+
+test("optionsFor: a project config file replaces the editor settings", async () => {
+  const { mkdtempSync, writeFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const root = mkdtempSync(join(tmpdir(), "vscode-fbs-config-"));
+  writeFileSync(join(root, ".flatbuffers-format.json"), JSON.stringify({ indent: 4 }));
+  const settings = () => ({ indent: 8, useTabs: true });
+  // Not merged: useTabs from the settings must not leak in, or the
+  // editor would format differently from the CLI for the same file.
+  assert.deepEqual(optionsFor(join(root, "s.fbs"), settings), { indent: 4 });
+  // Unsaved buffers have no path, so the settings apply.
+  assert.deepEqual(optionsFor(undefined, settings), { indent: 8, useTabs: true });
+});
+
+test("optionsFor: an invalid config file throws, naming the file and key", async () => {
+  const { mkdtempSync, writeFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const root = mkdtempSync(join(tmpdir(), "vscode-fbs-config-bad-"));
+  const file = join(root, ".flatbuffers-format.json");
+  writeFileSync(file, JSON.stringify({ tabs: true }));
+  assert.throws(() => optionsFor(join(root, "s.fbs"), () => ({})), (err: unknown) =>
+    err instanceof Error && err.message.includes(file) && err.message.includes('unknown key "tabs"'));
 });
