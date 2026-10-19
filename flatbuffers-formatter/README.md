@@ -87,6 +87,10 @@ newline) and that's it.
 - Keywords as field names (`table T { enum: int; }`)
 - Object literals (the `flatc` text format)
 - All metadata: `(deprecated)`, `(key: "value")`, etc.
+- Everything in flatbuffers' own `tests/` and `samples/` schemas, checked
+  in CI: `+inf` / `-nan` defaults, the empty-vector default `= []`, union
+  values with an explicit value or metadata (`A = 5`, `f: T (id: 0)`),
+  single-quoted strings
 
 ## CLI
 
@@ -450,6 +454,41 @@ commit the new baseline in the same PR.
 | Indent | 2 spaces. | `indent` (count), `useTabs` (char) |
 | Newlines | LF, single trailing newline at EOF. | `endOfLine` (default `lf`) |
 
+### What changes besides whitespace
+
+Formatting never changes what a schema means. Apart from spacing,
+indentation and line breaks, the output differs from the input only in:
+
+- **The comma after the last value** of an enum or union written one
+  value per line: added by `trailingComma: "all"` (the default), removed
+  by `"none"`. A body on one line never has one.
+- **Comments the output has no slot for** (between a field's name and
+  its `:`, inside a metadata list) move onto their own line above the
+  declaration, unchanged.
+- **Long `//` comments** are rewrapped, only with `wrapComments` on.
+- **Line endings**, per `endOfLine`.
+
+Three checks hold that line. `format()` compares every comment and code
+token of the output with the input and refuses to return output that
+loses or changes one (`CommentLossError`, `CodeChangeError`). CI
+compiles every corpus file and every schema in flatbuffers' own
+`tests/` with `flatc` before and after formatting, with the default
+options and with every option changed, and requires byte-identical C++
+code and binary schemas. To check your own schemas the same way:
+
+```bash
+flatc --cpp -o before/ schema.fbs
+flatbuffers-format --write schema.fbs
+flatc --cpp -o after/ schema.fbs
+diff -r before/ after/
+```
+
+`flatc --conform old.fbs new.fbs` answers a different question: whether
+`new.fbs` is a compatible evolution of `old.fbs` (no removed fields, no
+changed ids). A formatted schema always passes it against its own
+original, but it does not prove the two are the same schema; the
+codegen diff above does.
+
 ## Standards conformance
 
 The canonical FlatBuffers grammar is the EBNF at
@@ -463,7 +502,7 @@ runtime deps) lives at
 [`../flatbuffers-formatter-handrolled`](../flatbuffers-formatter-handrolled) in the same
 monorepo. Both formatters are **differential-tested**: every file in
 `test/corpus/` must produce byte-identical output from both engines, on
-every commit, via `bash test/crosscheck.sh` — currently **23/23 pass**.
+every commit, via `bash test/crosscheck.sh` — currently **28/28 pass**.
 That cross-check runs in `prepublishOnly` before any release, so a
 grammar bug in either implementation cannot ship.
 
@@ -480,7 +519,12 @@ npm run test:flatc-conform
 
 The script (`scripts/flatc-conform.sh`) runs
 `flatc -b --schema --no-warnings` on each corpus file and reports a
-pass/fail summary. It is **deliberately not** part of `prepublishOnly`,
+pass/fail summary. For every file flatc accepts, it then formats the
+file (with the defaults, and with every option changed) and requires
+flatc's C++ code and binary schema to come out byte-identical; this
+part needs the engine built. `scripts/upstream-schemas.sh <flatbuffers
+checkout>` runs the same check over flatbuffers' own test schemas,
+which CI pins to the flatc release it uses. It is **deliberately not** part of `prepublishOnly`,
 because `flatc` is a *system* dependency (installed via
 `apt-get install flatbuffers-compiler`, `brew install flatbuffers`,
 etc.), not an npm one — wiring it into the publish chain would break
