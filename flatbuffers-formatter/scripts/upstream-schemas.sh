@@ -58,7 +58,9 @@ for f in "${files[@]}"; do
   fi
   # Word splitting of the flag list is intended.
   # shellcheck disable=SC2086
-  node "${ENGINE}" --no-config ${CHANGED} "${f}" > "${WORK}/changed/${f}" 2>/dev/null
+  if ! node "${ENGINE}" --no-config ${CHANGED} "${f}" > "${WORK}/changed/${f}" 2>/dev/null; then
+    echo "FORMAT FAILED (changed options): ${f}"; fail=$((fail + 1))
+  fi
 done
 
 # generate <tree> <file> <out dir>: flatc run from the tree's root with

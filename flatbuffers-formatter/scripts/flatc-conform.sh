@@ -108,6 +108,7 @@ pass=0
 fail=0
 skip=0
 failed_files=()
+declare -A ACCEPTED=()
 
 for f in "${files[@]}"; do
   base="$(basename "${f}")"
@@ -128,6 +129,7 @@ for f in "${files[@]}"; do
   # output focused on hard errors; we treat warnings as informational.
   if err="$(flatc -b --schema --no-warnings -o "${OUT_DIR}" "${f}" 2>&1)"; then
     pass=$((pass + 1))
+    ACCEPTED["${base}"]=1
   else
     fail=$((fail + 1))
     failed_files+=("${f}")
@@ -163,13 +165,22 @@ for set_name in "${!OPTION_SETS[@]}"; do
   for f in "${CORPUS_DIR}"/*.fbs; do
     # Word splitting of the flag list is intended.
     # shellcheck disable=SC2086
-    node "${CLI}" --no-config ${OPTION_SETS[$set_name]} "${f}" > "${formatted}/$(basename "${f}")"
+    if ! node "${CLI}" --no-config ${OPTION_SETS[$set_name]} "${f}" > "${formatted}/$(basename "${f}")"; then
+      codegen_fail=$((codegen_fail + 1))
+      echo "FORMAT FAILED: $(basename "${f}") (${set_name})"
+    fi
   done
   for f in "${files[@]}"; do
     base="$(basename "${f}")"
     # Only files flatc accepted above; the rest have nothing to compare.
-    generate "${OUT_DIR}/original" "${base}" "${OUT_DIR}/gen-a" || { rm -rf "${OUT_DIR}/gen-a"; continue; }
+    [[ -n "${ACCEPTED[${base}]:-}" ]] || continue
     codegen_checked=$((codegen_checked + 1))
+    if ! generate "${OUT_DIR}/original" "${base}" "${OUT_DIR}/gen-a"; then
+      codegen_fail=$((codegen_fail + 1))
+      echo "CODEGEN FAILED on the original: ${base}"
+      rm -rf "${OUT_DIR}/gen-a"
+      continue
+    fi
     if ! generate "${formatted}" "${base}" "${OUT_DIR}/gen-b" || ! diff -r "${OUT_DIR}/gen-a" "${OUT_DIR}/gen-b" >/dev/null; then
       codegen_fail=$((codegen_fail + 1))
       echo "---"
