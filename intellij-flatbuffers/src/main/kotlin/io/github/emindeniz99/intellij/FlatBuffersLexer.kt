@@ -57,7 +57,7 @@ class FlatBuffersLexer : LexerBase() {
             c.isWhitespace() -> scanWhitespace()
             c == '/' && peek(1) == '/' -> scanLineComment()
             c == '/' && peek(1) == '*' -> scanBlockComment()
-            c == '"' -> scanString()
+            c == '"' || c == '\'' -> scanString(c)
             c.isDigit() -> scanNumber()
             (c == '+' || c == '-') && peek(1)?.isDigit() == true -> scanNumber()
             (c == '+' || c == '-') && peek(1) == '.' && peek(2)?.isDigit() == true -> scanNumber()
@@ -99,11 +99,12 @@ class FlatBuffersLexer : LexerBase() {
         tokenType = FlatBuffersTokenTypes.BLOCK_COMMENT
     }
 
-    private fun scanString() {
-        position++ // opening "
+    // flatc reads strings in either quote style.
+    private fun scanString(quote: Char) {
+        position++ // opening quote
         while (position < bufferEnd) {
             val ch = buffer[position]
-            if (ch == '"') {
+            if (ch == quote) {
                 position++
                 break
             }
