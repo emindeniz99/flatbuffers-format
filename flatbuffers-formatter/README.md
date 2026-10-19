@@ -278,7 +278,7 @@ You can also embed the formatter in your own page:
 ## API
 
 ```ts
-import { format, check, FormatError } from "flatbuffers-format";
+import { format, check, FormatError, CommentLossError } from "flatbuffers-format";
 
 format(source: string, opts?: FormatOptions): string
 check(source: string, opts?: FormatOptions): boolean   // true if already formatted
@@ -297,6 +297,15 @@ type FormatOptions = {
 
 Both `format` and `check` throw `FormatError` (with `.line` and
 `.column`) on invalid input.
+
+They throw `CommentLossError` if the formatted output would not contain
+every comment of the input, compared as a multiset of comment text
+(word by word for line comments when `wrapComments` is on). That is a
+formatter bug, not a problem with your schema: the check exists so a
+bug refuses to format instead of deleting comments. `.missing` lists the
+comments that would be dropped and `.added` any that would be
+duplicated. The CLI reports the file and the comments, exits 1, and
+leaves the file untouched (`--write`) or prints nothing (stdin).
 
 ## Performance
 
@@ -338,11 +347,11 @@ commit the new baseline in the same PR.
 |---|---|---|
 | Top-level | One blank line between block declarations (table/struct/enum/union/rpc_service). Single statements collapse together. | `maxBlankLines` (default 1) |
 | Fields | `name:Type` (no space before colon, one space after type). Defaults: ` = value`. Metadata: ` (key, key: value)`. Trailing `;`. | fixed by design |
-| Enum/union/single-field bodies | Collapse to one line if the result fits in `lineWidth`; expand otherwise. Doc/block comments and per-value metadata force expansion. | `compactSingleLine` (default on), `lineWidth` (default 80) |
+| Enum/union/single-field bodies | Collapse to one line if the result fits in `lineWidth`; expand otherwise. Any comment inside the body, and per-value metadata, force expansion. | `compactSingleLine` (default on), `lineWidth` (default 80) |
 | Enum values | One per line (when expanded), comma-separated, no trailing comma. | fixed by design |
 | Union variants | Same as enum values. Aliases written as `Alias: Type`. | fixed by design |
 | Metadata | Always inline: `(deprecated, key: "x")`. | fixed by design |
-| Comments | `//`, `///`, `/* */` all preserved. Doc comments stay attached to the following declaration; trailing comments stay on their owning line. Long `//` lines optionally reflowed. | `wrapComments` (default off), `commentWidth` (default = lineWidth) |
+| Comments | `//`, `///`, `/* */` all preserved, in order. Doc comments stay attached to the following declaration. Trailing comments stay on their owning line, after the comma for enum/union values (`Red, // first`). Comments before a `}` and in comment-only bodies stay inside the braces. A comment inside a declaration, where the output has no slot for it (between a field name and its `:`, inside metadata, inside an object literal), moves onto its own line above that declaration. Long `//` lines optionally reflowed. | `wrapComments` (default off), `commentWidth` (default = lineWidth) |
 | Indent | 2 spaces. | `indent` (count), `useTabs` (char) |
 | Newlines | LF, single trailing newline at EOF. | `newline` |
 
@@ -448,7 +457,7 @@ Standard [semver](https://semver.org). Before `1.0`, the API surface is
 The "public API" — the surface where the semver promise applies once we
 reach `1.0` — is exactly the named exports of
 [`src/index.ts`](src/index.ts) (`format`, `check`, `FormatError`,
-`FormatOptions`) and the CLI's documented flags. Everything else
+`CommentLossError`, `FormatOptions`) and the CLI's documented flags. Everything else
 (internal printer/lexer/parser classes, the generated parser, the
 trivia helpers, the `scripts/` directory) is implementation detail
 and may change in any release.
