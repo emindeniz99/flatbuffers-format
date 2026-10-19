@@ -100,6 +100,23 @@
           "default": 80,
           "minimum": 1,
           "description": "Wrap column for `wrapComments`. Defaults to `lineWidth` when unset."
+        },
+        "flatbuffers.format.trailingComma": {
+          "type": "string",
+          "enum": ["all", "none"],
+          "default": "all",
+          "description": "`all` puts a comma after the last value of an enum or union written one value per line; `none` leaves it off. Same as Prettier's option."
+        },
+        "flatbuffers.format.objectWrap": {
+          "type": "string",
+          "enum": ["preserve", "collapse"],
+          "default": "preserve",
+          "description": "`preserve` keeps a body expanded when the source has a line break after its `{`; `collapse` puts every body that fits on one line. Same as Prettier's option."
+        },
+        "flatbuffers.format.bracketSpacing": {
+          "type": "boolean",
+          "default": true,
+          "description": "Spaces inside the braces of a body on one line: `{ A, B }` rather than `{A, B}`. Same as Prettier's option."
         }
       }
     }
