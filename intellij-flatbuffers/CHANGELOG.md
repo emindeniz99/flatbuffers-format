@@ -20,14 +20,12 @@ do not hand-edit released entries.
 
 * **intellij:** format with the project's .flatbuffers-format.json ([38612a7](https://github.com/emindeniz99/flatbuffers-format/commit/38612a75adac55351ff558cb7996df446f89539f))
 * **intellij:** let another FlatBuffers plugin highlight .fbs files ([bd1d916](https://github.com/emindeniz99/flatbuffers-format/commit/bd1d916cfabc2bd65ee3533107bb131df2768115))
-* project config file (.flatbuffers-format.json) for the CLI, VS Code and IntelliJ ([49a41f0](https://github.com/emindeniz99/flatbuffers-format/commit/49a41f0a51b2e26195b13f44c347df44518d8f64))
 
 
 ### Bug Fixes
 
 * **intellij:** format .FBS files the overrider hands to another plugin ([e6f7b07](https://github.com/emindeniz99/flatbuffers-format/commit/e6f7b07213af0c1e53f70ce7c3053016ba050c9c))
 * **intellij:** respect the user's *.fbs file type when deferring ([9660c3a](https://github.com/emindeniz99/flatbuffers-format/commit/9660c3add6c8731831246e16fcbdfcc9b1dbba1f))
-* **intellij:** show "FlatBuffers (flatbuffers-format)" as display name ([75ca33b](https://github.com/emindeniz99/flatbuffers-format/commit/75ca33b3db7ce7f730d977fb3d1841732ed4801f))
 * **intellij:** show "FlatBuffers (flatbuffers-format)" as display name ([279b836](https://github.com/emindeniz99/flatbuffers-format/commit/279b8367d9874166c135efb652511615ff397b51))
 
 ## [0.3.0](https://github.com/emindeniz99/flatbuffers-format/compare/intellij-flatbuffers-v0.2.0...intellij-flatbuffers-v0.3.0) (2026-08-07)

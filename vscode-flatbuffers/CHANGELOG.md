@@ -13,7 +13,6 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Features
 
-* project config file (.flatbuffers-format.json) for the CLI, VS Code and IntelliJ ([49a41f0](https://github.com/emindeniz99/flatbuffers-format/commit/49a41f0a51b2e26195b13f44c347df44518d8f64))
 * **vscode:** format with the project's .flatbuffers-format.json ([94398ad](https://github.com/emindeniz99/flatbuffers-format/commit/94398ad78bb40207c4a8fe3986613b85bb905770))
 
 ## [0.1.2](https://github.com/emindeniz99/flatbuffers-format/compare/vscode-flatbuffers-v0.1.1...vscode-flatbuffers-v0.1.2) (2026-08-07)

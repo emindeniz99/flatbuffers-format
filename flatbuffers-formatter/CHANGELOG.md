@@ -15,16 +15,13 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Features
 
 * **formatter:** read options from a .flatbuffers-format.json file ([85232b0](https://github.com/emindeniz99/flatbuffers-format/commit/85232b069aefb8e57d10a63a1064b645d052b408))
-* project config file (.flatbuffers-format.json) for the CLI, VS Code and IntelliJ ([49a41f0](https://github.com/emindeniz99/flatbuffers-format/commit/49a41f0a51b2e26195b13f44c347df44518d8f64))
 
 
 ### Bug Fixes
 
 * **formatter:** keep comments after commas and in comment-only bodies ([5bbb498](https://github.com/emindeniz99/flatbuffers-format/commit/5bbb498e9f34ad7539b2f8fa327717ae079a5c81))
 * **formatter:** keep object literal comments next to their field ([a902771](https://github.com/emindeniz99/flatbuffers-format/commit/a902771249e9fc4e5f6574d7695306f31261b191))
-* **formatter:** stop deleting comments ([e2ad907](https://github.com/emindeniz99/flatbuffers-format/commit/e2ad90793c11ec544361eec82fc256b6ee62600c))
 * **formatter:** validate every config before --write touches a file ([47ed18e](https://github.com/emindeniz99/flatbuffers-format/commit/47ed18ee5a82fb1501822ae69647d2d9915abbb1))
-* **handrolled:** end a line comment at \r, and crosscheck CRLF ([9fb73e1](https://github.com/emindeniz99/flatbuffers-format/commit/9fb73e16061f8048a15cb4b24039f4c6a6b5de9a))
 
 ## [0.3.0](https://github.com/emindeniz99/flatbuffers-format/compare/flatbuffers-format-v0.2.0...flatbuffers-format-v0.3.0) (2026-08-07)
 
