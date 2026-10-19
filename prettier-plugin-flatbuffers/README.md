@@ -51,7 +51,7 @@ Without one, the plugin maps Prettier's options to `flatbuffers-format`'s
 | Prettier option            | Effect                                                                          |
 |----------------------------|---------------------------------------------------------------------------------|
 | `tabWidth` (default `2`)   | Forwarded as the engine's `indent` (count of indent characters per level).      |
-| `useTabs` (default `false`)| Forwarded as the engine's `useTabs`. The engine emits literal tab characters when this is `true` (since `flatbuffers-format` ≥ 0.2). Combine with `tabWidth: 1` for the usual "one tab per level" setting. |
+| `useTabs` (default `false`)| One tab per indent level, as in Prettier; `tabWidth` then only sets how wide a tab looks in your editor. |
 | `printWidth` (default `80`)| Forwarded as the engine's `lineWidth`. Drives the "does it fit on one line" decision for small enums/unions/single-field bodies and for line-comment wrapping. |
 | `trailingComma` (default `"all"`) | `"all"` and `"es5"` put a comma after the last value of an expanded enum or union; `"none"` leaves it off. |
 | `bracketSpacing` (default `true`) | `{ A, B }` or `{A, B}` for bodies on one line. |

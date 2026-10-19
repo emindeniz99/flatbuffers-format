@@ -40,8 +40,10 @@ type PrettierOptions = {
  * for it wins outright, so Prettier formats exactly as the CLI and the
  * other editor plugins do. Without one, Prettier's options map across:
  *
- *   `tabWidth`       → `indent`
- *   `useTabs`        → `useTabs`
+ *   `tabWidth`       → `indent` (spaces per level)
+ *   `useTabs`        → `useTabs`, one tab per level as in Prettier,
+ *                      whatever `tabWidth` says (there it only sets
+ *                      how wide a tab is drawn)
  *   `printWidth`     → `lineWidth`
  *   `trailingComma`  → `trailingComma` ("none" stays "none"; "all" and
  *                      "es5" both mean a comma after the last value)
@@ -56,7 +58,7 @@ type PrettierOptions = {
 function engineOptions(options: PrettierOptions): FormatOptions {
   const fromFile = options.filepath ? resolveConfig(options.filepath) : null;
   const base: FormatOptions = fromFile ?? {
-    indent: options.tabWidth ?? 2,
+    indent: options.useTabs ? 1 : (options.tabWidth ?? 2),
     useTabs: options.useTabs ?? false,
     lineWidth: options.printWidth ?? 80,
     trailingComma: options.trailingComma === "none" ? "none" : "all",

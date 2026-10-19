@@ -55,7 +55,6 @@ test("useTabs: true forwards to the engine and produces tab indentation", async 
     parser: "flatbuffers-format",
     plugins: [plugin],
     useTabs: true,
-    tabWidth: 1,
   });
   assert.ok(out.includes("\t"), "expected tab characters in output");
   assert.equal(out, "table T {\n\tx: int;\n\ty: string;\n}\n");
@@ -147,4 +146,19 @@ test("a .flatbuffers-format.json next to the file wins over Prettier's options",
   });
   // The file's options, and Prettier's line endings converted once.
   assert.equal(out, "enum E: byte {\r\n    A,\r\n    B\r\n}\r\n");
+});
+
+test("useTabs: one tab per level whatever tabWidth is, as in Prettier", async () => {
+  // In Prettier tabWidth only sets how wide a tab is drawn; a project with
+  // `useTabs: true` (or `indent_style = tab` in .editorconfig) and the
+  // default tabWidth 2 got two tabs per level before.
+  for (const tabWidth of [2, 4, 8]) {
+    const out = await prettier.format("table T{x:int;y:string;}\n", {
+      parser: "flatbuffers-format",
+      plugins: [plugin],
+      useTabs: true,
+      tabWidth,
+    });
+    assert.equal(out, "table T {\n\tx: int;\n\ty: string;\n}\n", `tabWidth ${tabWidth}`);
+  }
 });
