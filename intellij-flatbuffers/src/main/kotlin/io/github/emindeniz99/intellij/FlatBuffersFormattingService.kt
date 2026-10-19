@@ -53,7 +53,7 @@ class FlatBuffersFormattingService : AsyncDocumentFormattingService() {
     // Only one FormattingService is selected per file, so this does not
     // put two formatters on one document.
     override fun canFormat(file: PsiFile): Boolean =
-        file.virtualFile?.extension == "fbs" || file.language === FlatBuffersLanguage
+        FlatBuffersFileType.isSchemaExtension(file.virtualFile?.extension) || file.language === FlatBuffersLanguage
 
     override fun getName(): String = "flatbuffers-format"
 

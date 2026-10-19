@@ -232,6 +232,12 @@ class FlatBuffersConfigurable(private val project: Project) : BoundConfigurable(
                         "flag repeated here wins.")
             }.enabled(projectConfig == null)
             row {
+                checkBox("Let another installed FlatBuffers plugin highlight .fbs files")
+                    .bindSelected(settings::deferHighlightingToOtherPlugin)
+                    .comment("Default: on. This plugin keeps formatting either way. " +
+                        "Takes effect for files opened afterwards, or after a restart.")
+            }
+            row {
                 comment("Format on save is handled by the IDE, not by this plugin: " +
                     "enable <i>Settings | Tools | Actions on Save | Reformat code</i>. " +
                     "It drives this formatter through the platform's formatting " +

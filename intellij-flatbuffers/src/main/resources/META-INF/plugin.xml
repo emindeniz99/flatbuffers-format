@@ -114,6 +114,13 @@
         <i>FlatBuffers (flatbuffers-format)</i>, so they can be told apart
         from another FlatBuffers plugin's <i>Flatbuffers</i> entries. Your
         existing <code>*.fbs</code> association is kept.</li>
+      <li>With another FlatBuffers plugin installed (such as "Flatbuffers
+        Support"), <code>.fbs</code> files now use that plugin's
+        highlighting and navigation automatically, and this plugin keeps
+        formatting them. Previously the IDE picked one plugin's file type
+        at random and you had to fix it in Settings → File Types. A
+        <code>*.fbs</code> mapping you chose yourself still wins, and
+        Settings → Tools → FlatBuffers can turn this off.</li>
     </ul>
     <h3>0.3.0</h3>
     <ul>
@@ -175,6 +182,12 @@
         fieldName="INSTANCE"
         language="FlatBuffers"
         extensions="fbs"/>
+
+    <!-- When another FlatBuffers plugin is installed, .fbs files take its
+         file type: it highlights and navigates, we keep formatting. See
+         DeferToOtherFlatBuffersPlugin. -->
+    <fileTypeOverrider
+        implementation="io.github.emindeniz99.intellij.DeferToOtherFlatBuffersPlugin"/>
 
     <!-- Lexer-backed syntax highlighter. -->
     <lang.syntaxHighlighterFactory
