@@ -284,6 +284,13 @@ back to `git add <paths> && git diff --cached --name-only && git commit`
    because release-please can't tell which commit of the PR the override
    belongs to. In practice (17.11.2) it applies the override to every
    commit of the PR, so the entry is still duplicated.
+7. **Never write that marker's name in a PR description**, not even to
+   explain it. release-please searches the description for the bare
+   word, with no end marker needed, and treats everything after it as
+   the override for every commit of the PR. If that text doesn't parse
+   as a Conventional Commit, every commit of the PR silently drops out
+   of the changelog. This happened to #10. Call it "the commit-override
+   marker" instead.
 
 ## How releases happen
 

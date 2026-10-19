@@ -119,6 +119,10 @@ migration path.
   release-please parses `type(scope):` lines in commit bodies, so the
   default body (the PR title) lists every PR twice in the changelog.
   Details: CONTRIBUTING.md → "Merging pull requests".
+- **Never write the commit-override marker's literal name in a PR
+  description.** release-please treats the text after it as the message
+  of every commit in the PR, and drops them all from the changelog if
+  it doesn't parse.
 
 ## Working rules
 
