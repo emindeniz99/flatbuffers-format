@@ -54,10 +54,11 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         # All currently-supported LTS lines plus the current release.
-        # Node release cadence (as of 2026): 20 = maintenance LTS until
-        # Apr 2026; 22 = active LTS until Apr 2027; 24 = current LTS;
-        # 26 = current. Odd-numbered (21/23/25) are short-lived
-        # (six-month EOL) — intentionally skipped.
+        # Node release cadence (as of October 2026): 20 = end of life
+        # since Apr 2026; 22 = maintenance LTS until Apr 2027; 24 = LTS
+        # until Apr 2028; 26 = LTS from late October 2026. Odd-numbered
+        # (21/23/25) are short-lived (six-month EOL) — intentionally
+        # skipped.
         # Starts at 22 because pnpm 11 requires >=22.13, not because 20 is
         # unsupported: `engines` allows >=20, and that floor is verified in
         # flatbuffers-pm-compat.yml, which installs the packed tarball with

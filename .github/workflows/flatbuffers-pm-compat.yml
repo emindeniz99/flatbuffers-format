@@ -88,8 +88,11 @@ jobs:
           # pnpm 11 requires Node >=22.13, so the workspace matrices cannot
           # run on 20 — but a consumer installing the published tarball with
           # npm can, and that is exactly what the floor promises. Node 20 is
-          # EOL upstream; we keep supporting it because enterprises are slow
-          # to move, so it has to stay tested rather than assumed.
+          # EOL upstream since April 2026; we keep supporting it until 2027
+          # because enterprises are slow to move, so it has to stay tested
+          # rather than assumed. The plugin, editors and tree-sitter
+          # workflows check their own packed tarballs on Node 20 the same
+          # way.
           - pm: npm
             node-version: 20
     steps:

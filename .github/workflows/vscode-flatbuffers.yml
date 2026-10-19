@@ -19,10 +19,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Starts at 22 because pnpm 11 requires >=22.13, not because 20 is
-        # unsupported: `engines` allows >=20, and that floor is verified in
-        # flatbuffers-pm-compat.yml, which installs the packed tarball with
-        # npm on Node 20.
+        # Starts at 22 because pnpm 11 requires >=22.13. The extension
+        # itself runs on the Node inside VS Code (20 in VS Code 1.94, the
+        # oldest version `engines.vscode` allows), which is why its bundle
+        # targets node20; the matrix only runs the build and unit tests.
         node-version: [22, 24, 26]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

@@ -48,10 +48,18 @@ jobs:
   # `parser.setLanguage()` threw "Invalid language object"). This job
   # exercises what consumers actually get: the packed tarball, installed
   # into a throwaway project outside the workspace, parsed via the real
-  # `tree-sitter` runtime.
+  # `tree-sitter` runtime. Node 20 is the `engines` floor and can only be
+  # checked here: the workspace steps need pnpm 11, which requires Node
+  # >=22.13, so the tarball is packed on 22 and then installed and loaded
+  # on the matrix version. Node 20 is end of life since April 2026; it
+  # stays supported, and tested, until 2027.
   tree-sitter-flatbuffers-consumer:
-    name: tree-sitter-flatbuffers / node binding (packed tarball)
+    name: tree-sitter-flatbuffers / node binding (packed tarball, node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20, 22]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -68,6 +76,9 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Pack the tarball
         run: pnpm --filter tree-sitter-flatbuffers pack --pack-destination "$RUNNER_TEMP"
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node-version }}
       # Deliberately outside the workspace: inside it, pnpm would link the
       # source directory and the packaged artifact would never be tested.
       - name: Install into a clean consumer and parse # zizmor: ignore[adhoc-packages]
