@@ -423,7 +423,7 @@ jobs:
           # Marketplace outage never passes for a skipped check.
           listed=""
           for i in 1 2 3; do
-            out=$(npx --yes @vscode/vsce show emindeniz99.vscode-flatbuffers --json 2>/dev/null || true)
+            out=$(npx --yes @vscode/vsce@4.0.0 show emindeniz99.vscode-flatbuffers --json 2>/dev/null || true)
             if [ "$out" = "undefined" ]; then
               echo "::warning::emindeniz99.vscode-flatbuffers is not on the Marketplace yet; skipping."
               exit 0
@@ -440,7 +440,7 @@ jobs:
           fi
           # vsce show returns JSON with a versions[] sorted newest-first.
           for i in 1 2 3 4 5 6 7 8 9; do
-            latest=$(npx --yes @vscode/vsce show emindeniz99.vscode-flatbuffers --json 2>/dev/null \
+            latest=$(npx --yes @vscode/vsce@4.0.0 show emindeniz99.vscode-flatbuffers --json 2>/dev/null \
                      | python3 -c 'import json, sys; d=json.load(sys.stdin); print(d["versions"][0]["version"]) if d.get("versions") else print("")' \
                      || echo "")
             if [ "$latest" = "$v" ]; then
@@ -462,7 +462,7 @@ jobs:
           # Open VSX may have been skipped (no OVSX_PAT, namespace not registered).
           # Don't fail the workflow on a missing listing.
           for i in 1 2 3; do
-            latest=$(npx --yes ovsx get emindeniz99.vscode-flatbuffers --metadata 2>/dev/null \
+            latest=$(npx --yes ovsx@1.0.2 get emindeniz99.vscode-flatbuffers --metadata 2>/dev/null \
                      | python3 -c 'import json, sys; d=json.load(sys.stdin); print(d.get("version", ""))' \
                      || echo "")
             if [ "$latest" = "$v" ]; then

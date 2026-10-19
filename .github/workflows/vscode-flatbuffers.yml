@@ -90,7 +90,7 @@ jobs:
           pnpm deploy --filter vscode-flatbuffers --prod --legacy deploy/vscode
       - name: Package .vsix
         working-directory: deploy/vscode
-        run: npx --yes @vscode/vsce@3.9.2 package --no-dependencies --out vscode-flatbuffers.vsix
+        run: npx --yes @vscode/vsce@4.0.0 package --no-dependencies --out vscode-flatbuffers.vsix
       - name: Verify the packaged .vsix activates
         working-directory: .
         run: node vscode-flatbuffers/scripts/verify-vsix.mjs deploy/vscode/vscode-flatbuffers.vsix

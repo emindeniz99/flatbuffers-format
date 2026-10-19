@@ -292,11 +292,11 @@ jobs:
       # rather than the newer 1.1.0.
       - name: Package .vsix
         working-directory: deploy/vscode
-        run: npx --yes @vscode/vsce@3.9.2 package --no-dependencies --out vscode-flatbuffers.vsix
+        run: npx --yes @vscode/vsce@4.0.0 package --no-dependencies --out vscode-flatbuffers.vsix
       - name: Publish to VS Code Marketplace
         if: ${{ env.VSCE_PAT != '' }}
         working-directory: deploy/vscode
-        run: npx --yes @vscode/vsce@3.9.2 publish --packagePath vscode-flatbuffers.vsix
+        run: npx --yes @vscode/vsce@4.0.0 publish --packagePath vscode-flatbuffers.vsix
       # Open VSX is the Eclipse Foundation registry that VSCodium,
       # Cursor, Windsurf, Gitpod and Theia install from — Microsoft's
       # terms bar those editors from the VS Marketplace, so this is the
