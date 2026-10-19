@@ -71,7 +71,7 @@ test("printWidth: 40 forwards to the engine's lineWidth", async () => {
     printWidth: 30,
   });
   // Expanded form: one value per line.
-  assert.match(out, /^  Red,$/m, "narrow printWidth must force expansion");
+  assert.match(out, /^ {2}Red,$/m, "narrow printWidth must force expansion");
 });
 
 test("endOfLine: 'crlf' produces CRLF newlines", async () => {
