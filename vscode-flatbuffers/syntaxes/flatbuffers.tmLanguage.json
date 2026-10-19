@@ -37,13 +37,28 @@
       ]
     },
     "strings": {
-      "name": "string.quoted.double.fbs",
-      "begin": "\"",
-      "end": "\"",
       "patterns": [
         {
-          "name": "constant.character.escape.fbs",
-          "match": "\\\\."
+          "name": "string.quoted.double.fbs",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.fbs",
+              "match": "\\\\."
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.single.fbs",
+          "begin": "'",
+          "end": "'",
+          "patterns": [
+            {
+              "name": "constant.character.escape.fbs",
+              "match": "\\\\."
+            }
+          ]
         }
       ]
     },
