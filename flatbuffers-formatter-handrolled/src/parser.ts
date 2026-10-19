@@ -178,6 +178,7 @@ class Parser {
       trailing: this.tokens[close]!.trailing,
       openTrailing: this.tokens[open]!.trailing,
       closeLeading: this.tokens[close]!.leading,
+      openBreak: this.tokens[open + 1]!.line > this.tokens[open]!.line,
     };
   }
 
@@ -588,6 +589,7 @@ class Parser {
     return {
       openTrailing: this.tokens[open]!.trailing,
       closeLeading: this.tokens[this.pos - 1]!.leading,
+      openBreak: this.tokens[open + 1]!.line > this.tokens[open]!.line,
     };
   }
 

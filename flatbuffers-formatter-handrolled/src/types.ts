@@ -87,6 +87,8 @@ export type WithBody = {
   openTrailing: Trivia[];
   // Trivia between the last item (or the `{` line) and the `}`.
   closeLeading: Trivia[];
+  // The source has a line break between the `{` and what follows it.
+  openBreak: boolean;
 };
 
 export type IncludeDecl = WithTrivia & {

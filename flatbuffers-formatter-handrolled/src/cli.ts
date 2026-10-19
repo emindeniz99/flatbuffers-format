@@ -31,6 +31,13 @@ Options:
       --max-blank-lines <n>   Max consecutive blank lines kept between decls (default: 1)
       --wrap-comments         Reflow long line comments at whitespace (default: off)
       --comment-width <n>     Wrap column for --wrap-comments (defaults to --line-width)
+      --trailing-comma <all|none>
+                              Comma after the last value of an expanded enum/union (default: all)
+      --object-wrap <preserve|collapse>
+                              Keep bodies expanded when the source breaks after '{' (default: preserve)
+      --no-bracket-spacing    Print one-line bodies as {a, b} instead of { a, b }
+      --end-of-line <lf|crlf|auto>
+                              Line endings; auto keeps the file's own (default: lf)
       --no-gitignore          Don't consult .gitignore when walking directories
   -h, --help                  Show this message
 
@@ -145,6 +152,10 @@ async function main() {
     "max-blank-lines"?: string;
     "wrap-comments"?: boolean;
     "comment-width"?: string;
+    "trailing-comma"?: string;
+    "object-wrap"?: string;
+    "no-bracket-spacing"?: boolean;
+    "end-of-line"?: string;
   };
   let positionals: string[];
   try {
@@ -162,6 +173,10 @@ async function main() {
         "max-blank-lines": { type: "string" },
         "wrap-comments": { type: "boolean" },
         "comment-width": { type: "string" },
+        "trailing-comma": { type: "string" },
+        "object-wrap": { type: "string" },
+        "no-bracket-spacing": { type: "boolean" },
+        "end-of-line": { type: "string" },
       },
       allowPositionals: true,
     }));
@@ -212,6 +227,19 @@ async function main() {
     if (!Number.isInteger(n) || n < 1) die("--comment-width expects a positive integer");
     opts.commentWidth = n;
   }
+
+  const choice = <T extends string>(flag: string, value: string | undefined, allowed: readonly T[]): T | undefined => {
+    if (value === undefined) return undefined;
+    if (!(allowed as readonly string[]).includes(value)) die(`--${flag} expects one of: ${allowed.join(", ")}`);
+    return value as T;
+  };
+  const trailingComma = choice("trailing-comma", values["trailing-comma"], ["all", "none"] as const);
+  if (trailingComma) opts.trailingComma = trailingComma;
+  const objectWrap = choice("object-wrap", values["object-wrap"], ["preserve", "collapse"] as const);
+  if (objectWrap) opts.objectWrap = objectWrap;
+  if (values["no-bracket-spacing"]) opts.bracketSpacing = false;
+  const endOfLine = choice("end-of-line", values["end-of-line"], ["lf", "crlf", "auto"] as const);
+  if (endOfLine) opts.endOfLine = endOfLine;
 
   // Positional handling: `-` means stdin, `fix` is an alias for
   // --write when it appears as the first positional, everything else
