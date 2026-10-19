@@ -1,6 +1,6 @@
 {
   "name": "flatbuffers-format-editors",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Browser editor integrations for FlatBuffers schemas: CodeMirror 6 language extension, Monaco Monarch tokenizer, and a <flatbuffers-editor> Web Component. Delegates to the flatbuffers-format engine for formatting; bring your own renderer.",
   "keywords": [
     "flatbuffers",

@@ -8,6 +8,25 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > "breaking changes" between internal names — describe pre-publication
 > development rather than migrations for an installed version.
 
+## [0.3.0](https://github.com/emindeniz99/flatbuffers-format/compare/vscode-flatbuffers-v0.2.0...vscode-flatbuffers-v0.3.0) (2026-10-19)
+
+
+### Features
+
+* **vscode:** add trailingComma, objectWrap and bracketSpacing settings ([ab7fde6](https://github.com/emindeniz99/flatbuffers-format/commit/ab7fde645690608dc1319f165494682083a19baf))
+
+
+### Bug Fixes
+
+* **vscode:** highlight single-quoted strings as strings ([7bcfa79](https://github.com/emindeniz99/flatbuffers-format/commit/7bcfa79faf07ef055464e88f8fe5884c15351a4b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * flatbuffers-format bumped to 0.5.0
+
 ## [0.2.0](https://github.com/emindeniz99/flatbuffers-format/compare/vscode-flatbuffers-v0.1.2...vscode-flatbuffers-v0.2.0) (2026-10-19)
 
 

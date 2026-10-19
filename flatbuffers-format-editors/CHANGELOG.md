@@ -14,6 +14,22 @@ do not hand-edit released entries.
 > pre-publication development. Nothing installed from the registry needs
 > to migrate for them.
 
+## [0.1.1](https://github.com/emindeniz99/flatbuffers-format/compare/flatbuffers-format-editors-v0.1.0...flatbuffers-format-editors-v0.1.1) (2026-10-19)
+
+
+### Bug Fixes
+
+* **editors:** highlight single-quoted strings as strings ([1cce451](https://github.com/emindeniz99/flatbuffers-format/commit/1cce451cb1c479ec210f54cfdd16b090c9b69dbf))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * flatbuffers-format bumped to 0.5.0
+  * peerDependencies
+    * flatbuffers-format bumped to 0.5.0
+
 ## [Unreleased]
 
 ## [0.1.0] - 2026-08-07

@@ -13,6 +13,19 @@ do not hand-edit released entries.
 > "breaking changes" between internal names — describe pre-publication
 > development rather than migrations for an installed version.
 
+## [0.5.0](https://github.com/emindeniz99/flatbuffers-format/compare/intellij-flatbuffers-v0.4.0...intellij-flatbuffers-v0.5.0) (2026-10-19)
+
+
+### Features
+
+* **intellij:** add the trailing comma, wrap and bracket spacing options ([7e6b9ae](https://github.com/emindeniz99/flatbuffers-format/commit/7e6b9aeb92378ade48a27116b49624aa73898b51))
+
+
+### Bug Fixes
+
+* **intellij:** highlight `-inf` and `+nan` as one literal ([2783d2c](https://github.com/emindeniz99/flatbuffers-format/commit/2783d2c3ebbb19fc869fa1028352f9288129dee0))
+* **intellij:** highlight single-quoted strings as strings ([0933a06](https://github.com/emindeniz99/flatbuffers-format/commit/0933a063785b3cc7e05a2f48435aebd8119ad235))
+
 ## [0.4.0](https://github.com/emindeniz99/flatbuffers-format/compare/intellij-flatbuffers-v0.3.0...intellij-flatbuffers-v0.4.0) (2026-10-19)
 
 
