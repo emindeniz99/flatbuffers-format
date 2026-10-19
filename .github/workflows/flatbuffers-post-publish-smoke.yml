@@ -415,12 +415,28 @@ jobs:
           set -euo pipefail
           v="$VERSION"
           # Publishing to the Marketplace waits on a VSCE_PAT, and until the
-          # first publish `vsce show` finds no extension at all. Say so
-          # instead of failing every run; once it is listed, a missing
-          # version is a real failure.
-          if ! npx --yes @vscode/vsce show emindeniz99.vscode-flatbuffers --json >/dev/null 2>&1; then
-            echo "::warning::emindeniz99.vscode-flatbuffers is not on the Marketplace yet; skipping."
-            exit 0
+          # first publish the extension does not exist. `vsce show --json`
+          # then prints `undefined` and still exits 0, so that exact answer
+          # (and only that one) means "never published": say so instead of
+          # failing every run. Anything that is neither that nor JSON is a
+          # network or service error, retried and then a failure, so a
+          # Marketplace outage never passes for a skipped check.
+          listed=""
+          for i in 1 2 3; do
+            out=$(npx --yes @vscode/vsce show emindeniz99.vscode-flatbuffers --json 2>/dev/null || true)
+            if [ "$out" = "undefined" ]; then
+              echo "::warning::emindeniz99.vscode-flatbuffers is not on the Marketplace yet; skipping."
+              exit 0
+            fi
+            if printf '%s' "$out" | python3 -c 'import json, sys; json.load(sys.stdin)' 2>/dev/null; then
+              listed=yes
+              break
+            fi
+            sleep 15
+          done
+          if [ -z "$listed" ]; then
+            echo "::error::The Marketplace did not answer for emindeniz99.vscode-flatbuffers after 3 tries."
+            exit 1
           fi
           # vsce show returns JSON with a versions[] sorted newest-first.
           for i in 1 2 3 4 5 6 7 8 9; do
