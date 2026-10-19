@@ -4,6 +4,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.options.BoundConfigurable
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.ValidationInfo
@@ -14,6 +15,7 @@ import com.intellij.ui.dsl.builder.bindText
 import com.intellij.ui.dsl.builder.columns
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.ui.layout.ValidationInfoBuilder
+import java.nio.file.Path
 
 /**
  * Settings panel under Preferences → Tools → FlatBuffers:
@@ -36,6 +38,11 @@ import com.intellij.ui.layout.ValidationInfoBuilder
  *      straight through, appended last, unvalidated — the engine's CLI
  *      gives better error messages than we ever would.
  *
+ * When [project] has a `.flatbuffers-format.json` (see [ProjectConfig]),
+ * that file replaces 3 and 4 for its schemas. The page says so and
+ * disables them: they still apply to projects without one, but editing
+ * them here would change nothing the user is looking at.
+ *
  * The numeric fields *are* validated here, which the free-text box
  * never could be: a bad value must not reach the engine, because a
  * failed format looks to the user like the plugin is broken.
@@ -44,9 +51,12 @@ import com.intellij.ui.layout.ValidationInfoBuilder
  * is the recommended path since 2022.1 and trivially threads
  * isModified/apply/reset through `bindText`/`bindIntText`/`bindSelected`.
  */
-class FlatBuffersConfigurable : BoundConfigurable("FlatBuffers") {
+class FlatBuffersConfigurable(private val project: Project) : BoundConfigurable("FlatBuffers") {
     override fun createPanel(): DialogPanel {
         val settings = FlatBuffersSettings.getInstance()
+        // Looked up from the project root; a file's own lookup starts at
+        // its directory, so a config in a subfolder is not shown here.
+        val projectConfig = project.basePath?.let { ProjectConfig.findFrom(Path.of(it)) }
         // Someone opening this page has usually just installed
         // something; a cached "no Node here" from IDE start would make
         // the page lie about it.
@@ -150,6 +160,14 @@ class FlatBuffersConfigurable : BoundConfigurable("FlatBuffers") {
                         },
                     )
             }
+            if (projectConfig != null) {
+                row {
+                    comment("Using project config: <code>$projectConfig</code>. It replaces the " +
+                        "format options and extra arguments below for this project's schemas, so " +
+                        "the IDE formats exactly as the CLI and CI do. They still apply to " +
+                        "projects without a <code>${ProjectConfig.FILE_NAME}</code>.")
+                }
+            }
             group("Format options") {
                 row("Indent width:") {
                     textField()
@@ -204,7 +222,7 @@ class FlatBuffersConfigurable : BoundConfigurable("FlatBuffers") {
                             "<code>${FormatterCliArgs.COMMENT_WIDTH_INHERIT}</code> follows the " +
                             "line width, which is the engine's default.")
                 }
-            }
+            }.enabled(projectConfig == null)
             row("Extra arguments:") {
                 textField()
                     .columns(40)
@@ -212,7 +230,7 @@ class FlatBuffersConfigurable : BoundConfigurable("FlatBuffers") {
                     .comment("Whitespace-separated, for anything not covered above — e.g. " +
                         "<code>--no-gitignore</code>. Appended after the options above, so a " +
                         "flag repeated here wins.")
-            }
+            }.enabled(projectConfig == null)
             row {
                 comment("Format on save is handled by the IDE, not by this plugin: " +
                     "enable <i>Settings | Tools | Actions on Save | Reformat code</i>. " +

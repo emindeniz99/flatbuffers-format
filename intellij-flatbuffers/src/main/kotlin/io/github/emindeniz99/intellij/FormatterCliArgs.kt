@@ -1,5 +1,7 @@
 package io.github.emindeniz99.intellij
 
+import java.nio.file.Path
+
 /**
  * Turns the persisted format settings into the argument list the engine
  * is invoked with.
@@ -99,6 +101,17 @@ object FormatterCliArgs {
         // coin toss.
         addAll(split(state.extraArgs))
     }
+
+    /**
+     * The arguments when [configFile] — the project's
+     * `.flatbuffers-format.json` — applies: that file and nothing else.
+     * It replaces every setting on this page, the free-text box
+     * included, so the IDE formats exactly as the CLI does in CI. A
+     * setting filling a key the file leaves out would quietly diverge.
+     * Without a config file, this is [of] over the settings.
+     */
+    fun of(state: FlatBuffersSettings.State, configFile: Path?): List<String> =
+        if (configFile != null) listOf("--config", configFile.toString()) else of(state)
 
     /**
      * Splits the free-text argument box the way the caller used to
