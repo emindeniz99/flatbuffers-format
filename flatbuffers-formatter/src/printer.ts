@@ -27,7 +27,6 @@ import {
   NamespaceDeclContext,
   NestedObjectValueContext,
   type NsIdentContext,
-  type ObjectFieldContext,
   type ObjectLiteralContext,
   ObjectLiteralDeclContext,
   type ObjectValueContext,
@@ -643,44 +642,89 @@ export class Printer {
   }
 
   private printObjectDecl(ctx: ObjectLiteralDeclContext) {
-    // Comments inside the literal were hoisted above it by printDeclItem.
-    this.out.push(this.formatObject(ctx.objectLiteral(), 0));
+    this.writeObject(ctx.objectLiteral(), 0);
     this.endLine(ctx.stop!.tokenIndex, 0);
   }
 
-  private formatObject(ctx: ObjectLiteralContext, depth: number): string {
-    const fields = ctx.objectField();
-    if (fields.length === 0) return "{}";
-    const inner = this.indent(depth + 1);
-    const close = this.indent(depth);
-    const parts = fields.map((f) => inner + this.formatObjectField(f, depth + 1));
-    return `{${this.opts.newline}${parts.join("," + this.opts.newline)}${this.opts.newline}${close}}`;
+  // Object and array literals are written line by line, like a body:
+  // each field or element ends its own line and keeps the comments on
+  // it, and comments before a closing bracket stay inside. Blank lines
+  // inside a literal are dropped, as they always were.
+  private writeObject(ctx: ObjectLiteralContext, depth: number) {
+    this.writeBracketed("{}", ctx.start!.tokenIndex, ctx.stop!.tokenIndex, ctx.objectField(), depth, (f) => {
+      const v = f.objectValue();
+      // Comments between the key and the value have no slot; a nested
+      // literal keeps its own.
+      const interiorEnd = v instanceof ScalarValueContext ? f.stop!.tokenIndex : v.start!.tokenIndex;
+      this.writeInterior(f.start!.tokenIndex, interiorEnd, depth + 1);
+      const key = f.identifier()?.getText() ?? f.STRING_LITERAL()!.getText();
+      this.out.push(`${this.indent(depth + 1)}${key}: `);
+      this.writeObjectValue(v, depth + 1);
+    });
   }
 
-  private formatObjectField(f: ObjectFieldContext, depth: number): string {
-    const key = f.identifier()?.getText() ?? f.STRING_LITERAL()!.getText();
-    return `${key}: ${this.formatObjectValue(f.objectValue(), depth)}`;
-  }
-
-  private formatObjectValue(v: ObjectValueContext, depth: number): string {
-    if (v instanceof ScalarValueContext) return this.formatScalar(v.scalar());
-    if (v instanceof NestedObjectValueContext) {
-      return this.formatObject(v.objectLiteral(), depth);
+  private writeObjectValue(v: ObjectValueContext, depth: number) {
+    if (v instanceof ScalarValueContext) {
+      this.out.push(this.formatScalar(v.scalar()));
+    } else if (v instanceof NestedObjectValueContext) {
+      this.writeObject(v.objectLiteral(), depth);
+    } else if (v instanceof ArrayValueContext) {
+      this.writeArray(v, depth);
+    } else {
+      this.out.push(v.getText());
     }
-    if (v instanceof ArrayValueContext) {
-      const values = v.objectValue();
-      if (values.length === 0) return "[]";
-      const allScalar = values.every((x) => x instanceof ScalarValueContext);
-      if (allScalar) {
-        const inline = `[${values.map((x) => this.formatObjectValue(x, depth)).join(", ")}]`;
-        if (inline.length + depth * this.opts.indent <= this.opts.lineWidth) return inline;
+  }
+
+  private writeArray(ctx: ArrayValueContext, depth: number) {
+    const values = ctx.objectValue();
+    const open = ctx.start!.tokenIndex;
+    const close = ctx.stop!.tokenIndex;
+    if (
+      values.length > 0 &&
+      values.every((x) => x instanceof ScalarValueContext) &&
+      !hasCommentsBetween(open, close, this.stream)
+    ) {
+      const inline = `[${values.map((x) => this.formatScalar((x as ScalarValueContext).scalar())).join(", ")}]`;
+      if (inline.length + depth * this.opts.indent <= this.opts.lineWidth) {
+        this.out.push(inline);
+        return;
       }
-      const inner = this.indent(depth + 1);
-      const close = this.indent(depth);
-      const parts = values.map((x) => inner + this.formatObjectValue(x, depth + 1));
-      return `[${this.opts.newline}${parts.join("," + this.opts.newline)}${this.opts.newline}${close}]`;
     }
-    return v.getText();
+    this.writeBracketed("[]", open, close, values, depth, (x) => {
+      if (x instanceof ScalarValueContext) {
+        this.writeInterior(x.start!.tokenIndex, x.stop!.tokenIndex, depth + 1);
+      }
+      this.out.push(this.indent(depth + 1));
+      this.writeObjectValue(x, depth + 1);
+    });
+  }
+
+  // A bracketed list at `depth`: tokens `open` … `close`, one item per
+  // line written by `writeItem` after the item's leading comments. The
+  // closing bracket is left on the current line for the caller to end.
+  private writeBracketed<T extends ParserRuleContext>(
+    brackets: "{}" | "[]",
+    open: number,
+    close: number,
+    items: T[],
+    depth: number,
+    writeItem: (item: T) => void,
+  ) {
+    if (items.length === 0 && !hasCommentsBetween(open, close, this.stream)) {
+      this.out.push(brackets);
+      return;
+    }
+    this.out.push(brackets[0]!);
+    this.endLine(open, depth + 1);
+    items.forEach((item, i) => {
+      this.writeTrivia(commentsOnly(leadingTrivia(item, this.stream)), depth + 1);
+      writeItem(item);
+      if (i < items.length - 1) this.out.push(",");
+      const stop = item.stop!.tokenIndex;
+      this.endLine(stop, depth + 1, this.anchorAfter(stop));
+    });
+    this.writeTrivia(commentsOnly(leadingTriviaAt(close, this.stream)), depth + 1);
+    this.out.push(this.indent(depth) + brackets[1]!);
   }
 }
 
@@ -732,8 +776,13 @@ function hasBody(item: unknown): boolean {
     item instanceof StructDeclContext ||
     item instanceof EnumDeclContext ||
     item instanceof UnionDeclContext ||
-    item instanceof RpcServiceDeclContext
+    item instanceof RpcServiceDeclContext ||
+    item instanceof ObjectLiteralDeclContext
   );
+}
+
+function commentsOnly(trivia: Trivia[]): Trivia[] {
+  return trivia.filter((t) => t.kind !== "blank_line");
 }
 
 function stripLeadingBlanks(trivia: Trivia[]): Trivia[] {

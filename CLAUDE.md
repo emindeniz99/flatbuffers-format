@@ -113,6 +113,12 @@ migration path.
   that specific PR*. Via the GitHub API pass `merge_method: "merge"`;
   locally use `git merge --no-ff`.
 - Don't delete the source branch as part of the merge unless asked.
+- **Keep the merge commit body non-conventional.** Pass
+  `commit_title: "Merge pull request #N from <branch>"` and a
+  `commit_message` that is a plain sentence, never the PR title.
+  release-please parses `type(scope):` lines in commit bodies, so the
+  default body (the PR title) lists every PR twice in the changelog.
+  Details: CONTRIBUTING.md → "Merging pull requests".
 
 ## Working rules
 

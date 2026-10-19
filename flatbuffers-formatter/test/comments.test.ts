@@ -309,6 +309,57 @@ namespace a.b;
   assert.equal(format(out), out);
 });
 
+test("object literal: comments stay with their field, element or bracket", () => {
+  // Before, every comment inside a literal was hoisted above the whole
+  // literal, far from the value it described.
+  assertFormatsTo(
+    `{ // config
+  hp: 300, // boss level
+  // shown in the UI
+  name: "Orc" /* placeholder */ ,
+  pos: { x: 1, // x axis
+    y: 2
+    // z comes later
+  },
+  tags: [1, /* two */ 2],
+  key /* odd spot */ : true
+  // end
+} // after
+`,
+    `{ // config
+  hp: 300, // boss level
+  // shown in the UI
+  name: "Orc", /* placeholder */
+  pos: {
+    x: 1, // x axis
+    y: 2
+    // z comes later
+  },
+  tags: [
+    1, /* two */
+    2
+  ],
+  /* odd spot */
+  key: true
+  // end
+} // after
+`,
+  );
+});
+
+test("object literal: comment-only and empty literals", () => {
+  assertFormatsTo("{ a: { /* none yet */ }, b: [\n  // none yet\n], c: {}, d: [] }\n", `{
+  a: { /* none yet */
+  },
+  b: [
+    // none yet
+  ],
+  c: {},
+  d: []
+}
+`);
+});
+
 test("compact mode never collapses a body holding a comment", () => {
   // Collapsing `A, // c` onto one line would swallow the rest of the
   // body into the comment.

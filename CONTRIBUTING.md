@@ -270,6 +270,20 @@ back to `git add <paths> && git diff --cached --name-only && git commit`
 4. The only exception is the maintainer explicitly asking for a squash
    on a specific PR, in that PR.
 5. Don't delete the source branch as part of the merge unless asked.
+6. **Keep the PR title out of the merge commit body.** GitHub's default
+   body is the PR title. release-please reads every Conventional Commit
+   line in a commit body as a separate change. A conventional PR title in
+   the merge commit therefore lists the PR a second time in the changelog,
+   and possibly under a package it doesn't touch. Keep the title
+   `Merge pull request #N from <branch>` and make the body blank or a
+   plain sentence with no `type(scope):` prefix (GitHub API:
+   `commit_message`). To make this the default for the merge button:
+   `gh api -X PATCH repos/emindeniz99/flatbuffers-format -f merge_commit_title=MERGE_MESSAGE -f merge_commit_message=BLANK`.
+   A `BEGIN_COMMIT_OVERRIDE` block in the PR description does not help.
+   release-please's README says it doesn't work with plain merges,
+   because release-please can't tell which commit of the PR the override
+   belongs to. In practice (17.11.2) it applies the override to every
+   commit of the PR, so the entry is still duplicated.
 
 ## How releases happen
 

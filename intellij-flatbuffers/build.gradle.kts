@@ -21,6 +21,7 @@
 //     this up automatically.
 
 import java.io.File
+import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 
@@ -28,6 +29,10 @@ plugins {
     java
     kotlin("jvm") version "2.4.10"
     id("org.jetbrains.intellij.platform") version "2.16.0"
+    // Only for its Markdown → HTML renderer (`markdownToHTML`), used for
+    // the change notes below. Its own CHANGELOG tasks are not used:
+    // release-please writes the changelogs.
+    id("org.jetbrains.changelog") version "2.5.0"
 }
 
 group = providers.gradleProperty("pluginGroup").get()
@@ -230,6 +235,41 @@ val bundleEngineJs = tasks.register<Exec>("bundleEngineJs") {
 
 sourceSets["main"].resources.srcDir(bundleEngineJs)
 
+// ---- generated change notes -------------------------------------------
+// The Marketplace's "What's New" for a version is rendered from the two
+// CHANGELOG.md files release-please writes: this plugin's section for
+// `pluginVersion`, then the bundled engine's section for its version (a
+// formatter fix reaches plugin users through the bundle, but
+// release-please files it under the engine). They used to be
+// hand-written in plugin.xml, which release-please never touches, so the
+// notes drifted from the version: 0.3.0 shipped showing 0.2.0's list.
+//
+// A missing section fails the build. release-please adds both sections
+// in the same commit that bumps the versions, so a missing one means
+// something is broken, and it must not ship with empty notes.
+fun changelogSection(changelog: File, version: String): String {
+    val lines = changelog.readLines()
+    val start = lines.indexOfFirst { it.startsWith("## [$version]") }
+    check(start >= 0) { "$changelog has no \"## [$version]\" section for the change notes" }
+    val end = (start + 1 until lines.size).firstOrNull { lines[it].startsWith("## ") } ?: lines.size
+    // Demote release-please's "### Features" one level under our headings.
+    return lines.subList(start + 1, end).joinToString("\n") { it.replace(Regex("^###"), "####") }.trim()
+}
+
+fun changeNotesHtml(): String {
+    val pluginVersion = providers.gradleProperty("pluginVersion").get()
+    @Suppress("UNCHECKED_CAST")
+    val engine = groovy.json.JsonSlurper()
+        .parse(file("../flatbuffers-formatter/package.json")) as Map<String, Any?>
+    val engineVersion = engine["version"] as String
+    return markdownToHTML(
+        "### $pluginVersion\n\n" +
+            changelogSection(file("CHANGELOG.md"), pluginVersion) +
+            "\n\n### Bundled formatter: flatbuffers-format $engineVersion\n\n" +
+            changelogSection(file("../flatbuffers-formatter/CHANGELOG.md"), engineVersion),
+    )
+}
+
 kotlin {
     jvmToolchain(providers.gradleProperty("javaVersion").get().toInt())
     sourceSets["main"].kotlin.srcDir(generateEngineVersion)
@@ -239,10 +279,9 @@ intellijPlatform {
     pluginConfiguration {
         version = providers.gradleProperty("pluginVersion")
 
-        // Plugin.xml's <description> and <change-notes> can also live
-        // here as Gradle properties; we keep them inline in plugin.xml
-        // so README + CHANGELOG stay the single source of truth and
-        // diffs are reviewable without Gradle parsing.
+        // <description> stays inline in plugin.xml. <change-notes> is
+        // generated: see `changeNotesHtml` below.
+        changeNotes = providers.provider { changeNotesHtml() }
 
         ideaVersion {
             // sinceBuild = 242.* means IntelliJ 2024.2.0 onward (and

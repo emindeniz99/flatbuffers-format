@@ -1,0 +1,36 @@
+// Comments inside an object literal stay with the field, element or
+// bracket they were written next to.
+
+struct Vec2 {
+  x: float;
+  y: float;
+}
+
+table Monster {
+  hp: int;
+  name: string;
+  pos: Vec2;
+  tags: [int];
+  path: [Vec2];
+  boss: bool;
+}
+
+root_type Monster;
+
+{ // the default monster
+  hp: 300, // boss level
+  // shown in the UI
+  "name": "Orc" /* placeholder */ ,
+  pos: { x: 1.5, // spawn column
+    y: -2
+    // y counts down
+  },
+  tags: [1, /* rare */ 2, 3],
+  path: [
+    // first waypoint
+    { x: 0, y: 0 }, // origin
+    { x: 1, y: 1 }
+  ],
+  boss /* odd spot */ : true
+  // no more fields
+} // end of data
