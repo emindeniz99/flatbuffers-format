@@ -92,6 +92,7 @@ declare -A MIN_FLATC_MAJOR=(
   ["20-enum-value-metadata.fbs"]=23
   ["21-offset64-vector64-attrs.fbs"]=23
   ["22-union-underlying-type.fbs"]=23
+  ["27-upstream-syntax.fbs"]=23
 )
 
 shopt -s nullglob

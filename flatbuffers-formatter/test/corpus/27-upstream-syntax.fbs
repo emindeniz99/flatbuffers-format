@@ -7,6 +7,9 @@ include 'other_schema.fbs';
 attribute 'priority';
 
 table FieldTable {}
+table A {}
+table B {}
+table C {}
 
 // Explicit discriminants on a union with an underlying type.
 union ABC: int { A = 555, B = 666, C = 777}
