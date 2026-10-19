@@ -100,6 +100,32 @@ jobs:
       - name: Publish to npm with provenance
         run: pnpm --filter flatbuffers-format publish --no-git-checks --provenance --access public
 
+  # The native and WASM workflows attach their binaries to the engine's
+  # GitHub Release on `release: released`, but a release created with
+  # GITHUB_TOKEN (as release-please does here) starts no workflows, so
+  # that event never fires. A workflow_dispatch from GITHUB_TOKEN is the
+  # exception GitHub allows. `--ref` is the tag, so the binaries are
+  # built from the released commit, not whatever main is by then. The
+  # IntelliJ plugin's "Download bundled engine" button fetches these.
+  attach-flatbuffers-format-binaries:
+    name: build binaries for the flatbuffers-format release
+    needs: release-please
+    if: needs.release-please.outputs.flatbuffers_format_released == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch native and WASM builds
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ needs.release-please.outputs.flatbuffers_format_tag_name }}
+        run: |
+          set -euo pipefail
+          for workflow in flatbuffers-native-binaries.yml flatbuffers-wasm-binary.yml; do
+            gh workflow run "$workflow" --repo "$REPO" --ref "$TAG" -f tag="$TAG"
+          done
+
   publish-prettier-plugin-flatbuffers:
     name: npm publish prettier-plugin-flatbuffers
     needs: release-please
