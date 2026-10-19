@@ -62,6 +62,12 @@ class FlatBuffersLexer : LexerBase() {
             (c == '+' || c == '-') && peek(1)?.isDigit() == true -> scanNumber()
             (c == '+' || c == '-') && peek(1) == '.' && peek(2)?.isDigit() == true -> scanNumber()
             c == '.' && peek(1)?.isDigit() == true -> scanNumber()
+            // A signed identifier is one scalar (`-inf`, `+nan`), as in the
+            // grammar; the sign alone is not a valid token.
+            (c == '+' || c == '-') && peek(1)?.let { isIdentStart(it) } == true -> {
+                position++
+                scanIdentifier()
+            }
             isIdentStart(c) -> scanIdentifier()
             else -> scanPunctuation(c)
         }
@@ -205,9 +211,10 @@ class FlatBuffersLexer : LexerBase() {
             "float32", "float64",
         )
         private val BOOL_LITERALS = setOf("true", "false")
-        // FlatBuffers floats accept inf/nan/-inf/-nan as literal tokens.
+        // FlatBuffers floats accept inf/infinity/nan, signed or not, as
+        // literal tokens.
         // `null` isn't a FlatBuffers literal but Prettier-style schemas
         // sometimes use it in attributes; harmless to include.
-        private val NULL_LITERALS = setOf("null", "inf", "nan")
+        private val NULL_LITERALS = setOf("null", "inf", "infinity", "nan")
     }
 }
