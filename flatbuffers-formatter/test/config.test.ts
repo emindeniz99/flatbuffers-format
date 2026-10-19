@@ -67,6 +67,8 @@ test("loadConfig rejects unknown keys and wrong types, naming the file and key",
     ['{"maxBlankLines": 1.5}', /"maxBlankLines" must be a non-negative integer/],
     ['{"useTabs": "yes"}', /"useTabs" must be a boolean/],
     ['{"newline": "\\r\\n"}', /unknown key "newline"/],
+    ['{"constructor": 1}', /unknown key "constructor"/],
+    ['{"__proto__": 1}', /unknown key "__proto__"/],
     ["[]", /must contain a JSON object/],
     ["{indent: 2}", /invalid JSON/],
   ];
@@ -129,6 +131,17 @@ test("CLI: --check, --diff and --write honor the config", () => {
   writeFileSync(x, UGLY);
   assert.equal(cli(["--write", x]).status, 0);
   assert.equal(readFileSync(x, "utf8"), EXPANDED_4);
+});
+
+test("CLI: an invalid config for a later file stops --write before any file changes", () => {
+  const root = fixture();
+  writeFileSync(join(root, "a", "b", ".flatbuffers-format.json"), '{"indnt": 4}');
+  const x = join(root, "a", "x.fbs"); // valid config, needs formatting
+  const y = join(root, "a", "b", "y.fbs"); // invalid config
+  const r = cli(["--write", x, y]);
+  assert.equal(r.status, 2);
+  assert.equal(readFileSync(x, "utf8"), UGLY, "earlier file left untouched");
+  assert.equal(readFileSync(y, "utf8"), UGLY);
 });
 
 test("CLI: an invalid config exits 2, names the file and key, and writes nothing", () => {

@@ -355,9 +355,13 @@ async function main() {
   let unformatted = 0;
   let failed = 0;
 
-  for (const file of files) {
+  // Resolve every file's options before writing any: an invalid config
+  // found for a later file must stop the run before earlier files change.
+  const fileOptions = files.map(optionsFor);
+
+  for (const [i, file] of files.entries()) {
     const src = readFileSync(file, "utf8");
-    const fileOpts = optionsFor(file);
+    const fileOpts = fileOptions[i]!;
     let out: string;
     try {
       out = format(src, fileOpts);

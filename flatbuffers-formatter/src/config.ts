@@ -67,7 +67,9 @@ export function loadConfig(file: string): FormatOptions {
   }
   const options: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(parsed)) {
-    const rule = KEYS[key];
+    // Own keys only: "constructor" or "__proto__" must be unknown keys,
+    // not Object.prototype members.
+    const rule = Object.hasOwn(KEYS, key) ? KEYS[key] : undefined;
     if (!rule) {
       throw new ConfigError(
         file,
