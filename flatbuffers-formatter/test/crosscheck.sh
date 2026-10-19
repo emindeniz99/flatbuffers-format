@@ -85,4 +85,23 @@ for f in "$CORPUS"/*.fbs; do
 done
 echo "Non-default combo ($flags): $combo_fail mismatches"
 
-[ $fail -eq 0 ] && [ $parse_div -eq 0 ] && [ $combo_fail -eq 0 ]
+# Third pass: every corpus file with CRLF line endings. Windows checkouts
+# have them, and the two lexers once disagreed on them (the hand-rolled
+# one kept the `\r` inside `//` comments).
+crlf_fail=0
+for f in "$CORPUS"/*.fbs; do
+  name=$(basename "$f")
+  crlf=$(sed 's/$/\r/' "$f")
+  h=$(printf '%s\n' "$crlf" | $HAND - 2>/dev/null);  h_st=$?
+  a=$(printf '%s\n' "$crlf" | $ANTL - 2>/dev/null);  a_st=$?
+  if [ $h_st -ne 0 ] && [ $a_st -ne 0 ]; then
+    continue
+  fi
+  if [ "$h" != "$a" ]; then
+    echo "  CRLF-MISMATCH $name"
+    crlf_fail=$((crlf_fail+1))
+  fi
+done
+echo "CRLF line endings: $crlf_fail mismatches"
+
+[ $fail -eq 0 ] && [ $parse_div -eq 0 ] && [ $combo_fail -eq 0 ] && [ $crlf_fail -eq 0 ]

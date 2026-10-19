@@ -341,3 +341,11 @@ test("several comments on one line all survive; a line comment ends the line", (
   assert.equal(moved, "enum E: byte {\n  A, // a\n  // b\n  B\n}\n");
   assert.equal(format(moved), moved);
 });
+
+test("CRLF line endings: a line comment does not keep the \\r", () => {
+  // The grammar ends LINE_COMMENT at \r as well as \n. Keeping the \r
+  // here made this engine disagree with the ANTLR one on every Windows
+  // checkout with a `//` comment.
+  const lf = "table T {\n  x: int; // trailing\n  // own line\n  y: int;\n}\n";
+  assert.equal(format(lf.replace(/\n/g, "\r\n")), format(lf));
+});
