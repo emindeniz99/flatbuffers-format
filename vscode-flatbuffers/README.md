@@ -48,6 +48,15 @@ Or invoke "Format Document" (Shift+Alt+F) anytime.
 For details on what each option does, see the
 [`flatbuffers-format` README](https://www.npmjs.com/package/flatbuffers-format#api).
 
+### Project config file
+
+If the file being formatted has a `.flatbuffers-format.json` in its
+directory or any parent, the extension uses that file instead of the
+settings above, so it formats exactly as `flatbuffers-format --write`
+and CI do. The settings apply only when no config file is found. See
+[Config file](https://www.npmjs.com/package/flatbuffers-format#config-file)
+for the keys and the lookup rules.
+
 ## How it relates to `flatbuffers-format`
 
 The format provider is a thin shim:
