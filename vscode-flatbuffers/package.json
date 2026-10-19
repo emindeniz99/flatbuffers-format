@@ -142,6 +142,6 @@
     "@vscode/vsce": "^4.0.0",
     "esbuild": "^0.28.2",
     "flatbuffers-format": "workspace:^",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.3"
   }
 }
