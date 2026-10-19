@@ -222,6 +222,23 @@ class FlatBuffersConfigurable(private val project: Project) : BoundConfigurable(
                             "<code>${FormatterCliArgs.COMMENT_WIDTH_INHERIT}</code> follows the " +
                             "line width, which is the engine's default.")
                 }
+                row {
+                    checkBox("Comma after the last enum and union value")
+                        .bindSelected(settings::trailingComma)
+                        .comment("When the values are one per line. Default: on, as in " +
+                            "Prettier. Unticking passes <code>--trailing-comma none</code>.")
+                }
+                row {
+                    checkBox("Keep bodies expanded when the source breaks after {")
+                        .bindSelected(settings::preserveObjectWrap)
+                        .comment("Default: on, as Prettier's <code>objectWrap</code>. Unticking " +
+                            "collapses every body that fits (<code>--object-wrap collapse</code>).")
+                }
+                row {
+                    checkBox("Spaces inside one-line braces: { A, B }")
+                        .bindSelected(settings::bracketSpacing)
+                        .comment("Default: on. Unticking passes <code>--no-bracket-spacing</code>.")
+                }
             }.enabled(projectConfig == null)
             row("Extra arguments:") {
                 textField()

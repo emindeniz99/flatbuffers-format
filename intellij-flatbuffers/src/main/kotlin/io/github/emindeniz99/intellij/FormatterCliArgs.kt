@@ -27,7 +27,8 @@ import java.nio.file.Path
  * Defaults verified against `flatbuffers-format --help`:
  * `--indent 2`, `--use-tabs` off, `--line-width 80`, single-line
  * collapsing on, `--max-blank-lines 1`, `--wrap-comments` off,
- * `--comment-width` following `--line-width`.
+ * `--comment-width` following `--line-width`, `--trailing-comma all`,
+ * `--object-wrap preserve`, bracket spacing on.
  */
 object FormatterCliArgs {
 
@@ -93,6 +94,18 @@ object FormatterCliArgs {
             add("--comment-width")
             add(state.commentWidth.toString())
         }
+
+        if (!state.trailingComma) {
+            add("--trailing-comma")
+            add("none")
+        }
+
+        if (!state.preserveObjectWrap) {
+            add("--object-wrap")
+            add("collapse")
+        }
+
+        if (!state.bracketSpacing) add("--no-bracket-spacing")
 
         // Last, always: the free-text box is the escape hatch for
         // options this panel does not model, and for overriding one that
