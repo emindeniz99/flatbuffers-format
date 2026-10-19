@@ -15,7 +15,6 @@ packages:
 # publish with; everything else stays sandboxed.
 allowBuilds:
   '@vscode/vsce-sign': true
-  keytar: true
   tree-sitter-cli: true
   # Explicitly NOT built. `tree-sitter` is an OPTIONAL PEER of
   # tree-sitter-flatbuffers (consumers supply the runtime), and nothing in
