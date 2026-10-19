@@ -299,6 +299,10 @@ jobs:
     needs: release-please
     if: needs.release-please.outputs.intellij_released == 'true'
     runs-on: ubuntu-latest
+    # The Marketplace token and the optional signing keys are secrets of
+    # this environment, not repository secrets, so only the two jobs that
+    # name it (this one and the republish job) can read them.
+    environment: jetbrains-marketplace
     permissions:
       contents: write
       # SLSA build-provenance attestation over the plugin .zip and
@@ -333,7 +337,7 @@ jobs:
             echo "::error::JETBRAINS_MARKETPLACE_TOKEN secret is not configured."
             echo "::error::Create a 'Plugin Developer' token at"
             echo "::error::https://plugins.jetbrains.com/author/me → Tokens"
-            echo "::error::and add it as a repository secret."
+            echo "::error::and add it as a secret of the jetbrains-marketplace environment."
             exit 1
           fi
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
