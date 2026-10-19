@@ -54,9 +54,9 @@ export function renderParseError(
       // ` > ${gutter} | ` so the `^` lands in the same column as the
       // intended character: 1 leading + 1 marker + 1 + gutterWidth + 1
       // + "|" + 1 = `gutterWidth + 5` chars before the text column.
-      const padding = " ".repeat(gutterWidth) + "    | ";
+      const padding = `${" ".repeat(gutterWidth)}    | `;
       const caretIndent = " ".repeat(Math.max(0, col1 - 1));
-      out.push(padding + caretIndent + "^");
+      out.push(`${padding + caretIndent}^`);
     }
   }
   return out.join("\n");

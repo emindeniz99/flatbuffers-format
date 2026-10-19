@@ -287,7 +287,7 @@ test("corpus 17: feature checklist — every advertised grammar feature appears 
   assert.match(out, /abilities: \[Attack\];/, "vector of union");
 
   // Keyword as field name.
-  assert.match(out, /^  enum: int;/m, "reserved word used as field name");
+  assert.match(out, /^ {2}enum: int;/m, "reserved word used as field name");
 
   // RPC service: all four streaming variants + idempotent flag.
   assert.match(out, /Store\(Monster\): Stat;/, "RPC method, no streaming");
@@ -296,7 +296,7 @@ test("corpus 17: feature checklist — every advertised grammar feature appears 
   assert.match(out, /Bidi\(Stat\): Stat \(streaming: "bidi", idempotent\);/, "bidi + idempotent");
 
   // Object literal at end of schema.
-  assert.match(out, /\{\n  name: "Sample",/, "object literal preserved");
+  assert.match(out, /\{\n {2}name: "Sample",/, "object literal preserved");
 });
 
 test("corpus 17: doc comments stay glued to their target declarations", () => {
@@ -313,7 +313,7 @@ test("corpus 17: doc comments stay glued to their target declarations", () => {
   // Doc comment on the bit_flags enum.
   assert.match(
     out,
-    /\/\/\/ Bit-flags enum\. Exercises:[\s\S]*?\/\/\/   - members with no explicit value \(auto-assigned\)\nenum Color:/,
+    /\/\/\/ Bit-flags enum\. Exercises:[\s\S]*?\/\/\/ {3}- members with no explicit value \(auto-assigned\)\nenum Color:/,
     "Color enum doc comment glued to its declaration",
   );
 
@@ -327,7 +327,7 @@ test("corpus 17: doc comments stay glued to their target declarations", () => {
   // Doc comment on the inline hp_max field deep inside Monster.
   assert.match(
     out,
-    /\/\/\/ Doc-style comment attached to the next field\.[\s\S]*?\n  hp_max: short;/,
+    /\/\/\/ Doc-style comment attached to the next field\.[\s\S]*?\n {2}hp_max: short;/,
     "hp_max field doc comment glued",
   );
 
@@ -525,7 +525,7 @@ test("signed inf/nan are accepted, as flatc and upstream's monster_test.fbs use 
 test("FormatOptions.useTabs: default is spaces", () => {
   const out = format(`table T { a:int; b:int; }`);
   assert.ok(!out.includes("\t"), "default output must not contain tabs");
-  assert.match(out, /^  a: int;$/m, "default is 2-space indent");
+  assert.match(out, /^ {2}a: int;$/m, "default is 2-space indent");
 });
 
 test("FormatOptions.useTabs: true emits tab indentation", () => {
@@ -581,7 +581,7 @@ test("FormatOptions.maxBlankLines: 2 preserves a double blank line", () => {
 });
 
 test("FormatOptions.wrapComments: default off leaves long line comments alone", () => {
-  const longComment = "// " + "x".repeat(200);
+  const longComment = `// ${"x".repeat(200)}`;
   const out = format(`${longComment}\ntable T { x: int; y: int; }`);
   assert.match(out, new RegExp(`^// ${"x".repeat(200)}$`, "m"));
 });
@@ -641,7 +641,7 @@ test("compactSingleLine: doc comment between { and first value blocks collapse",
 }`;
   const out = format(input);
   // Doc comment must survive on its own line; enum stays expanded.
-  assert.match(out, /\/\/\/ pending state\n  Pending,/);
+  assert.match(out, /\/\/\/ pending state\n {2}Pending,/);
 });
 
 test("compactSingleLine: single-field table collapses by default", () => {

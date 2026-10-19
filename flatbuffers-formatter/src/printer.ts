@@ -6,7 +6,7 @@
 // `ctx.identifier()?.getText()` rather than a bare `IDENT()` lookup.
 // `nsIdent` is used in every type-bearing position.
 
-import type { BufferedTokenStream, ParserRuleContext } from "antlr4ng";
+import { type BufferedTokenStream, ParserRuleContext } from "antlr4ng";
 import {
   ArrayValueContext,
   AttributeDeclContext,
@@ -191,14 +191,14 @@ export class Printer {
     let prev: DeclContext | undefined;
     for (const d of decls) {
       const item = d.getChild(0);
-      if (!item || !(item instanceof Object) || !("constructor" in item)) continue;
+      if (!(item instanceof ParserRuleContext)) continue;
 
       if (prev) {
         const prevName = prev.getChild(0)?.constructor.name ?? "";
         const itemName = item.constructor.name;
         const wasBlock = isBlockCtxName(prevName);
         const isBlock = isBlockCtxName(itemName);
-        const blanks = countBlankLines(leadingTrivia(item as any, this.stream));
+        const blanks = countBlankLines(leadingTrivia(item, this.stream));
         // Decl separator: at least one blank line around block decls
         // or when the user had any blank line in the source; otherwise
         // adjacent single-line decls (include / namespace / ...) stay
@@ -210,7 +210,7 @@ export class Printer {
         else if (blanks > 0) want = Math.min(blanks, this.opts.maxBlankLines);
         for (let k = 0; k < want; k++) this.nl();
       }
-      this.printDeclItem(item as any);
+      this.printDeclItem(item);
       prev = d;
     }
 
@@ -349,24 +349,24 @@ export class Printer {
     return text.replace(/\r?\n/g, this.opts.newline);
   }
 
-  private writeLeading(ctx: any, depth: number, stripBlank = false) {
+  private writeLeading(ctx: ParserRuleContext, depth: number, stripBlank = false) {
     let trivia = leadingTrivia(ctx, this.stream);
     if (stripBlank) trivia = stripLeadingBlanks(trivia);
     this.writeTrivia(trivia, depth);
   }
 
   // ---------------------------------------------------------------
-  private printDeclItem(item: any) {
+  private printDeclItem(item: ParserRuleContext) {
     this.writeLeading(item, 0, true);
     if (leadingTrivia(item, this.stream).some(isIgnoreComment)) {
-      const start = item.start.tokenIndex;
-      const stop = item.stop.tokenIndex;
+      const start = item.start!.tokenIndex;
+      const stop = item.stop!.tokenIndex;
       this.out.push(this.verbatim(start, stop));
       this.endLine(stop, 0);
       return;
     }
-    const headerEnd = hasBody(item) ? this.openBrace(item) : item.stop.tokenIndex;
-    this.writeInterior(item.start.tokenIndex, headerEnd, 0);
+    const headerEnd = hasBody(item) ? this.openBrace(item) : item.stop!.tokenIndex;
+    this.writeInterior(item.start!.tokenIndex, headerEnd, 0);
     if (item instanceof IncludeDeclContext) return this.printInclude(item);
     if (item instanceof NamespaceDeclContext) return this.printNamespace(item);
     if (item instanceof AttributeDeclContext) return this.printAttribute(item);
@@ -423,7 +423,7 @@ export class Printer {
     const name = ctx.identifier().getText();
     let head = `${kw} ${name}`;
     const meta = ctx.metadata();
-    if (meta) head += " " + this.formatMetadata(meta);
+    if (meta) head += ` ${this.formatMetadata(meta)}`;
     const fields = ctx.fieldDecl();
     const open = this.openBrace(ctx);
     const close = ctx.stop!.tokenIndex;
@@ -492,13 +492,13 @@ export class Printer {
     return this.opts.bracketSpacing ? `{ ${body} }` : `{${body}}`;
   }
 
-  private leadingFor(ctx: any, stripBlank: boolean): Trivia[] {
+  private leadingFor(ctx: ParserRuleContext, stripBlank: boolean): Trivia[] {
     let trivia = leadingTrivia(ctx, this.stream);
     if (stripBlank) trivia = stripLeadingBlanks(trivia);
     return trivia;
   }
-  private trailingFor(ctx: any): boolean {
-    return trailingComments(ctx.stop.tokenIndex, this.stream).length > 0;
+  private trailingFor(ctx: ParserRuleContext): boolean {
+    return trailingComments(ctx.stop!.tokenIndex, this.stream).length > 0;
   }
 
   private formatField(ctx: FieldDeclContext): string {
@@ -507,7 +507,7 @@ export class Printer {
     if (scalar) s += ` = ${this.formatScalar(scalar)}`;
     else if (ctx.emptyVector()) s += " = []";
     const meta = ctx.metadata();
-    if (meta) s += " " + this.formatMetadata(meta);
+    if (meta) s += ` ${this.formatMetadata(meta)}`;
     s += ";";
     return s;
   }
@@ -570,7 +570,7 @@ export class Printer {
     let head = `enum ${ids[0]!.getText()}`;
     if (ids.length > 1) head += `: ${ids[1]!.getText()}`;
     const meta = ctx.metadata();
-    if (meta) head += " " + this.formatMetadata(meta);
+    if (meta) head += ` ${this.formatMetadata(meta)}`;
     const values = ctx.enumValDecl();
     const open = this.openBrace(ctx);
     const close = ctx.stop!.tokenIndex;
@@ -631,7 +631,7 @@ export class Printer {
     const sc = v.scalar();
     if (sc) s += ` = ${this.formatScalar(sc)}`;
     const meta = v.metadata();
-    if (meta) s += " " + this.formatMetadata(meta);
+    if (meta) s += ` ${this.formatMetadata(meta)}`;
     return s;
   }
 
@@ -640,7 +640,7 @@ export class Printer {
     let head = `union ${ids[0]!.getText()}`;
     if (ids.length > 1) head += `: ${ids[1]!.getText()}`;
     const meta = ctx.metadata();
-    if (meta) head += " " + this.formatMetadata(meta);
+    if (meta) head += ` ${this.formatMetadata(meta)}`;
     const vals = ctx.unionValDecl();
     const open = this.openBrace(ctx);
     const close = ctx.stop!.tokenIndex;
@@ -698,7 +698,7 @@ export class Printer {
     const sc = v.scalar();
     if (sc) s += ` = ${this.formatScalar(sc)}`;
     const meta = v.metadata();
-    if (meta) s += " " + this.formatMetadata(meta);
+    if (meta) s += ` ${this.formatMetadata(meta)}`;
     return s;
   }
 
@@ -724,7 +724,7 @@ export class Printer {
     const nss = m.nsIdent();
     let s = `${name}(${this.formatNsIdent(nss[0]!)}): ${this.formatNsIdent(nss[1]!)}`;
     const meta = m.metadata();
-    if (meta) s += " " + this.formatMetadata(meta);
+    if (meta) s += ` ${this.formatMetadata(meta)}`;
     s += ";";
     return s;
   }
@@ -929,7 +929,7 @@ function packTokens(tokens: string[], budget: number): string[] {
       continue;
     }
     if (cur.length + 1 + t.length <= budget) {
-      cur += " " + t;
+      cur += ` ${t}`;
     } else {
       lines.push(cur);
       cur = t;

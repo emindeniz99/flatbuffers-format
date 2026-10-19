@@ -65,32 +65,32 @@ function buildHunks(ops: Op[], context: number): Hunk[] {
     const hunkAStart = aLine - pre;
     const hunkBStart = bLine - pre;
     const lines: string[] = [];
-    for (let k = i - pre; k < i; k++) lines.push(" " + ops[k]!.line);
+    for (let k = i - pre; k < i; k++) lines.push(` ${ops[k]!.line}`);
     // Consume changes + interleaved equal runs up to `context` size.
     let aLen = pre;
     let bLen = pre;
     while (i < ops.length) {
       const op = ops[i]!;
       if (op.kind === "del") {
-        lines.push("-" + op.line);
+        lines.push(`-${op.line}`);
         aLine++;
         aLen++;
         i++;
       } else if (op.kind === "add") {
-        lines.push("+" + op.line);
+        lines.push(`+${op.line}`);
         bLine++;
         bLen++;
         i++;
       } else {
         // Equal run inside hunk: keep up to 2*context, then check whether
         // the run is long enough to split into separate hunks.
-        let runStart = i;
+        const runStart = i;
         while (i < ops.length && ops[i]!.kind === "equal") i++;
         const runLen = i - runStart;
         if (runLen >= 2 * context + 1) {
           // Take `context` lines, end this hunk, the rest will start a new one.
           for (let k = 0; k < context; k++) {
-            lines.push(" " + ops[runStart + k]!.line);
+            lines.push(` ${ops[runStart + k]!.line}`);
             aLine++;
             bLine++;
             aLen++;
@@ -102,7 +102,7 @@ function buildHunks(ops: Op[], context: number): Hunk[] {
         }
         // Otherwise the whole run is part of this hunk.
         for (let k = 0; k < runLen; k++) {
-          lines.push(" " + ops[runStart + k]!.line);
+          lines.push(` ${ops[runStart + k]!.line}`);
           aLine++;
           bLine++;
           aLen++;
@@ -149,5 +149,5 @@ export function unifiedDiff(
     out.push(`@@ -${aRange} +${bRange} @@`);
     out.push(...h.lines);
   }
-  return out.join("\n") + "\n";
+  return `${out.join("\n")}\n`;
 }
