@@ -32,15 +32,22 @@ class EngineRoundTripTest {
         val node = node()
         assumeTrue("node is not on PATH", node != null)
 
-        val script = Files.createTempFile("flatbuffers-format-", ".cjs").also { Files.write(it, bytes!!) }
-        val temp = Files.createTempFile("flatbuffers-format-", ".fbs").also { Files.writeString(it, source) }
-        val args = FormatterCliArgs.of(settings, ProjectConfig.findFrom(documentDir))
-        val proc = ProcessBuilder(listOf(node!!.path, script.toString()) + args + temp.toString()).start()
-        val out = proc.inputStream.bufferedReader().use { it.readText() }
-        val err = proc.errorStream.bufferedReader().use { it.readText() }
-        proc.waitFor(30, TimeUnit.SECONDS)
-        assertEquals("engine stderr: $err", 0, proc.exitValue())
-        return out
+        val script = Files.createTempFile("flatbuffers-format-", ".cjs")
+        val temp = Files.createTempFile("flatbuffers-format-", ".fbs")
+        try {
+            Files.write(script, bytes!!)
+            Files.writeString(temp, source)
+            val args = FormatterCliArgs.of(settings, ProjectConfig.findFrom(documentDir))
+            val proc = ProcessBuilder(listOf(node!!.path, script.toString()) + args + temp.toString()).start()
+            val out = proc.inputStream.bufferedReader().use { it.readText() }
+            val err = proc.errorStream.bufferedReader().use { it.readText() }
+            proc.waitFor(30, TimeUnit.SECONDS)
+            assertEquals("engine stderr: $err", 0, proc.exitValue())
+            return out
+        } finally {
+            Files.deleteIfExists(script)
+            Files.deleteIfExists(temp)
+        }
     }
 
     @Test
