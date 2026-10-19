@@ -64,10 +64,6 @@ jobs:
         working-directory: .
         run: pnpm --filter flatbuffers-format build
 
-      - name: Install TypeDoc (ephemeral, workspace-root, not saved)
-        working-directory: .
-        run: pnpm add -w --save-dev typedoc
-
       - name: Assemble site
         run: |
           set -euo pipefail
