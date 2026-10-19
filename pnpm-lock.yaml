@@ -110,8 +110,8 @@ importers:
         specifier: ^2.5.15
         version: 2.5.15
       tree-sitter-cli:
-        specifier: ^0.26.13
-        version: 0.26.13
+        specifier: ^0.27.1
+        version: 0.27.1
 
   vscode-flatbuffers:
     devDependencies:
@@ -1040,8 +1040,8 @@ packages:
     resolution: {integrity: sha512-wXR/dYpcqKmfWpEdZjiKJOwCNFndD0DMnrW/cYjVGttEkBfVgcLFHoNrlj47mjOVic9yyNu65alsgF4NQyTa2g==}
     engines: {node: '>=12.0.0'}
 
-  tree-sitter-cli@0.26.13:
-    resolution: {integrity: sha512-SIC74lxT2jsygxaIGGb50Bpf8jtll24aXju98Y3eJienBTXCRQ+5k3YigwN31pASEUZKcKh98EPSZWky7ugUMA==}
+  tree-sitter-cli@0.27.1:
+    resolution: {integrity: sha512-WFPEjxwscCjZP9uYj0rxT2TyGBkDcXUkGTthrMpxZFGvzXEYsbC3J0633Ps8dd2mMsdsbU8oVwmQ148lLHI7Xw==}
     engines: {node: '>=12.0.0'}
     hasBin: true
 
@@ -1967,7 +1967,7 @@ snapshots:
       fdir: 6.5.0(picomatch@4.0.7)
       picomatch: 4.0.7
 
-  tree-sitter-cli@0.26.13: {}
+  tree-sitter-cli@0.27.1: {}
 
   tree-sitter@0.25.1:
     dependencies:
