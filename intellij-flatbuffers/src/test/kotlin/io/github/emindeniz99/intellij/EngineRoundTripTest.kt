@@ -69,7 +69,7 @@ class EngineRoundTripTest {
             """
             enum Color: byte {
                 Red, // first
-                Green // second
+                Green, // second
             }
 
             table Empty {
@@ -97,6 +97,6 @@ class EngineRoundTripTest {
             extraArgs = "--line-width 20"
         }
         val out = formatLikeThePlugin("enum E:byte{A,B}\n", schemas, settings)
-        assertEquals("enum E: byte {\n   A,\n   B\n}\n", out)
+        assertEquals("enum E: byte {\n   A,\n   B,\n}\n", out)
     }
 }
