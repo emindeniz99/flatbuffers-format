@@ -27,8 +27,8 @@ import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 
 plugins {
     java
-    kotlin("jvm") version "2.4.10"
-    id("org.jetbrains.intellij.platform") version "2.16.0"
+    kotlin("jvm") version "2.4.21"
+    id("org.jetbrains.intellij.platform") version "2.19.0"
     // Only for its Markdown → HTML renderer (`markdownToHTML`), used for
     // the change notes below. Its own CHANGELOG tasks are not used:
     // release-please writes the changelogs.
@@ -71,6 +71,7 @@ tasks.wrapper {
     // CI generates the wrapper instead of checking in gradle-wrapper.jar;
     // the version comes from gradle.properties so no workflow repeats it.
     gradleVersion = providers.gradleProperty("gradleVersion").get()
+    distributionType = Wrapper.DistributionType.BIN
 }
 
 // ---- generated engine coordinates -------------------------------------
@@ -316,8 +317,8 @@ intellijPlatform {
             // use the multi-OS ZIP — its installer isn't supported
             // (plugin issue #1852).
             create(IntelliJPlatformType.IntellijIdeaCommunity, "2024.2") // oldest, == sinceBuild 242
-            create(IntelliJPlatformType.IntellijIdea, "2026.1")          // newest IntelliJ (post-merge unified type)
-            create(IntelliJPlatformType.Rider, "2026.1") {               // latest Rider
+            create(IntelliJPlatformType.IntellijIdea, "2026.2.3")        // newest IntelliJ (post-merge unified type)
+            create(IntelliJPlatformType.Rider, "2026.2.3") {             // latest Rider
                 useInstaller = false
             }
         }
@@ -348,11 +349,6 @@ intellijPlatform {
 }
 
 tasks {
-    wrapper {
-        gradleVersion = "9.5.1"
-        distributionType = Wrapper.DistributionType.BIN
-    }
-
     test {
         useJUnit()
     }
