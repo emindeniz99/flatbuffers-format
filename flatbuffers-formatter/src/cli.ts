@@ -12,11 +12,10 @@ import {
   type Dirent,
   type Stats,
 } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { dirname, join, resolve, extname } from "node:path";
 import { parseArgs } from "node:util";
 import { execFileSync } from "node:child_process";
-import { FormatError, format, type FormatOptions } from "./index.js";
+import { FormatError, VERSION, format, type FormatOptions } from "./index.js";
 import { CONFIG_FILE_NAME, ConfigError, findConfigFile, loadConfig } from "./config.js";
 import { unifiedDiff } from "./diff.js";
 import { renderParseError } from "./error-render.js";
@@ -81,31 +80,6 @@ function reportParseError(filePath: string, source: string, err: unknown): void 
     console.error(renderParseError(filePath, source, err));
   } else {
     console.error(`flatbuffers-format: ${filePath}: ${(err as Error).message}`);
-  }
-}
-
-// Resolve the package version once at startup. Two paths:
-//
-//   (a) Regular Node install (`node dist/src/cli.js`, `npx
-//       flatbuffers-format`, etc.) — read the sibling package.json
-//       via `import.meta.url`. dist/src/cli.js → ../../package.json.
-//
-//   (b) Bundled distributions (Node SEA native binary, Javy WASM
-//       module) — `import.meta.url` doesn't point at a real file
-//       and there's no package.json to read. The build tooling
-//       injects the version via an esbuild `--define` for
-//       `process.env.FLATBUFFERS_FORMAT_VERSION`, replacing the
-//       reference with a literal string at build time.
-function readPackageVersion(): string {
-  const injected = process.env.FLATBUFFERS_FORMAT_VERSION;
-  if (injected && injected.length > 0) return injected;
-  try {
-    const here = dirname(fileURLToPath(import.meta.url));
-    const pkgPath = resolve(here, "..", "..", "package.json");
-    const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as { version?: string };
-    return pkg.version ?? "0.0.0";
-  } catch {
-    return "0.0.0";
   }
 }
 
@@ -255,7 +229,7 @@ async function main() {
   }
 
   if (values.version) {
-    console.log(`flatbuffers-format ${readPackageVersion()}`);
+    console.log(`flatbuffers-format ${VERSION}`);
     process.exit(0);
   }
 

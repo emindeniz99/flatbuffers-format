@@ -9,6 +9,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import type { FormatOptions } from "./printer.js";
+import { VERSION } from "./version.js";
 
 /** The config file name looked up next to, and above, each schema. */
 export const CONFIG_FILE_NAME = ".flatbuffers-format.json";
@@ -54,7 +55,9 @@ const KEYS: Record<string, [Check, string]> = {
 /**
  * Read and validate the config file at `file`. Unknown keys and values
  * of the wrong type are rejected rather than ignored, so a typo fails
- * loudly instead of silently formatting with defaults.
+ * loudly instead of silently formatting with defaults. A `minVersion`
+ * key rejects an engine older than that version, which would otherwise
+ * format with different output or fail on a newer key.
  *
  * @throws {ConfigError}
  */
@@ -75,14 +78,28 @@ export function loadConfig(file: string): FormatOptions {
     throw new ConfigError(file, "must contain a JSON object");
   }
   const options: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(parsed)) {
+  const { minVersion, ...rest } = parsed as Record<string, unknown>;
+  if (minVersion !== undefined) {
+    if (typeof minVersion !== "string" || !SEMVER.test(minVersion)) {
+      throw new ConfigError(file, `"minVersion" must be a version like "0.5.0", got ${JSON.stringify(minVersion)}`);
+    }
+    if (compareVersions(VERSION, minVersion) < 0) {
+      throw new ConfigError(
+        file,
+        `needs flatbuffers-format ${minVersion} or newer, but this is ${VERSION}; update it`,
+      );
+    }
+  }
+  for (const [key, value] of Object.entries(rest)) {
     // Own keys only: "constructor" or "__proto__" must be unknown keys,
     // not Object.prototype members.
     const rule = Object.hasOwn(KEYS, key) ? KEYS[key] : undefined;
     if (!rule) {
       throw new ConfigError(
         file,
-        `unknown key "${key}" (allowed: ${Object.keys(KEYS).join(", ")})`,
+        `unknown key "${key}" (allowed: minVersion, ${Object.keys(KEYS).join(", ")}). ` +
+          `If a newer flatbuffers-format added it, update this one (${VERSION}); ` +
+          `set "minVersion" so everyone gets this message instead`,
       );
     }
     const [check, expected] = rule;
@@ -92,6 +109,19 @@ export function loadConfig(file: string): FormatOptions {
     options[key] = value;
   }
   return options as FormatOptions;
+}
+
+const SEMVER = /^\d+\.\d+\.\d+$/;
+
+// Compares two `major.minor.patch` versions; a prerelease suffix on `a`
+// is ignored.
+function compareVersions(a: string, b: string): number {
+  const pa = a.split(/[.-]/).map(Number);
+  const pb = b.split(".").map(Number);
+  for (let i = 0; i < 3; i++) {
+    if (pa[i] !== pb[i]) return pa[i]! - pb[i]!;
+  }
+  return 0;
 }
 
 /**

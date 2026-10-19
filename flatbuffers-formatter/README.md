@@ -148,6 +148,11 @@ Keys are the format options: `indent`, `useTabs`, `lineWidth`,
 `trailingComma`, `objectWrap`, `bracketSpacing`, `endOfLine`,
 `checkIgnorePragma`, `requirePragma`. Omitted keys keep their defaults.
 
+`minVersion` (for example `"0.5.0"`) makes an older flatbuffers-format
+refuse the file with a message to update, instead of formatting with
+different output. Set it when the config uses a key a teammate's older
+copy may not know.
+
 The last six have the names, values and defaults of the Prettier
 options they copy, so a team used to Prettier gets what it expects.
 

@@ -15,6 +15,7 @@ import { FlatBuffersParser } from "../generated/FlatBuffersParser.js";
 import { Printer, type FormatOptions } from "./printer.js";
 
 export type { FormatOptions } from "./printer.js";
+export { VERSION } from "./version.js";
 
 /**
  * Thrown by {@link format} and {@link check} when the input cannot be
