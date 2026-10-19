@@ -884,3 +884,32 @@ test("CLI: the Prettier-compatible flags set their options and reject unknown va
     assert.match(r.stderr, /expects one of/);
   }
 });
+
+test("ignore comment: the next top-level declaration is kept as written", () => {
+  const kept = "enum E : byte {\n  A   = 1,  // one\n  B\n}";
+  for (const comment of ["// flatbuffers-format-ignore", "/* prettier-ignore */", "// prettier-ignore hand-aligned"]) {
+    const src = `${comment}\n${kept}\ntable T{x:int;}\n`;
+    assert.equal(format(src), `${comment}\n${kept}\n\ntable T { x: int; }\n`, comment);
+  }
+  // Only the declaration right after it; a lookalike does not count.
+  assert.equal(format("// prettier-ignored\ntable T{x:int;}"), "// prettier-ignored\ntable T { x: int; }\n");
+  // The kept text takes the output's line endings.
+  assert.equal(
+    format("// prettier-ignore\r\ntable T {x:int;\r\n}\r\n", { endOfLine: "lf" }),
+    "// prettier-ignore\ntable T {x:int;\n}\n",
+  );
+});
+
+test("pragmas: checkIgnorePragma and requirePragma leave files untouched", () => {
+  const ignored = "/** @noformat */\ntable T{x:int;}";
+  assert.equal(format(ignored, { checkIgnorePragma: true }), ignored);
+  assert.equal(format("// @noprettier\nnot even valid", { checkIgnorePragma: true }), "// @noprettier\nnot even valid");
+  assert.equal(format(ignored), "/** @noformat */\ntable T { x: int; }\n", "off by default");
+  // Only the comments above the first declaration count.
+  assert.equal(format("table T{x:int;} // @noformat", { checkIgnorePragma: true }), "table T {\n  x: int;\n} // @noformat\n");
+
+  const plain = "table T{x:int;}";
+  assert.equal(format(plain, { requirePragma: true }), plain);
+  assert.equal(format("// @format\ntable T{x:int;}", { requirePragma: true }), "// @format\ntable T { x: int; }\n");
+  assert.equal(format("// @formatter\ntable T{x:int;}", { requirePragma: true }), "// @formatter\ntable T{x:int;}");
+});

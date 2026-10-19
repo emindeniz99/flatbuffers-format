@@ -116,6 +116,8 @@ Options:
 | `--object-wrap <preserve\|collapse>` | Keep a body expanded when the source breaks after its `{` (default: `preserve`) |
 | `--no-bracket-spacing` | Print one-line bodies as `{a, b}` instead of `{ a, b }` |
 | `--end-of-line <lf\|crlf\|auto>` | Line endings; `auto` keeps the file's own (default: `lf`) |
+| `--check-ignore-pragma` | Leave files whose top comment has `@noformat` or `@noprettier` |
+| `--require-pragma` | Format only files whose top comment has `@format` or `@prettier` |
 | `--config <path>` | Use this config file instead of looking one up |
 | `--no-config` | Ignore config files |
 | `--stdin-filepath <path>` | With `-`, look up the config as if stdin were this file |
@@ -143,10 +145,10 @@ all format the same way without per-developer flags or IDE settings:
 
 Keys are the format options: `indent`, `useTabs`, `lineWidth`,
 `compactSingleLine`, `maxBlankLines`, `wrapComments`, `commentWidth`,
-`trailingComma`, `objectWrap`, `bracketSpacing`, `endOfLine`.
-Omitted keys keep their defaults.
+`trailingComma`, `objectWrap`, `bracketSpacing`, `endOfLine`,
+`checkIgnorePragma`, `requirePragma`. Omitted keys keep their defaults.
 
-The last four have the names, values and defaults of the Prettier
+The last six have the names, values and defaults of the Prettier
 options they copy, so a team used to Prettier gets what it expects.
 
 - **Lookup:** for each file, the nearest `.flatbuffers-format.json` in
@@ -326,6 +328,25 @@ You can also embed the formatter in your own page:
 </script>
 ```
 
+### Keeping code as written
+
+A `// flatbuffers-format-ignore` comment keeps the next top-level
+declaration exactly as written; Prettier's `// prettier-ignore` works
+too, and either may be followed by a reason:
+
+```fbs
+// flatbuffers-format-ignore -- aligned by hand
+enum Opcode : ubyte {
+  Nop   = 0x00,
+  Load  = 0x01,
+}
+```
+
+To skip a whole file, put `@noformat` (or `@noprettier`) in a comment at
+its top and turn on `checkIgnorePragma`. `requirePragma` works the other
+way round: only files with `@format` (or `@prettier`) there are
+formatted.
+
 ## API
 
 ```ts
@@ -347,6 +368,8 @@ type FormatOptions = {
   objectWrap?: "preserve" | "collapse";   // default "preserve" — keep bodies the source broke after `{`
   bracketSpacing?: boolean;               // default true — `{ a, b }` vs `{a, b}`
   endOfLine?: "lf" | "crlf" | "auto";     // default "lf" — overrides `newline`
+  checkIgnorePragma?: boolean;            // default false — skip files with @noformat / @noprettier
+  requirePragma?: boolean;                // default false — format only files with @format / @prettier
 };
 ```
 

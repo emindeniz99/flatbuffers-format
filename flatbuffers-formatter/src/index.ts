@@ -113,6 +113,11 @@ class CollectingErrorListener extends BaseErrorListener {
  * ```
  */
 export function format(source: string, options: FormatOptions = {}): string {
+  if (options.checkIgnorePragma || options.requirePragma) {
+    const header = headerComments(source);
+    if (options.checkIgnorePragma && /@(?:noformat|noprettier)\b/.test(header)) return source;
+    if (options.requirePragma && !/@(?:format|prettier)\b/.test(header)) return source;
+  }
   const input = CharStream.fromString(source);
   const lexer = new FlatBuffersLexer(input);
   const lexerErrors = new CollectingErrorListener();
@@ -135,6 +140,28 @@ export function format(source: string, options: FormatOptions = {}): string {
   const output = new Printer(tokens, { ...options, newline: newlineFor(source, options) }).print(tree);
   assertCommentsPreserved(source, output, options.wrapComments ?? false);
   return output;
+}
+
+// The comments before the first declaration, where Prettier's pragmas
+// go.
+function headerComments(source: string): string {
+  let header = "";
+  let i = 0;
+  for (;;) {
+    while (i < source.length && /\s/.test(source[i]!)) i++;
+    let end: number;
+    if (source.startsWith("//", i)) {
+      end = source.indexOf("\n", i);
+      if (end < 0) end = source.length;
+    } else if (source.startsWith("/*", i)) {
+      end = source.indexOf("*/", i + 2);
+      end = end < 0 ? source.length : end + 2;
+    } else {
+      return header;
+    }
+    header += `${source.slice(i, end)}\n`;
+    i = end;
+  }
 }
 
 // `endOfLine` wins over `newline`; "auto" keeps the source's first

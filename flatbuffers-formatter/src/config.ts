@@ -47,6 +47,8 @@ const KEYS: Record<string, [Check, string]> = {
   objectWrap: oneOf("preserve", "collapse"),
   bracketSpacing: [isBool, "a boolean"],
   endOfLine: oneOf("lf", "crlf", "auto"),
+  checkIgnorePragma: [isBool, "a boolean"],
+  requirePragma: [isBool, "a boolean"],
 };
 
 /**

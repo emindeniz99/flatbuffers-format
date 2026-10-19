@@ -52,6 +52,8 @@ Options:
       --no-bracket-spacing    Print one-line bodies as {a, b} instead of { a, b }
       --end-of-line <lf|crlf|auto>
                               Line endings; auto keeps the file's own (default: lf)
+      --check-ignore-pragma   Leave files whose top comment has @noformat or @noprettier
+      --require-pragma        Format only files whose top comment has @format or @prettier
       --config <path>         Use this config file instead of looking one up
       --no-config             Ignore config files
       --stdin-filepath <path> With \`-\`, look up the config as if stdin were this file
@@ -212,6 +214,8 @@ async function main() {
     "object-wrap"?: string;
     "no-bracket-spacing"?: boolean;
     "end-of-line"?: string;
+    "check-ignore-pragma"?: boolean;
+    "require-pragma"?: boolean;
     config?: string;
     "no-config"?: boolean;
     "stdin-filepath"?: string;
@@ -238,6 +242,8 @@ async function main() {
         "object-wrap": { type: "string" },
         "no-bracket-spacing": { type: "boolean" },
         "end-of-line": { type: "string" },
+        "check-ignore-pragma": { type: "boolean" },
+        "require-pragma": { type: "boolean" },
         config: { type: "string" },
         "no-config": { type: "boolean" },
         "stdin-filepath": { type: "string" },
@@ -314,6 +320,8 @@ async function main() {
   if (values["no-bracket-spacing"]) opts.bracketSpacing = false;
   const endOfLine = choice("end-of-line", values["end-of-line"], ["lf", "crlf", "auto"] as const);
   if (endOfLine) opts.endOfLine = endOfLine;
+  if (values["check-ignore-pragma"]) opts.checkIgnorePragma = true;
+  if (values["require-pragma"]) opts.requirePragma = true;
 
   if (values.config !== undefined && values["no-config"]) {
     die("--config and --no-config are mutually exclusive");

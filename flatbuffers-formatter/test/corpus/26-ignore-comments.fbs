@@ -1,0 +1,16 @@
+// An ignore comment keeps the next top-level declaration exactly as
+// written: alignment, spacing and comments inside it included.
+
+// flatbuffers-format-ignore
+enum Opcode : ubyte {
+  Nop   = 0x00,  // no operation
+  Load  = 0x01,  /* load */
+  Store = 0x02
+} // after the brace
+
+/* prettier-ignore -- hand-aligned for review */
+table Matrix { a:float; b:float;
+               c:float; d:float; }
+
+// Not ignored: formatted as usual.
+table Point {x:int;y:int;}

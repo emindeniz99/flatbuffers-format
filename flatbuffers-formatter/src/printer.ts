@@ -124,9 +124,21 @@ export type FormatOptions = {
    * over `newline`. Default: "lf".
    */
   endOfLine?: "lf" | "crlf" | "auto";
+  /**
+   * Leave a file unchanged when a comment at its top contains
+   * `@noformat` or `@noprettier`. Default: false.
+   */
+  checkIgnorePragma?: boolean;
+  /**
+   * Format only files with a comment at their top containing `@format`
+   * or `@prettier`; leave every other file unchanged. Default: false.
+   */
+  requirePragma?: boolean;
 };
 
-type Resolved = Required<Omit<FormatOptions, "commentWidth" | "endOfLine">> & {
+type Resolved = Required<
+  Omit<FormatOptions, "commentWidth" | "endOfLine" | "checkIgnorePragma" | "requirePragma">
+> & {
   commentWidth: number;
 };
 const DEFAULTS = {
@@ -160,7 +172,7 @@ export class Printer {
   private out: string[] = [];
   private readonly opts: Resolved;
   constructor(private readonly stream: BufferedTokenStream, opts: FormatOptions) {
-    const { endOfLine: _, ...rest } = opts;
+    const { endOfLine: _, checkIgnorePragma: _i, requirePragma: _r, ...rest } = opts;
     const merged = { ...DEFAULTS, ...rest };
     this.opts = {
       ...merged,
@@ -323,6 +335,14 @@ export class Printer {
     return stop;
   }
 
+  // The source text from token `start` through token `stop`, with its
+  // line breaks converted to the output's.
+  private verbatim(start: number, stop: number): string {
+    const from = this.stream.get(start);
+    const text = from.inputStream!.getTextFromRange(from.start, this.stream.get(stop).stop);
+    return text.replace(/\r?\n/g, this.opts.newline);
+  }
+
   private writeLeading(ctx: any, depth: number, stripBlank = false) {
     let trivia = leadingTrivia(ctx, this.stream);
     if (stripBlank) trivia = stripLeadingBlanks(trivia);
@@ -332,6 +352,13 @@ export class Printer {
   // ---------------------------------------------------------------
   private printDeclItem(item: any) {
     this.writeLeading(item, 0, true);
+    if (leadingTrivia(item, this.stream).some(isIgnoreComment)) {
+      const start = item.start.tokenIndex;
+      const stop = item.stop.tokenIndex;
+      this.out.push(this.verbatim(start, stop));
+      this.endLine(stop, 0);
+      return;
+    }
     const headerEnd = hasBody(item) ? this.openBrace(item) : item.stop.tokenIndex;
     this.writeInterior(item.start.tokenIndex, headerEnd, 0);
     if (item instanceof IncludeDeclContext) return this.printInclude(item);
@@ -827,6 +854,15 @@ function hasBody(item: unknown): boolean {
     item instanceof RpcServiceDeclContext ||
     item instanceof ObjectLiteralDeclContext
   );
+}
+
+// `// flatbuffers-format-ignore` (or Prettier's `// prettier-ignore`),
+// optionally followed by a reason, keeps the next top-level declaration
+// exactly as written.
+const IGNORE = /^\s*(?:flatbuffers-format|prettier)-ignore(?:\s|$)/;
+
+function isIgnoreComment(t: Trivia): boolean {
+  return (t.kind === "line_comment" || t.kind === "block_comment") && IGNORE.test(t.value);
 }
 
 function commentsOnly(trivia: Trivia[]): Trivia[] {
