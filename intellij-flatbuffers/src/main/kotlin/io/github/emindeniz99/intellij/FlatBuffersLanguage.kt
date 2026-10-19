@@ -9,5 +9,16 @@ import com.intellij.lang.Language
  * files only.
  */
 object FlatBuffersLanguage : Language("FlatBuffers") {
+    /**
+     * What the IDE shows for this language. Another FlatBuffers plugin
+     * registers its own language as "Flatbuffers", and a user with both
+     * installed saw two near-identical entries with no way to tell them
+     * apart. The ID above stays "FlatBuffers": plugin.xml and every
+     * user's saved settings refer to it.
+     */
+    const val DISPLAY_NAME: String = "FlatBuffers (flatbuffers-format)"
+
+    override fun getDisplayName(): String = DISPLAY_NAME
+
     private fun readResolve(): Any = FlatBuffersLanguage
 }

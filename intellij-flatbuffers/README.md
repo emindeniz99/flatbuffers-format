@@ -89,8 +89,8 @@ in a notification carrying the action that fixes it.
 - **Line/block comment toggle** — Ctrl/⌘ + / inserts `//`; Ctrl/⌘
   + Shift + / wraps with `/* … */`.
 - **Color scheme entry** — Preferences → Editor → Color Scheme →
-  FlatBuffers lets you tweak per-token colours without touching the
-  global scheme.
+  FlatBuffers (flatbuffers-format) lets you tweak per-token colours
+  without touching the global scheme.
 
 ## Settings (Preferences → Tools → FlatBuffers)
 
@@ -123,6 +123,26 @@ the open project has one, the settings page shows its path and disables
 the fields it overrides. See the
 [engine's config file docs](../flatbuffers-formatter/README.md#config-file)
 for the keys.
+
+## Using it with another FlatBuffers plugin
+
+Other plugins, such as "Flatbuffers Support", also register `.fbs` and
+add language features like go-to-declaration. You can keep both: this
+plugin formats any file ending in `.fbs`, whichever plugin owns the
+file type.
+
+The IDE then lists two file types. Ours is **FlatBuffers
+(flatbuffers-format)**; the other plugin's is usually **Flatbuffers**.
+To use their highlighting and navigation with our formatting:
+
+1. Open Settings → Editor → File Types.
+2. Select the other plugin's file type and make sure `*.fbs` is listed
+   under it.
+3. Remove `*.fbs` from **FlatBuffers (flatbuffers-format)** if the IDE
+   kept it there.
+
+Reformat Code (Ctrl/⌘ + Alt + L) and Actions on Save still run this
+plugin's formatter.
 
 ## Supported IDEs
 

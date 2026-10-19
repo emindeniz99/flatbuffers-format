@@ -10,7 +10,11 @@ import javax.swing.Icon
  * keep the field name in sync if you rename it.
  */
 class FlatBuffersFileType private constructor() : LanguageFileType(FlatBuffersLanguage) {
+    // The name is the file type's ID: the IDE stores each user's `*.fbs`
+    // association under it, so it never changes. Only the display name
+    // tells it apart from another plugin's "Flatbuffers" file type.
     override fun getName(): String = "FlatBuffers"
+    override fun getDisplayName(): String = FlatBuffersLanguage.DISPLAY_NAME
     override fun getDescription(): String = "FlatBuffers schema"
     override fun getDefaultExtension(): String = "fbs"
     override fun getIcon(): Icon = FlatBuffersIcons.FILE
