@@ -196,29 +196,63 @@ jobs:
         working-directory: deploy/vscode
         run: npx --yes ovsx publish vscode-flatbuffers.vsix --pat "$OVSX_PAT"
 
+  # The same steps as release-please.yml's publish-intellij-flatbuffers;
+  # see the comments there for why each one exists. The only difference
+  # is the Release tag, which comes from gradle.properties instead of
+  # release-please's outputs.
   republish-intellij-flatbuffers:
     name: JetBrains Marketplace publish intellij-flatbuffers
     if: ${{ inputs.package == 'intellij-flatbuffers' }}
     runs-on: ubuntu-latest
+    environment: jetbrains-marketplace
     permissions:
-      contents: read
+      contents: write
+      id-token: write
+      attestations: write
     env:
       HAS_SIGNING_KEY: ${{ secrets.JETBRAINS_PRIVATE_KEY != '' && 'true' || 'false' }}
     defaults:
       run:
         working-directory: intellij-flatbuffers
     steps:
+      # Runs before checkout, so it can't use the job's default
+      # working directory, which doesn't exist yet.
       - name: Fail fast if JETBRAINS_MARKETPLACE_TOKEN is missing
+        working-directory: .
         env:
           JETBRAINS_MARKETPLACE_TOKEN: ${{ secrets.JETBRAINS_MARKETPLACE_TOKEN }}
         run: |
           if [ -z "$JETBRAINS_MARKETPLACE_TOKEN" ]; then
-            echo "::error::JETBRAINS_MARKETPLACE_TOKEN secret is not configured. See CONTRIBUTING.md."
+            echo "::error::JETBRAINS_MARKETPLACE_TOKEN is not a secret of the jetbrains-marketplace environment. See CONTRIBUTING.md."
             exit 1
           fi
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+      - name: Assert the engine release exists
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          engine=$(python3 -c 'import json; print(json.load(open("flatbuffers-formatter/package.json"))["version"])')
+          tag="flatbuffers-format-v${engine}"
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            echo "::error::The plugin targets engine $engine but no release '$tag' exists."
+            exit 1
+          fi
+      # The plugin bundles the engine, built from flatbuffers-formatter/dist/;
+      # without these steps publishPlugin fails for lack of an engine.
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - name: Build the formatter engine the plugin bundles
+        working-directory: .
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter flatbuffers-format build
       - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
         with:
           distribution: temurin
@@ -233,17 +267,57 @@ jobs:
         run: gradle wrapper
       - name: Build plugin
         run: ./gradlew --no-daemon buildPlugin
-      - name: Sign plugin (optional)
+      - name: Verify plugin against recommended IDEs
+        run: ./gradlew --no-daemon verifyPlugin
+      # Signing happens inside publishPlugin, never in a separate step:
+      # a separate signPlugin run makes publishPlugin upload the unsigned
+      # zip (see release-please.yml).
+      - name: Publish to JetBrains Marketplace (signed)
         if: env.HAS_SIGNING_KEY == 'true'
         env:
+          JETBRAINS_MARKETPLACE_TOKEN: ${{ secrets.JETBRAINS_MARKETPLACE_TOKEN }}
           JETBRAINS_CERTIFICATE_CHAIN: ${{ secrets.JETBRAINS_CERTIFICATE_CHAIN }}
           JETBRAINS_PRIVATE_KEY: ${{ secrets.JETBRAINS_PRIVATE_KEY }}
           JETBRAINS_PRIVATE_KEY_PASSWORD: ${{ secrets.JETBRAINS_PRIVATE_KEY_PASSWORD }}
-        run: ./gradlew --no-daemon signPlugin
-      - name: Publish to JetBrains Marketplace
+        run: ./gradlew --no-daemon publishPlugin
+      - name: Publish to JetBrains Marketplace (unsigned)
+        if: env.HAS_SIGNING_KEY != 'true'
         env:
           JETBRAINS_MARKETPLACE_TOKEN: ${{ secrets.JETBRAINS_MARKETPLACE_TOKEN }}
         run: ./gradlew --no-daemon publishPlugin
+      - name: Emit SHA256 sidecar
+        id: zip
+        run: |
+          set -euo pipefail
+          if [ "$HAS_SIGNING_KEY" = 'true' ]; then
+            matches=$(find build/distributions -maxdepth 1 -name '*-signed.zip' | sort)
+          else
+            matches=$(find build/distributions -maxdepth 1 -name '*.zip' -not -name '*-signed.zip' | sort)
+          fi
+          count=$(printf '%s\n' "$matches" | grep -c '^.' || true)
+          if [ "$count" -ne 1 ]; then
+            echo "::error::Expected exactly one published .zip under build/distributions/ (HAS_SIGNING_KEY=$HAS_SIGNING_KEY), found $count."
+            exit 1
+          fi
+          zip_path=$matches
+          (cd "$(dirname "$zip_path")" && sha256sum "$(basename "$zip_path")" > "$(basename "$zip_path").sha256")
+          echo "zip_path=$zip_path" >> "$GITHUB_OUTPUT"
+          echo "sha_path=$zip_path.sha256" >> "$GITHUB_OUTPUT"
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4
+        with:
+          subject-path: |
+            intellij-flatbuffers/${{ steps.zip.outputs.zip_path }}
+            intellij-flatbuffers/${{ steps.zip.outputs.sha_path }}
+      - name: Upload .zip + sidecar to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ZIP_PATH: ${{ steps.zip.outputs.zip_path }}
+          SHA_PATH: ${{ steps.zip.outputs.sha_path }}
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^pluginVersion *= *//p' gradle.properties)
+          gh release upload "intellij-flatbuffers-v${version}" "$ZIP_PATH" "$SHA_PATH" --clobber
 
   republish-flatbuffers-format-editors:
     name: npm publish flatbuffers-format-editors
