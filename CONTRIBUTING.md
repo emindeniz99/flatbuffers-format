@@ -152,7 +152,7 @@ Non-grammar changes (printer tweaks, CLI flags, docs) don't need steps
 
 This repo uses [Conventional Commits](https://www.conventionalcommits.org/)
 with a **mandatory scope**. Same rules are restated for AI assistants in
-[`CLAUDE.md`](CLAUDE.md).
+[`AGENTS.md`](AGENTS.md).
 
 ```
 <type>(<scope>): <subject>
