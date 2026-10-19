@@ -59,6 +59,12 @@ Without one, the plugin maps Prettier's options to `flatbuffers-format`'s
 | `endOfLine`                | Handled by Prettier itself (`"lf"`, `"crlf"`, `"cr"`, `"auto"`). The engine always emits `\n`; Prettier post-processes the output to the requested line ending. |
 | `requirePragma`, `checkIgnorePragma`, `insertPragma` | Work as in Prettier: the pragmas are `@format` / `@prettier` and `@noformat` / `@noprettier` in a comment at the top of the file. |
 
+A `.flatbuffers-format.json` with `requirePragma: true` should not be
+combined with Prettier's `insertPragma: true`. Prettier inserts the
+pragma before the plugin can read the config file, so every file gets
+formatted. Set `requirePragma` in Prettier's own config instead, or
+drop `insertPragma`.
+
 `// prettier-ignore` above a declaration keeps it as written. Other
 Prettier options (`singleQuote`, `semi`, …) are ignored, as `.fbs` has
 no syntax for them.
