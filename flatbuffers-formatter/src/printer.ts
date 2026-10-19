@@ -6,7 +6,7 @@
 // `ctx.identifier()?.getText()` rather than a bare `IDENT()` lookup.
 // `nsIdent` is used in every type-bearing position.
 
-import type { BufferedTokenStream } from "antlr4ng";
+import type { BufferedTokenStream, ParserRuleContext } from "antlr4ng";
 import {
   ArrayValueContext,
   AttributeDeclContext,
@@ -47,7 +47,15 @@ import {
   VectorTypeContext,
   FlatBuffersParser,
 } from "../generated/FlatBuffersParser.js";
-import { leadingTrivia, trailingComment, tailTrivia, type Trivia } from "./trivia.js";
+import {
+  commentsBetween,
+  hasCommentsBetween,
+  leadingTrivia,
+  leadingTriviaAt,
+  tailTrivia,
+  trailingComments,
+  type Trivia,
+} from "./trivia.js";
 
 export type FormatOptions = {
   /**
@@ -106,6 +114,11 @@ const DEFAULTS = {
   maxBlankLines: 1,
   wrapComments: false,
 };
+
+// Token types of the grammar's anonymous `{` and `,` literals. Compared
+// by type because reading `token.text` re-slices the input every time.
+const LBRACE = FlatBuffersParser.literalNames.indexOf("'{'");
+const COMMA = FlatBuffersParser.literalNames.indexOf("','");
 
 const BLOCK_DECL_RULES = new Set([
   "tableDecl",
@@ -228,11 +241,58 @@ export class Printer {
     }
   }
 
-  private writeTrailing(ctx: any) {
-    const t = trailingComment(ctx, this.stream);
-    if (!t) return;
-    if (t.kind === "line_comment")  this.out.push(` //${t.value}`);
-    if (t.kind === "block_comment") this.out.push(` /*${t.value}*/`);
+  // Ends the current output line. Writes every comment the source had
+  // after token `stop`: those before `anchor` (the comma after a list
+  // item, which the printer re-emits itself) and those on the anchor's
+  // own line. Block comments stay inline; a line or doc comment ends
+  // the line, so anything after it moves onto its own line at `depth`.
+  private endLine(stop: number, depth: number, anchor = stop) {
+    const comments = [
+      ...commentsBetween(stop, anchor, this.stream),
+      ...trailingComments(anchor, this.stream),
+    ];
+    let i = 0;
+    while (i < comments.length) {
+      const c = comments[i++]!;
+      this.out.push(` ${renderComment(c)}`);
+      if (c.kind !== "block_comment") break;
+    }
+    this.nl();
+    this.writeTrivia(comments.slice(i), depth);
+  }
+
+  // Comments inside a construct the printer rebuilds from the parse
+  // tree (between a field name and its type, inside metadata, …) have
+  // no slot in the output. Hoist them onto their own lines above it.
+  private writeInterior(from: number, to: number, depth: number) {
+    this.writeTrivia(commentsBetween(from, to, this.stream), depth);
+  }
+
+  // Comments between the last item of a body and its `}` (or the whole
+  // content of a comment-only body), one indent level in.
+  private writeBodyEnd(close: number, empty: boolean) {
+    let trivia = stripTrailingBlanks(leadingTriviaAt(close, this.stream));
+    if (empty) trivia = stripLeadingBlanks(trivia);
+    this.writeTrivia(trivia, 1);
+  }
+
+  // Token index of the `{` that opens a declaration's body.
+  private openBrace(ctx: ParserRuleContext): number {
+    for (let i = ctx.start!.tokenIndex; ; i++) {
+      const tok = this.stream.get(i);
+      if (tok.type === LBRACE) return i;
+    }
+  }
+
+  // The comma after a list item when there is one, else the item's
+  // own last token. Comments on the comma's line belong to the item.
+  private anchorAfter(stop: number): number {
+    for (let i = stop + 1; i < this.stream.size; i++) {
+      const tok = this.stream.get(i);
+      if (tok.channel !== 0) continue;
+      return tok.type === COMMA ? i : stop;
+    }
+    return stop;
   }
 
   private writeLeading(ctx: any, depth: number, stripBlank = false) {
@@ -244,6 +304,8 @@ export class Printer {
   // ---------------------------------------------------------------
   private printDeclItem(item: any) {
     this.writeLeading(item, 0, true);
+    const headerEnd = hasBody(item) ? this.openBrace(item) : item.stop.tokenIndex;
+    this.writeInterior(item.start.tokenIndex, headerEnd, 0);
     if (item instanceof IncludeDeclContext) return this.printInclude(item);
     if (item instanceof NamespaceDeclContext) return this.printNamespace(item);
     if (item instanceof AttributeDeclContext) return this.printAttribute(item);
@@ -261,13 +323,13 @@ export class Printer {
   private printInclude(ctx: IncludeDeclContext) {
     const kw = ctx.NATIVE_INCLUDE() ? "native_include" : "include";
     this.out.push(`${kw} ${ctx.STRING_LITERAL().getText()};`);
-    this.writeTrailing(ctx); this.nl();
+    this.endLine(ctx.stop!.tokenIndex, 0);
   }
 
   private printNamespace(ctx: NamespaceDeclContext) {
     const parts = ctx.identifier().map((id) => id.getText());
     this.out.push(`namespace ${parts.join(".")};`);
-    this.writeTrailing(ctx); this.nl();
+    this.endLine(ctx.stop!.tokenIndex, 0);
   }
 
   private printAttribute(ctx: AttributeDeclContext) {
@@ -275,22 +337,22 @@ export class Printer {
     const id = ctx.identifier();
     const value = lit ? lit.getText() : id!.getText();
     this.out.push(`attribute ${value};`);
-    this.writeTrailing(ctx); this.nl();
+    this.endLine(ctx.stop!.tokenIndex, 0);
   }
 
   private printRootType(ctx: RootTypeDeclContext) {
     this.out.push(`root_type ${this.formatNsIdent(ctx.nsIdent())};`);
-    this.writeTrailing(ctx); this.nl();
+    this.endLine(ctx.stop!.tokenIndex, 0);
   }
 
   private printFileExt(ctx: FileExtensionDeclContext) {
     this.out.push(`file_extension ${ctx.STRING_LITERAL().getText()};`);
-    this.writeTrailing(ctx); this.nl();
+    this.endLine(ctx.stop!.tokenIndex, 0);
   }
 
   private printFileId(ctx: FileIdentifierDeclContext) {
     this.out.push(`file_identifier ${ctx.STRING_LITERAL().getText()};`);
-    this.writeTrailing(ctx); this.nl();
+    this.endLine(ctx.stop!.tokenIndex, 0);
   }
 
   private printTable(ctx: TableDeclContext) { this.printTableLike("table", ctx); }
@@ -302,24 +364,30 @@ export class Printer {
     const meta = ctx.metadata();
     if (meta) head += " " + this.formatMetadata(meta);
     const fields = ctx.fieldDecl();
+    const open = this.openBrace(ctx);
+    const close = ctx.stop!.tokenIndex;
 
     // Try compact single-line form: only valid for SINGLE-field bodies,
     // and only when no field has trivia / metadata and the result fits
     // within lineWidth at the current indent.
-    if (this.opts.compactSingleLine && this.tryCompactTableLike(head, ctx, fields, 0)) return;
+    if (
+      this.opts.compactSingleLine &&
+      !hasCommentsBetween(open, close, this.stream) &&
+      this.tryCompactTableLike(head, ctx, fields, 0)
+    ) return;
 
     this.out.push(`${head} {`);
-    this.nl();
+    this.endLine(open, 1);
     fields.forEach((f, i) => {
       this.writeLeading(f, 1, i === 0);
+      this.writeInterior(f.start!.tokenIndex, f.stop!.tokenIndex, 1);
       this.out.push(this.indent(1));
       this.out.push(this.formatField(f));
-      this.writeTrailing(f);
-      this.nl();
+      this.endLine(f.stop!.tokenIndex, 1);
     });
+    this.writeBodyEnd(close, fields.length === 0);
     this.out.push("}");
-    this.writeTrailing(ctx);
-    this.nl();
+    this.endLine(close, 0);
   }
 
   private tryCompactTableLike(
@@ -351,8 +419,8 @@ export class Printer {
     if (stripBlank) trivia = stripLeadingBlanks(trivia);
     return trivia;
   }
-  private trailingFor(ctx: any): Trivia | undefined {
-    return trailingComment(ctx, this.stream);
+  private trailingFor(ctx: any): boolean {
+    return trailingComments(ctx.stop.tokenIndex, this.stream).length > 0;
   }
 
   private formatField(ctx: FieldDeclContext): string {
@@ -425,21 +493,28 @@ export class Printer {
     const meta = ctx.metadata();
     if (meta) head += " " + this.formatMetadata(meta);
     const values = ctx.enumValDecl();
-    if (this.opts.compactSingleLine && this.tryCompactEnumLike(head, ctx, values, 0)) return;
+    const open = this.openBrace(ctx);
+    const close = ctx.stop!.tokenIndex;
+    if (
+      this.opts.compactSingleLine &&
+      !hasCommentsBetween(open, close, this.stream) &&
+      this.tryCompactEnumLike(head, ctx, values, 0)
+    ) return;
 
     this.out.push(`${head} {`);
-    this.nl();
+    this.endLine(open, 1);
     values.forEach((v, i) => {
       this.writeLeading(v, 1, i === 0);
+      this.writeInterior(v.start!.tokenIndex, v.stop!.tokenIndex, 1);
       this.out.push(this.indent(1));
       this.out.push(this.formatEnumVal(v));
       if (i < values.length - 1) this.out.push(",");
-      this.writeTrailing(v);
-      this.nl();
+      const stop = v.stop!.tokenIndex;
+      this.endLine(stop, 1, this.anchorAfter(stop));
     });
+    this.writeBodyEnd(close, values.length === 0);
     this.out.push("}");
-    this.writeTrailing(ctx);
-    this.nl();
+    this.endLine(close, 0);
   }
 
   private tryCompactEnumLike(
@@ -487,21 +562,28 @@ export class Printer {
     const meta = ctx.metadata();
     if (meta) head += " " + this.formatMetadata(meta);
     const vals = ctx.unionValDecl();
-    if (this.opts.compactSingleLine && this.tryCompactUnion(head, ctx, vals, 0)) return;
+    const open = this.openBrace(ctx);
+    const close = ctx.stop!.tokenIndex;
+    if (
+      this.opts.compactSingleLine &&
+      !hasCommentsBetween(open, close, this.stream) &&
+      this.tryCompactUnion(head, ctx, vals, 0)
+    ) return;
 
     this.out.push(`${head} {`);
-    this.nl();
+    this.endLine(open, 1);
     vals.forEach((v, i) => {
       this.writeLeading(v, 1, i === 0);
+      this.writeInterior(v.start!.tokenIndex, v.stop!.tokenIndex, 1);
       this.out.push(this.indent(1));
       this.out.push(this.formatUnionVal(v));
       if (i < vals.length - 1) this.out.push(",");
-      this.writeTrailing(v);
-      this.nl();
+      const stop = v.stop!.tokenIndex;
+      this.endLine(stop, 1, this.anchorAfter(stop));
     });
+    this.writeBodyEnd(close, vals.length === 0);
     this.out.push("}");
-    this.writeTrailing(ctx);
-    this.nl();
+    this.endLine(close, 0);
   }
 
   private tryCompactUnion(
@@ -535,18 +617,19 @@ export class Printer {
 
   private printRpc(ctx: RpcServiceDeclContext) {
     this.out.push(`rpc_service ${ctx.identifier().getText()} {`);
-    this.nl();
+    const close = ctx.stop!.tokenIndex;
+    this.endLine(this.openBrace(ctx), 1);
     const methods = ctx.rpcMethod();
     methods.forEach((m, i) => {
       this.writeLeading(m, 1, i === 0);
+      this.writeInterior(m.start!.tokenIndex, m.stop!.tokenIndex, 1);
       this.out.push(this.indent(1));
       this.out.push(this.formatRpcMethod(m));
-      this.writeTrailing(m);
-      this.nl();
+      this.endLine(m.stop!.tokenIndex, 1);
     });
+    this.writeBodyEnd(close, methods.length === 0);
     this.out.push("}");
-    this.writeTrailing(ctx);
-    this.nl();
+    this.endLine(close, 0);
   }
 
   private formatRpcMethod(m: RpcMethodContext): string {
@@ -560,8 +643,9 @@ export class Printer {
   }
 
   private printObjectDecl(ctx: ObjectLiteralDeclContext) {
+    // Comments inside the literal were hoisted above it by printDeclItem.
     this.out.push(this.formatObject(ctx.objectLiteral(), 0));
-    this.nl();
+    this.endLine(ctx.stop!.tokenIndex, 0);
   }
 
   private formatObject(ctx: ObjectLiteralContext, depth: number): string {
@@ -626,6 +710,30 @@ function fieldHasBlockingTrivia(
   void printer;
   // Field metadata blocks compact form. Trivia checks happen at the call site.
   return f.metadata() !== null;
+}
+
+function stripTrailingBlanks(trivia: Trivia[]): Trivia[] {
+  let end = trivia.length;
+  while (end > 0 && trivia[end - 1]!.kind === "blank_line") end--;
+  return trivia.slice(0, end);
+}
+
+function renderComment(t: Trivia): string {
+  if (t.kind === "line_comment") return `//${t.value}`;
+  if (t.kind === "doc_comment") return `///${t.value}`;
+  if (t.kind === "block_comment") return `/*${t.value}*/`;
+  return "";
+}
+
+// Declarations whose header ends at a `{ … }` body of items.
+function hasBody(item: unknown): boolean {
+  return (
+    item instanceof TableDeclContext ||
+    item instanceof StructDeclContext ||
+    item instanceof EnumDeclContext ||
+    item instanceof UnionDeclContext ||
+    item instanceof RpcServiceDeclContext
+  );
 }
 
 function stripLeadingBlanks(trivia: Trivia[]): Trivia[] {

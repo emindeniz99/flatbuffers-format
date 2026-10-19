@@ -1,0 +1,46 @@
+// Comments in every position the printer rebuilds from the parse tree.
+// 0.3.0 dropped the ones after a comma, the content of comment-only
+// bodies, comments before a closing brace and comments inside a
+// declaration. Deliberately unformatted: both engines must keep every
+// comment and agree byte for byte.
+
+namespace /* mid namespace */ Comments;
+
+enum Color : byte { // on the brace line
+  // before the first value
+  Red, // after a comma
+  Green /* before a comma */ , /* block after a comma */
+  Blue = // between = and the value
+    4, // last value, trailing comma
+  // before the closing brace
+}
+
+enum Size : byte {
+  Small, // kept
+  Large // last value, no comma
+}
+
+table Empty {
+  // only a comment
+}
+
+table Point (/* in header metadata */ original_order) {
+  x: int; // after a field
+  y /* before the colon */ : int = /* before the default */ 0;
+  z: int (key, // inside metadata
+    deprecated);
+
+  // before the closing brace, after a blank line
+}
+
+struct Pair { /* only a block comment */ a: float; b: float; }
+
+union Shape { Point, // after a comma
+  alias: Empty, /* block after the last comma */
+}
+
+rpc_service Service {
+  Get(Point): Empty; // after a method
+  Put(Point) /* inside a method */ : Empty;
+  // before the closing brace
+}

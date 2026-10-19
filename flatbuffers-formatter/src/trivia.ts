@@ -40,13 +40,21 @@ export function leadingTrivia(
 ): Trivia[] {
   const startIdx = ctx.start?.tokenIndex;
   if (startIdx === undefined || startIdx < 0) return [];
-  const hidden = stream.getHiddenTokensToLeft(startIdx) ?? [];
+  return leadingTriviaAt(startIdx, stream);
+}
+
+/**
+ * Leading trivia for the real token at `index` (see {@link leadingTrivia}).
+ * Used directly for a closing `}`, which has no context of its own.
+ */
+export function leadingTriviaAt(index: number, stream: BufferedTokenStream): Trivia[] {
+  const hidden = stream.getHiddenTokensToLeft(index) ?? [];
   // If there's a previous real token in the stream, any comment that
   // sits on the same line as it has already been emitted as that
   // node's trailing comment — drop it here to avoid duplication.
   // If we're at the very start of the file (no previous real token),
   // keep everything.
-  const hasPrevReal = previousRealToken(stream, startIdx) !== undefined;
+  const hasPrevReal = previousRealToken(stream, index) !== undefined;
   let skipUntilNewline = hasPrevReal;
   const filtered: Token[] = [];
   for (const tok of hidden) {
@@ -72,36 +80,49 @@ function previousRealToken(stream: BufferedTokenStream, index: number): Token | 
 }
 
 /**
- * Returns a trailing comment for `ctx` — a `//` or `/* * /` comment
- * that sits on the same line as the last token of `ctx`. Returns
- * undefined if there's nothing on the same line.
+ * Every comment after the real token at `index` that sits on the same
+ * line as it — everything up to the first newline or the next real
+ * token, whichever comes first. A line comment can only be the last
+ * of them; block comments may precede it.
  */
-export function trailingComment(
-  ctx: ParserRuleContext,
-  stream: BufferedTokenStream,
-): Trivia | undefined {
-  const stop = ctx.stop;
-  if (!stop) return undefined;
-  const hidden = stream.getHiddenTokensToRight(stop.tokenIndex) ?? [];
+export function trailingComments(index: number, stream: BufferedTokenStream): Trivia[] {
+  const hidden = stream.getHiddenTokensToRight(index) ?? [];
+  const sameLine: Token[] = [];
   for (const tok of hidden) {
     // Once we cross a newline, anything after it is "on the next
-    // line" and therefore not a trailing comment of `ctx`.
-    if (tok.type === WS && tok.text && tok.text.includes("\n")) return undefined;
-    if (tok.type === LINE) {
-      return { kind: "line_comment", value: stripPrefix(tok.text ?? "", "//") };
-    }
-    if (tok.type === BLOCK) {
-      return {
-        kind: "block_comment",
-        value: stripWrap(tok.text ?? "", "/*", "*/"),
-      };
-    }
-    if (tok.type === DOC) {
-      // Trailing doc comments are unusual but possible.
-      return { kind: "doc_comment", value: stripPrefix(tok.text ?? "", "///") };
-    }
+    // line" and belongs to whatever follows as leading trivia.
+    if (tok.type === WS && (tok.text ?? "").includes("\n")) break;
+    sameLine.push(tok);
   }
-  return undefined;
+  return toTrivia(sameLine);
+}
+
+/**
+ * Every comment strictly between the real tokens at `from` and `to`,
+ * wherever the line breaks fall. The printer rebuilds the text between
+ * two tokens from the parse tree, so without this any comment written
+ * mid-declaration (say, between a field name and its `:`) would vanish.
+ */
+export function commentsBetween(
+  from: number,
+  to: number,
+  stream: BufferedTokenStream,
+): Trivia[] {
+  const comments: Token[] = [];
+  for (let i = from + 1; i < to; i++) {
+    const tok = stream.get(i);
+    if (tok.channel !== 0 && tok.type !== WS) comments.push(tok);
+  }
+  return toTrivia(comments);
+}
+
+/** Whether any comment sits strictly between the real tokens at `from` and `to`. */
+export function hasCommentsBetween(from: number, to: number, stream: BufferedTokenStream): boolean {
+  for (let i = from + 1; i < to; i++) {
+    const tok = stream.get(i);
+    if (tok.channel !== 0 && tok.type !== WS) return true;
+  }
+  return false;
 }
 
 /**

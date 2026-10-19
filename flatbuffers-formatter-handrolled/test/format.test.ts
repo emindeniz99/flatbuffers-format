@@ -284,3 +284,60 @@ test("compactSingleLine: multi-field table stays expanded", () => {
   const out = format(`table T { x: int; y: string; }`);
   assert.equal(out, `table T {\n  x: int;\n  y: string;\n}\n`);
 });
+
+// Comment preservation — mirrors the engine's comments.test.ts so the
+// oracle fails on its own when it drops a comment, not only when the
+// crosscheck sees the two engines disagree.
+
+test("comments after a comma, before the } and in comment-only bodies survive", () => {
+  const input = `enum Color : byte {
+    Red, // first
+    Green, // second
+}
+
+table Empty {
+    // only a comment
+}
+
+union U { A, /* block */ B, /// doc
+  // before close
+}
+`;
+  const expected = `enum Color: byte {
+  Red, // first
+  Green // second
+}
+
+table Empty {
+  // only a comment
+}
+
+union U {
+  A, /* block */
+  B /// doc
+  // before close
+}
+`;
+  for (const compactSingleLine of [true, false]) {
+    const out = format(input, { compactSingleLine });
+    assert.equal(out, expected);
+    assert.equal(format(out, { compactSingleLine }), out);
+  }
+});
+
+test("comments inside a declaration move onto their own line above it", () => {
+  const out = format("table T {\n  a /* c1 */ : int = // c2\n    1;\n}\nnamespace a. /* c3 */ b;\n");
+  assert.equal(
+    out,
+    "table T {\n  /* c1 */\n  // c2\n  a: int = 1;\n}\n\n/* c3 */\nnamespace a.b;\n",
+  );
+  assert.equal(format(out), out);
+});
+
+test("several comments on one line all survive; a line comment ends the line", () => {
+  const out = format("table T {\n  x: int; /* a */ /* b */ // c\n}\n");
+  assert.equal(out, "table T {\n  x: int; /* a */ /* b */ // c\n}\n");
+  const moved = format("enum E : byte {\n  A // a\n  , // b\n  B\n}\n");
+  assert.equal(moved, "enum E: byte {\n  A, // a\n  // b\n  B\n}\n");
+  assert.equal(format(moved), moved);
+});

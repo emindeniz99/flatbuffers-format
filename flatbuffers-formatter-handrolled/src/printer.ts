@@ -19,6 +19,7 @@ import type {
   Trivia,
   TypeRef,
   UnionDecl,
+  WithBody,
   WithTrivia,
 } from "./types.js";
 
@@ -191,14 +192,37 @@ class Printer {
     }
   }
 
-  private writeTrailing(node: WithTrivia) {
-    if (!node.trailing) return;
-    const t = node.trailing;
-    if (t.kind === "line_comment") {
-      this.out.push(` //${t.value}`);
-    } else if (t.kind === "block_comment") {
-      this.out.push(` /*${t.value}*/`);
+  // Ends the current output line with `trailing`, the comments the
+  // source had after it on its line. Block comments stay inline; a line
+  // or doc comment ends the line, so anything after it moves onto its
+  // own line at `depth`.
+  private endLine(trailing: Trivia[], depth: number) {
+    let i = 0;
+    while (i < trailing.length) {
+      const c = trailing[i++]!;
+      this.out.push(` ${renderComment(c)}`);
+      if (c.kind !== "block_comment") break;
     }
+    this.nl();
+    this.writeLeading(trailing.slice(i), depth);
+  }
+
+  // Comments between the last item of a body and its `}` (or the whole
+  // content of a comment-only body), one indent level in.
+  private writeBodyEnd(decl: WithBody, empty: boolean) {
+    let trivia = stripTrailingBlankLines(decl.closeLeading);
+    if (empty) trivia = stripLeadingBlankLines(trivia);
+    this.writeLeading(trivia, 1);
+  }
+
+  // A list or body item: leading trivia, comments from inside the item
+  // hoisted above it, the item itself, then its trailing comments.
+  private writeItem(item: WithTrivia, text: string, first: boolean) {
+    this.writeLeading(first ? stripLeadingBlankLines(item.leading) : item.leading, 1);
+    this.writeLeading(item.interior ?? [], 1);
+    this.out.push(this.indentStr(1));
+    this.out.push(text);
+    this.endLine(item.trailing ?? [], 1);
   }
 
   // -----------------------------------------------------------------
@@ -210,17 +234,16 @@ class Printer {
     // separator between items is handled in `print()`.
     const leading = stripLeadingBlankLines(item.leading);
     this.writeLeading(leading, 0);
+    this.writeLeading(item.interior ?? [], 0);
 
     switch (item.kind) {
       case "include":
         this.out.push(`${item.native ? "native_include" : "include"} "${item.path}";`);
-        this.writeTrailing(item);
-        this.nl();
+        this.endLine(item.trailing ?? [], 0);
         return;
       case "namespace":
         this.out.push(`namespace ${item.segments.join(".")};`);
-        this.writeTrailing(item);
-        this.nl();
+        this.endLine(item.trailing ?? [], 0);
         return;
       case "attribute":
         if (item.quoted) {
@@ -228,23 +251,19 @@ class Printer {
         } else {
           this.out.push(`attribute ${item.value};`);
         }
-        this.writeTrailing(item);
-        this.nl();
+        this.endLine(item.trailing ?? [], 0);
         return;
       case "root_type":
         this.out.push(`root_type ${item.name};`);
-        this.writeTrailing(item);
-        this.nl();
+        this.endLine(item.trailing ?? [], 0);
         return;
       case "file_extension":
         this.out.push(`file_extension "${item.value}";`);
-        this.writeTrailing(item);
-        this.nl();
+        this.endLine(item.trailing ?? [], 0);
         return;
       case "file_identifier":
         this.out.push(`file_identifier "${item.value}";`);
-        this.writeTrailing(item);
-        this.nl();
+        this.endLine(item.trailing ?? [], 0);
         return;
       case "table":
       case "struct":
@@ -269,26 +288,18 @@ class Printer {
     let head = `${decl.kind} ${decl.name}`;
     if (decl.metadata) head += " " + this.formatMetadata(decl.metadata);
 
-    if (this.opts.compactSingleLine && this.tryCompactTableLike(head, decl)) return;
+    if (
+      this.opts.compactSingleLine &&
+      !bodyHasComments(decl, decl.fields) &&
+      this.tryCompactTableLike(head, decl)
+    ) return;
 
     this.out.push(`${head} {`);
-    this.nl();
-
-    let firstField = true;
-    for (const field of decl.fields) {
-      const leading = firstField
-        ? stripLeadingBlankLines(field.leading)
-        : field.leading;
-      this.writeLeading(leading, 1);
-      this.out.push(this.indentStr(1));
-      this.out.push(this.formatField(field));
-      this.writeTrailing(field);
-      this.nl();
-      firstField = false;
-    }
+    this.endLine(decl.openTrailing, 1);
+    decl.fields.forEach((f, i) => this.writeItem(f, this.formatField(f), i === 0));
+    this.writeBodyEnd(decl, decl.fields.length === 0);
     this.out.push("}");
-    this.writeTrailing(decl);
-    this.nl();
+    this.endLine(decl.trailing ?? [], 0);
   }
 
   private tryCompactTableLike(head: string, decl: TableDecl | StructDecl): boolean {
@@ -299,8 +310,8 @@ class Printer {
     // the user wanted commentary inside the body. Don't collapse it
     // away.
     if (stripLeadingBlankLines(f.leading).length > 0) return false;
-    if (f.trailing) return false;
-    if (decl.trailing) return false;
+    if (f.trailing?.length) return false;
+    if (decl.trailing?.length) return false;
     const body = this.formatField(f);
     const candidate = `${head} { ${body} }`;
     if (candidate.length > this.opts.lineWidth) return false;
@@ -341,14 +352,18 @@ class Printer {
     let head = `enum ${decl.name}`;
     if (decl.baseType) head += `: ${decl.baseType}`;
     if (decl.metadata) head += " " + this.formatMetadata(decl.metadata);
-    if (this.opts.compactSingleLine && this.tryCompactEnum(head, decl)) return;
+    if (
+      this.opts.compactSingleLine &&
+      !bodyHasComments(decl, decl.values) &&
+      this.tryCompactEnum(head, decl)
+    ) return;
 
     this.out.push(`${head} {`);
-    this.nl();
+    this.endLine(decl.openTrailing, 1);
     this.printEnumValues(decl.values);
+    this.writeBodyEnd(decl, decl.values.length === 0);
     this.out.push("}");
-    this.writeTrailing(decl);
-    this.nl();
+    this.endLine(decl.trailing ?? [], 0);
   }
 
   private tryCompactEnum(head: string, decl: EnumDecl): boolean {
@@ -358,9 +373,9 @@ class Printer {
       if (v.metadata) return false;
       const leading = i === 0 ? stripLeadingBlankLines(v.leading) : v.leading;
       if (leading.length > 0) return false;
-      if (v.trailing) return false;
+      if (v.trailing?.length) return false;
     }
-    if (decl.trailing) return false;
+    if (decl.trailing?.length) return false;
     const parts = decl.values.map((v) => this.formatEnumValInline(v));
     const candidate = `${head} { ${parts.join(", ")} }`;
     if (candidate.length > this.opts.lineWidth) return false;
@@ -379,16 +394,11 @@ class Printer {
   private printEnumValues(values: EnumValueDecl[]) {
     for (let i = 0; i < values.length; i++) {
       const v = values[i]!;
-      const leading = i === 0 ? stripLeadingBlankLines(v.leading) : v.leading;
-      this.writeLeading(leading, 1);
-      this.out.push(this.indentStr(1));
       let s = v.name;
       if (v.value) s += ` = ${formatScalar(v.value)}`;
       if (v.metadata) s += " " + this.formatMetadata(v.metadata);
       if (i < values.length - 1) s += ",";
-      this.out.push(s);
-      this.writeTrailing(v);
-      this.nl();
+      this.writeItem(v, s, i === 0);
     }
   }
 
@@ -396,24 +406,23 @@ class Printer {
     let head = `union ${decl.name}`;
     if (decl.baseType) head += `: ${decl.baseType}`;
     if (decl.metadata) head += " " + this.formatMetadata(decl.metadata);
-    if (this.opts.compactSingleLine && this.tryCompactUnion(head, decl)) return;
+    if (
+      this.opts.compactSingleLine &&
+      !bodyHasComments(decl, decl.values) &&
+      this.tryCompactUnion(head, decl)
+    ) return;
 
     this.out.push(`${head} {`);
-    this.nl();
+    this.endLine(decl.openTrailing, 1);
     for (let i = 0; i < decl.values.length; i++) {
       const v = decl.values[i]!;
-      const leading = i === 0 ? stripLeadingBlankLines(v.leading) : v.leading;
-      this.writeLeading(leading, 1);
-      this.out.push(this.indentStr(1));
       let s = v.alias ? `${v.alias}: ${v.type}` : v.type;
       if (i < decl.values.length - 1) s += ",";
-      this.out.push(s);
-      this.writeTrailing(v);
-      this.nl();
+      this.writeItem(v, s, i === 0);
     }
+    this.writeBodyEnd(decl, decl.values.length === 0);
     this.out.push("}");
-    this.writeTrailing(decl);
-    this.nl();
+    this.endLine(decl.trailing ?? [], 0);
   }
 
   private tryCompactUnion(head: string, decl: UnionDecl): boolean {
@@ -422,9 +431,9 @@ class Printer {
       const v = decl.values[i]!;
       const leading = i === 0 ? stripLeadingBlankLines(v.leading) : v.leading;
       if (leading.length > 0) return false;
-      if (v.trailing) return false;
+      if (v.trailing?.length) return false;
     }
-    if (decl.trailing) return false;
+    if (decl.trailing?.length) return false;
     const parts = decl.values.map((v) => (v.alias ? `${v.alias}: ${v.type}` : v.type));
     const candidate = `${head} { ${parts.join(", ")} }`;
     if (candidate.length > this.opts.lineWidth) return false;
@@ -435,27 +444,23 @@ class Printer {
 
   private printRpcService(decl: RpcServiceDecl) {
     this.out.push(`rpc_service ${decl.name} {`);
-    this.nl();
+    this.endLine(decl.openTrailing, 1);
     for (let i = 0; i < decl.methods.length; i++) {
       const m = decl.methods[i]!;
-      const leading = i === 0 ? stripLeadingBlankLines(m.leading) : m.leading;
-      this.writeLeading(leading, 1);
-      this.out.push(this.indentStr(1));
       let s = `${m.name}(${m.request}): ${m.response}`;
       if (m.metadata) s += " " + this.formatMetadata(m.metadata);
       s += ";";
-      this.out.push(s);
-      this.writeTrailing(m);
-      this.nl();
+      this.writeItem(m, s, i === 0);
     }
+    this.writeBodyEnd(decl, decl.methods.length === 0);
     this.out.push("}");
-    this.writeTrailing(decl);
-    this.nl();
+    this.endLine(decl.trailing ?? [], 0);
   }
 
   private printObjectLiteral(decl: ObjectLiteralDecl) {
+    // Comments inside the literal were hoisted above it as `interior`.
     this.out.push(this.formatObjectValue({ kind: "object", fields: decl.fields }, 0));
-    this.nl();
+    this.endLine(decl.trailing ?? [], 0);
   }
 
   private formatObjectValue(v: ObjectValue, depth: number): string {
@@ -514,6 +519,35 @@ function countBlankLines(leading: Trivia[]): number {
   let n = 0;
   for (const t of leading) if (t.kind === "blank_line") n++;
   return n;
+}
+
+function stripTrailingBlankLines(trivia: Trivia[]): Trivia[] {
+  let end = trivia.length;
+  while (end > 0 && trivia[end - 1]!.kind === "blank_line") end--;
+  return trivia.slice(0, end);
+}
+
+function renderComment(t: Trivia): string {
+  if (t.kind === "line_comment") return `//${t.value}`;
+  if (t.kind === "doc_comment") return `///${t.value}`;
+  if (t.kind === "block_comment") return `/*${t.value}*/`;
+  return "";
+}
+
+// True when any comment sits between a body's `{` and `}`. A compact
+// single-line body has no place to put one.
+function bodyHasComments(decl: WithBody, items: WithTrivia[]): boolean {
+  const isComment = (t: Trivia) => t.kind !== "blank_line";
+  return (
+    decl.openTrailing.length > 0 ||
+    decl.closeLeading.some(isComment) ||
+    items.some(
+      (it) =>
+        it.leading.some(isComment) ||
+        (it.interior?.length ?? 0) > 0 ||
+        (it.trailing?.length ?? 0) > 0,
+    )
+  );
 }
 
 function stripLeadingBlankLines(leading: Trivia[]): Trivia[] {

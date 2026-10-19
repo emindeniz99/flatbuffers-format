@@ -143,6 +143,40 @@ hand-rolled and ANTLR engines arrived at the same rule by different
 routes; cross-check caught the off-by-one in trivia dedup multiple
 times.
 
+### Every printed line ends at an anchor token
+
+The printer rebuilds each line from the parse tree, so a comment
+survives only if some printer step reads the hidden tokens it sits
+between. 0.3.0 read them only before an item's first token and after
+its last one, and lost the rest: `Red, // first` (the comment follows
+the comma, which the printer re-emits itself), the content of
+comment-only bodies, comments before a `}`, and anything inside a
+declaration.
+
+Each output line now ends at an anchor: the `;` of a field or method,
+the `{` of a body, the `}` of a declaration, or, for an enum/union
+value, the comma after it when there is one. `endLine` writes every
+comment between the item and its anchor plus every comment on the
+anchor's line. Block comments stay inline; a line comment ends the
+line, so anything after it moves onto its own line. `writeInterior`
+hoists comments from inside an item (between a field name and its
+type, inside metadata, inside a declaration header or an object
+literal) onto their own lines above it. `writeBodyEnd` writes what sits
+before a `}`. A body holding any comment never collapses to one line.
+
+The hand-rolled sibling records the same split in its parser: each
+node carries `leading`, `interior` and `trailing` trivia, and each body
+carries `openTrailing` and `closeLeading`.
+
+### The comment invariant check
+
+`format()` re-lexes its own output and compares the comments with the
+input's, as a multiset of trimmed comment text. If one is missing or
+duplicated it throws `CommentLossError` instead of returning the
+output. With `wrapComments` on, line comments are compared word by
+word, since wrapping splits one comment into several. The check costs
+one extra lex of the output; a silently deleted comment costs far more.
+
 ## Why the public API is small
 
 The exports from `src/index.ts` are deliberately minimal:
@@ -151,6 +185,7 @@ The exports from `src/index.ts` are deliberately minimal:
 export function format(source: string, options?: FormatOptions): string;
 export function check(source: string, options?: FormatOptions): boolean;
 export class FormatError extends Error { line: number; column: number }
+export class CommentLossError extends Error { missing: string[]; added: string[] }
 export type FormatOptions = { indent?: number; newline?: "\n" | "\r\n" };
 ```
 

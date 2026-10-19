@@ -37,10 +37,10 @@ export type Token = {
   line: number;
   col: number;
   leading: Trivia[];
-  // A `// ...` or `/* ... */` comment that appears after this token
-  // on the same line. We keep it on the producing token so the printer
-  // can place it back on the same line as whatever AST node owns it.
-  trailing?: Trivia;
+  // Every comment that appears after this token on the same line. We
+  // keep them on the producing token so the printer can place them back
+  // on the same line as whatever AST node owns it.
+  trailing: Trivia[];
 };
 
 // ---------------------------------------------------------------------------
@@ -72,7 +72,21 @@ export type TopLevel =
 
 export type WithTrivia = {
   leading: Trivia[];
-  trailing?: Trivia;
+  // Comments between the node's first and last token. The printer
+  // rebuilds that text from the AST, so it hoists them onto their own
+  // lines above the node.
+  interior?: Trivia[];
+  // Comments after the node on its line — for a list item, including
+  // any before and on the line of the comma that follows it.
+  trailing?: Trivia[];
+};
+
+// A `{ … }` body of items.
+export type WithBody = {
+  // Comments on the `{` line.
+  openTrailing: Trivia[];
+  // Trivia between the last item (or the `{` line) and the `}`.
+  closeLeading: Trivia[];
 };
 
 export type IncludeDecl = WithTrivia & {
@@ -120,14 +134,14 @@ export type MetadataEntry = WithTrivia & {
   value?: ScalarValue;
 };
 
-export type TableDecl = WithTrivia & {
+export type TableDecl = WithTrivia & WithBody & {
   kind: "table";
   name: string;
   metadata?: Metadata;
   fields: FieldDecl[];
 };
 
-export type StructDecl = WithTrivia & {
+export type StructDecl = WithTrivia & WithBody & {
   kind: "struct";
   name: string;
   metadata?: Metadata;
@@ -145,7 +159,7 @@ export type TypeRef =
   | { kind: "named"; name: string } // includes built-ins like `int`, `string`; supports `a.b.Foo`
   | { kind: "vector"; element: TypeRef; size?: string }; // size = fixed-length array `[T:N]`
 
-export type EnumDecl = WithTrivia & {
+export type EnumDecl = WithTrivia & WithBody & {
   kind: "enum";
   name: string;
   baseType?: string;
@@ -159,7 +173,7 @@ export type EnumValueDecl = WithTrivia & {
   metadata?: Metadata;
 };
 
-export type UnionDecl = WithTrivia & {
+export type UnionDecl = WithTrivia & WithBody & {
   kind: "union";
   name: string;
   // Optional underlying integer type, mirrors EnumDecl.baseType. Added in
@@ -175,7 +189,7 @@ export type UnionValueDecl = WithTrivia & {
   type: string;
 };
 
-export type RpcServiceDecl = WithTrivia & {
+export type RpcServiceDecl = WithTrivia & WithBody & {
   kind: "rpc_service";
   name: string;
   methods: RpcMethodDecl[];
