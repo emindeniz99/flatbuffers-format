@@ -9,6 +9,26 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > pre-publication development. Nothing installed from the registry needs
 > to migrate for them.
 
+## [0.5.0](https://github.com/emindeniz99/flatbuffers-format/compare/flatbuffers-format-v0.4.0...flatbuffers-format-v0.5.0) (2026-10-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* **formatter:** the defaults change output. Expanded enums and unions now end with a comma, and enum/union/single-field bodies that have a line break after `{` stay expanded instead of collapsing onto one line. To keep the 0.4 output, set `"trailingComma": "none"` and `"objectWrap": "collapse"` in .flatbuffers-format.json, or pass `--trailing-comma=none --object-wrap=collapse`.
+
+### Features
+
+* **formatter:** add ignore comments and Prettier's pragma options ([13b7319](https://github.com/emindeniz99/flatbuffers-format/commit/13b731967e1afa8613c7397273840f7cf4a0d958))
+* **formatter:** add minVersion to the config file ([a0df9cd](https://github.com/emindeniz99/flatbuffers-format/commit/a0df9cdafaf043dc88d3ba7ff9eb5ce785c62220))
+* **formatter:** add Prettier's trailing comma and object wrap options ([80aa9da](https://github.com/emindeniz99/flatbuffers-format/commit/80aa9da87f1ba48af83392372cdd31bfc48417dc))
+* **formatter:** export hasPragma and hasIgnorePragma ([40cd68c](https://github.com/emindeniz99/flatbuffers-format/commit/40cd68cfc5d5843d2904a5cfb66b1cbb455f6a8b))
+* **formatter:** refuse output that changes any code token ([d5378d1](https://github.com/emindeniz99/flatbuffers-format/commit/d5378d11be4ead5669638130a927d00413199c00))
+
+
+### Bug Fixes
+
+* **formatter:** accept the syntax flatbuffers' own test schemas use ([6184085](https://github.com/emindeniz99/flatbuffers-format/commit/6184085183ece1a8f7493d25663b378ea21008b9))
+
 ## [0.4.0](https://github.com/emindeniz99/flatbuffers-format/compare/flatbuffers-format-v0.3.0...flatbuffers-format-v0.4.0) (2026-10-19)
 
 

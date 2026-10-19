@@ -9,6 +9,13 @@ this file. This project follows [Semantic Versioning](https://semver.org/spec/v2
 > pre-publication development. Nothing installed from the registry needs
 > to migrate for them.
 
+## [0.1.2](https://github.com/emindeniz99/flatbuffers-format/compare/tree-sitter-flatbuffers-v0.1.1...tree-sitter-flatbuffers-v0.1.2) (2026-10-19)
+
+
+### Bug Fixes
+
+* **tree-sitter:** parse the syntax flatbuffers' own test schemas use ([64ce123](https://github.com/emindeniz99/flatbuffers-format/commit/64ce123c93dd0421e0b8ec75b77ea9fade684e23))
+
 ## [0.1.1](https://github.com/emindeniz99/flatbuffers-format/compare/tree-sitter-flatbuffers-v0.1.0...tree-sitter-flatbuffers-v0.1.1) (2026-08-07)
 
 
