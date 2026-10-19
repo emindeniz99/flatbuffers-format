@@ -17,6 +17,7 @@ import { dirname, join, resolve, extname } from "node:path";
 import { parseArgs } from "node:util";
 import { execFileSync } from "node:child_process";
 import { FormatError, format, type FormatOptions } from "./index.js";
+import { CONFIG_FILE_NAME, ConfigError, findConfigFile, loadConfig } from "./config.js";
 import { unifiedDiff } from "./diff.js";
 import { renderParseError } from "./error-render.js";
 
@@ -44,9 +45,16 @@ Options:
       --max-blank-lines <n>   Max consecutive blank lines kept between decls (default: 1)
       --wrap-comments         Reflow long line comments at whitespace (default: off)
       --comment-width <n>     Wrap column for --wrap-comments (defaults to --line-width)
+      --config <path>         Use this config file instead of looking one up
+      --no-config             Ignore config files
+      --stdin-filepath <path> With \`-\`, look up the config as if stdin were this file
       --no-gitignore          Don't consult .gitignore when walking directories
   -V, --version               Print version and exit
   -h, --help                  Show this message
+
+Options come from, highest first: flags, the nearest ${CONFIG_FILE_NAME}
+in the file's directory or any parent (stdin: the current directory), then
+the defaults above.
 
 Directories are recursed; only files ending in .fbs are processed.
 Inside a git repository, .gitignore is respected via \`git ls-files\`
@@ -193,6 +201,9 @@ async function main() {
     "max-blank-lines"?: string;
     "wrap-comments"?: boolean;
     "comment-width"?: string;
+    config?: string;
+    "no-config"?: boolean;
+    "stdin-filepath"?: string;
   };
   let positionals: string[];
   try {
@@ -212,6 +223,9 @@ async function main() {
         "max-blank-lines": { type: "string" },
         "wrap-comments": { type: "boolean" },
         "comment-width": { type: "string" },
+        config: { type: "string" },
+        "no-config": { type: "boolean" },
+        "stdin-filepath": { type: "string" },
       },
       allowPositionals: true,
     }));
@@ -239,12 +253,15 @@ async function main() {
   else if (values.check) mode = "check";
   else if (values.diff) mode = "diff";
 
-  const indent = values.indent !== undefined ? Number(values.indent) : 2;
-  if (!Number.isInteger(indent) || indent < 0) {
-    die("--indent expects a non-negative integer");
-  }
+  // Only flags actually given go in here, so a config file can supply
+  // the rest; the engine fills in its own defaults after that.
+  const opts: FormatOptions = {};
 
-  const opts: FormatOptions = { indent };
+  if (values.indent !== undefined) {
+    const n = Number(values.indent);
+    if (!Number.isInteger(n) || n < 0) die("--indent expects a non-negative integer");
+    opts.indent = n;
+  }
 
   if (values["use-tabs"]) opts.useTabs = true;
 
@@ -270,6 +287,30 @@ async function main() {
     opts.commentWidth = n;
   }
 
+  if (values.config !== undefined && values["no-config"]) {
+    die("--config and --no-config are mutually exclusive");
+  }
+  const configs = new Map<string, FormatOptions>();
+  const loadCached = (file: string): FormatOptions => {
+    let c = configs.get(file);
+    if (!c) {
+      try {
+        c = loadConfig(file);
+      } catch (err) {
+        if (err instanceof ConfigError) die(err.message);
+        throw err;
+      }
+      configs.set(file, c);
+    }
+    return c;
+  };
+  const forcedConfig = values.config !== undefined ? resolve(values.config) : undefined;
+  const optionsFor = (filePath: string): FormatOptions => {
+    if (values["no-config"]) return opts;
+    const file = forcedConfig ?? findConfigFile(dirname(resolve(filePath)));
+    return file ? { ...loadCached(file), ...opts } : opts;
+  };
+
   let fromStdin = false;
   const paths: string[] = [];
   for (const p of positionals) {
@@ -280,9 +321,10 @@ async function main() {
 
   if (fromStdin) {
     const src = await readStdin();
+    const stdinOpts = optionsFor(values["stdin-filepath"] ?? join(process.cwd(), "<stdin>"));
     let out: string;
     try {
-      out = format(src, opts);
+      out = format(src, stdinOpts);
     } catch (err) {
       reportParseError("<stdin>", src, err);
       process.exit(1);
@@ -315,9 +357,10 @@ async function main() {
 
   for (const file of files) {
     const src = readFileSync(file, "utf8");
+    const fileOpts = optionsFor(file);
     let out: string;
     try {
-      out = format(src, opts);
+      out = format(src, fileOpts);
     } catch (err) {
       reportParseError(file, src, err);
       failed++;

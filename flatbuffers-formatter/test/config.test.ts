@@ -1,0 +1,144 @@
+// Project config file. The point of `.flatbuffers-format.json` is that
+// the CLI, CI and every editor plugin resolve the same options for the
+// same file, so these tests pin the lookup (nearest file wins), the
+// precedence (flags > file > defaults) and the strict validation.
+
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import { ConfigError, loadConfig, resolveConfig } from "../src/config.js";
+
+const here = dirname(fileURLToPath(import.meta.url));
+const cliPath = join(here, "..", "src", "cli.js");
+
+const UGLY = "enum E:byte{A,B}\n";
+const COMPACT_2 = "enum E: byte { A, B }\n";
+const EXPANDED_4 = "enum E: byte {\n    A,\n    B\n}\n";
+const EXPANDED_TAB = "enum E: byte {\n\tA,\n\tB\n}\n";
+
+// root/.flatbuffers-format.json        indent 4, never compact
+// root/a/x.fbs                          → inherits root's file
+// root/a/b/.flatbuffers-format.json    tabs, never compact
+// root/a/b/y.fbs                        → nearest file wins, not merged
+function fixture() {
+  const root = mkdtempSync(join(tmpdir(), "fbs-config-"));
+  mkdirSync(join(root, "a", "b"), { recursive: true });
+  writeFileSync(
+    join(root, ".flatbuffers-format.json"),
+    JSON.stringify({ indent: 4, compactSingleLine: false }),
+  );
+  writeFileSync(
+    join(root, "a", "b", ".flatbuffers-format.json"),
+    JSON.stringify({ useTabs: true, indent: 1, compactSingleLine: false }),
+  );
+  writeFileSync(join(root, "a", "x.fbs"), UGLY);
+  writeFileSync(join(root, "a", "b", "y.fbs"), UGLY);
+  return root;
+}
+
+function cli(args: string[], opts: { input?: string; cwd?: string } = {}) {
+  return spawnSync(process.execPath, [cliPath, ...args], { encoding: "utf8", ...opts });
+}
+
+test("resolveConfig: the nearest config file wins and files are not merged", () => {
+  const root = fixture();
+  assert.deepEqual(resolveConfig(join(root, "a", "x.fbs")), { indent: 4, compactSingleLine: false });
+  // y.fbs's own file has no `indent: 4`; the parent's must not leak in.
+  assert.deepEqual(resolveConfig(join(root, "a", "b", "y.fbs")), {
+    useTabs: true,
+    indent: 1,
+    compactSingleLine: false,
+  });
+  // The schema need not exist: editors resolve options for unsaved buffers.
+  assert.deepEqual(resolveConfig(join(root, "a", "b", "unsaved.fbs"))?.useTabs, true);
+});
+
+test("loadConfig rejects unknown keys and wrong types, naming the file and key", () => {
+  const dir = mkdtempSync(join(tmpdir(), "fbs-config-bad-"));
+  const cases: [string, RegExp][] = [
+    ['{"indnt": 2}', /unknown key "indnt"/],
+    ['{"indent": "4"}', /"indent" must be a non-negative integer, got "4"/],
+    ['{"indent": -1}', /"indent" must be a non-negative integer/],
+    ['{"lineWidth": 0}', /"lineWidth" must be a positive integer/],
+    ['{"maxBlankLines": 1.5}', /"maxBlankLines" must be a non-negative integer/],
+    ['{"useTabs": "yes"}', /"useTabs" must be a boolean/],
+    ['{"newline": "\\r\\n"}', /unknown key "newline"/],
+    ["[]", /must contain a JSON object/],
+    ["{indent: 2}", /invalid JSON/],
+  ];
+  for (const [text, message] of cases) {
+    const file = join(dir, "c.json");
+    writeFileSync(file, text);
+    assert.throws(
+      () => loadConfig(file),
+      (err: unknown) =>
+        err instanceof ConfigError &&
+        err.file === file &&
+        err.message.startsWith(`${file}: `) &&
+        message.test(err.message),
+      text,
+    );
+  }
+});
+
+test("CLI: each file uses its nearest config", () => {
+  const root = fixture();
+  assert.equal(cli([join(root, "a", "x.fbs")]).stdout, EXPANDED_4);
+  assert.equal(cli([join(root, "a", "b", "y.fbs")]).stdout, EXPANDED_TAB);
+});
+
+test("CLI: flags override the config file, --no-config ignores it", () => {
+  const root = fixture();
+  const x = join(root, "a", "x.fbs");
+  // --indent beats the file's indent 4; the file's compactSingleLine stays.
+  assert.equal(cli(["--indent", "2", x]).stdout, "enum E: byte {\n  A,\n  B\n}\n");
+  assert.equal(cli(["--no-config", x]).stdout, COMPACT_2);
+});
+
+test("CLI: --config forces one file for every input", () => {
+  const root = fixture();
+  const forced = join(root, "a", "b", ".flatbuffers-format.json");
+  assert.equal(cli(["--config", forced, join(root, "a", "x.fbs")]).stdout, EXPANDED_TAB);
+  const r = cli(["--config", forced, "--no-config", join(root, "a", "x.fbs")]);
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /mutually exclusive/);
+});
+
+test("CLI: stdin looks up the config from --stdin-filepath, else the working directory", () => {
+  const root = fixture();
+  const viaPath = cli(["--stdin-filepath", join(root, "a", "b", "z.fbs"), "-"], { input: UGLY });
+  assert.equal(viaPath.stdout, EXPANDED_TAB);
+  const viaCwd = cli(["-"], { input: UGLY, cwd: join(root, "a") });
+  assert.equal(viaCwd.stdout, EXPANDED_4);
+});
+
+test("CLI: --check, --diff and --write honor the config", () => {
+  const root = fixture();
+  const x = join(root, "a", "x.fbs");
+  writeFileSync(x, EXPANDED_4);
+  // Canonical under the config, so not "unformatted" — although it would
+  // be under the defaults.
+  assert.equal(cli(["--check", x]).status, 0);
+  assert.equal(cli(["--diff", x]).status, 0);
+  assert.equal(cli(["--check", "--no-config", x]).status, 1);
+
+  writeFileSync(x, UGLY);
+  assert.equal(cli(["--write", x]).status, 0);
+  assert.equal(readFileSync(x, "utf8"), EXPANDED_4);
+});
+
+test("CLI: an invalid config exits 2, names the file and key, and writes nothing", () => {
+  const root = fixture();
+  const bad = join(root, "a", "b", ".flatbuffers-format.json");
+  writeFileSync(bad, '{"indent": 4, "lineWidht": 100}');
+  const y = join(root, "a", "b", "y.fbs");
+  const r = cli(["--write", y]);
+  assert.equal(r.status, 2);
+  assert.ok(r.stderr.includes(bad), r.stderr);
+  assert.match(r.stderr, /unknown key "lineWidht"/);
+  assert.equal(readFileSync(y, "utf8"), UGLY);
+});
