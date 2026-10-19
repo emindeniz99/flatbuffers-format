@@ -88,7 +88,14 @@ ext.activate({ subscriptions: [] });
 assert.strictEqual(registered.length, 1, "activate() registers one formatting provider");
 assert.strictEqual(registered[0].selector, "flatbuffers");
 const provider = registered[0].provider;
-const doc = (text) => ({ fileName: "a.fbs", getText: () => text, positionAt: (o) => new Position(o) });
+// An unsaved buffer, like VS Code's own untitled documents: no file on
+// disk, so the settings apply rather than a project config file.
+const doc = (text) => ({
+  uri: { scheme: "untitled", fsPath: "a.fbs" },
+  fileName: "a.fbs",
+  getText: () => text,
+  positionAt: (o) => new Position(o),
+});
 
 // Formatting must reach the bundled engine and produce canonical output.
 const edits = provider.provideDocumentFormattingEdits(doc('table T{x:int;y:string="hi";}'), { tabSize: 2 });
@@ -101,6 +108,24 @@ assert.deepStrictEqual(
   provider.provideDocumentFormattingEdits(doc(edits[0].newText), { tabSize: 2 }), [],
   "already-formatted input yields no edits",
 );
+
+// A document on disk with a .flatbuffers-format.json beside it formats
+// with that file. This is the only check that the config lookup, which
+// reads the filesystem, survives bundling into the packaged extension.
+{
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const project = fs.mkdtempSync(path.join(require("node:os").tmpdir(), "vsix-config-"));
+  fs.writeFileSync(path.join(project, ".flatbuffers-format.json"), '{"indent": 4}');
+  const onDisk = {
+    ...doc("table T{x:int;y:int;}"),
+    uri: { scheme: "file", fsPath: path.join(project, "s.fbs") },
+    fileName: path.join(project, "s.fbs"),
+  };
+  const configured = provider.provideDocumentFormattingEdits(onDisk, { tabSize: 2 });
+  assert.deepStrictEqual(errors, [], "no error notification with a valid config file");
+  assert.strictEqual(configured[0].newText, "table T {\\n    x: int;\\n    y: int;\\n}\\n");
+}
 
 // A parse error is a notification, never a thrown exception into the host.
 assert.deepStrictEqual(
