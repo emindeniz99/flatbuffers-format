@@ -92,6 +92,13 @@ class FlatBuffersSettings : PersistentStateComponent<FlatBuffersSettings.State> 
          */
         var extraArgs: String = ""
 
+        /**
+         * Hand `.fbs` highlighting to another installed FlatBuffers
+         * plugin (see [DeferToOtherFlatBuffersPlugin]). On by default:
+         * that plugin parses the schema, this one only colours tokens.
+         */
+        var deferHighlightingToOtherPlugin: Boolean = true
+
     }
 
     private var state = State()
@@ -136,6 +143,10 @@ class FlatBuffersSettings : PersistentStateComponent<FlatBuffersSettings.State> 
     var extraArgs: String
         get() = state.extraArgs
         set(value) { state.extraArgs = value.trim() }
+
+    var deferHighlightingToOtherPlugin: Boolean
+        get() = state.deferHighlightingToOtherPlugin
+        set(value) { state.deferHighlightingToOtherPlugin = value }
 
     /**
      * The engine arguments these settings imply — the format options

@@ -118,7 +118,9 @@
         Support"), <code>.fbs</code> files now use that plugin's
         highlighting and navigation automatically, and this plugin keeps
         formatting them. Previously the IDE picked one plugin's file type
-        at random and you had to fix it in Settings → File Types.</li>
+        at random and you had to fix it in Settings → File Types. A
+        <code>*.fbs</code> mapping you chose yourself still wins, and
+        Settings → Tools → FlatBuffers can turn this off.</li>
     </ul>
     <h3>0.3.0</h3>
     <ul>

@@ -51,6 +51,34 @@ class DeferToOtherFlatBuffersPluginTest {
     }
 
     @Test
+    fun aFileTheIdeGaveUsIsHandedOver() {
+        val theirs = type("Flatbuffers", "fbs")
+        val registered = listOf(FlatBuffersFileType.INSTANCE, theirs)
+        assertSame(theirs, DeferToOtherFlatBuffersPlugin.typeFor(FlatBuffersFileType.INSTANCE, registered, enabled = true))
+    }
+
+    @Test
+    fun theUsersOwnFileTypeChoiceStands() {
+        // An overrider beats Settings → File Types; if it deferred no
+        // matter what, mapping *.fbs to Plain Text would silently not work.
+        val theirs = type("Flatbuffers", "fbs")
+        val registered = listOf(FlatBuffersFileType.INSTANCE, theirs)
+        assertNull(DeferToOtherFlatBuffersPlugin.typeFor(type("PLAIN_TEXT", "txt"), registered, enabled = true))
+        assertNull(DeferToOtherFlatBuffersPlugin.typeFor(theirs, registered, enabled = true))
+    }
+
+    @Test
+    fun turningDeferringOffKeepsOurHighlighting() {
+        val registered = listOf(FlatBuffersFileType.INSTANCE, type("Flatbuffers", "fbs"))
+        assertNull(DeferToOtherFlatBuffersPlugin.typeFor(FlatBuffersFileType.INSTANCE, registered, enabled = false))
+    }
+
+    @Test
+    fun deferringIsOnByDefault() {
+        assertTrue(FlatBuffersSettings.State().deferHighlightingToOtherPlugin)
+    }
+
+    @Test
     fun theExtensionMatchIgnoresCase() {
         val theirs = type("Flatbuffers", "FBS")
         assertSame(theirs, DeferToOtherFlatBuffersPlugin.otherFlatBuffersFileType(listOf(theirs)))

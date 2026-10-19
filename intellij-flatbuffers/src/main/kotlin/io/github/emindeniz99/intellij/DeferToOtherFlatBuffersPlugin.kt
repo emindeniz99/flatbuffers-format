@@ -22,6 +22,12 @@ import com.intellij.openapi.vfs.VirtualFile
  * Uninstall the other plugin and this returns null, so `.fbs` falls back
  * to this plugin's own file type with no setting to undo.
  *
+ * Only a file the IDE typed as *ours* is handed over. An overrider wins
+ * over Settings → File Types, so deferring unconditionally would make a
+ * user's own `*.fbs` → Plain Text mapping impossible while another
+ * FlatBuffers plugin is installed. Users who prefer this plugin's
+ * highlighting turn deferring off in Settings → Tools → FlatBuffers.
+ *
  * `FileTypeOverrider` is marked experimental in the platform. If it ever
  * changes, the cost is today's behaviour: the IDE picks one owner and
  * the user can reassign it in Settings → File Types.
@@ -31,10 +37,26 @@ class DeferToOtherFlatBuffersPlugin : FileTypeOverrider {
         // Called for every file the IDE types, so leave everything that
         // is not a schema before touching the file type registry.
         if (!FlatBuffersFileType.isSchemaExtension(file.extension)) return null
-        return otherFlatBuffersFileType(FileTypeManager.getInstance().registeredFileTypes.asList())
+        val fileTypes = FileTypeManager.getInstance()
+        return typeFor(
+            // Name associations only: this does not consult overriders,
+            // so it cannot recurse into this one.
+            byName = fileTypes.getFileTypeByFileName(file.nameSequence),
+            registered = fileTypes.registeredFileTypes.asList(),
+            enabled = FlatBuffersSettings.getInstance().deferHighlightingToOtherPlugin,
+        )
     }
 
     companion object {
+        /**
+         * The file type a schema the IDE typed as [byName] should get
+         * instead; null keeps [byName]. Defers only when [enabled] and
+         * the IDE picked this plugin's type — Plain Text, the other
+         * plugin's type, or anything else the user chose stands.
+         */
+        fun typeFor(byName: FileType, registered: List<FileType>, enabled: Boolean): FileType? =
+            if (enabled && byName === FlatBuffersFileType.INSTANCE) otherFlatBuffersFileType(registered) else null
+
         /**
          * The first registered file type, other than ours, that declares
          * `fbs` as its extension; null when this plugin is the only one.

@@ -138,6 +138,11 @@ still run this plugin's formatter. There is nothing to configure.
 Uninstall the other plugin and `.fbs` files go back to this plugin's
 own highlighting.
 
+To keep this plugin's highlighting instead, untick **Let another
+installed FlatBuffers plugin highlight .fbs files** in Settings → Tools
+→ FlatBuffers. A mapping you set yourself in Settings → Editor → File
+Types, such as `*.fbs` → Plain Text, is never overridden.
+
 The IDE still lists both file types under Settings → Editor → File
 Types. Ours is **FlatBuffers (flatbuffers-format)**; the other
 plugin's is usually **Flatbuffers**.
