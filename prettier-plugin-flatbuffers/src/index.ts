@@ -50,13 +50,17 @@ type PrettierOptions = {
  *   `bracketSpacing` → `bracketSpacing`
  *   `objectWrap`     → `objectWrap`
  *
- * Line endings are always `\n`: Prettier converts the output to its own
+ * The engine always emits `\n`: Prettier converts the output to its own
  * `endOfLine` afterwards, and CRLF from the engine would come out as
- * `\r\r\n`. Pragmas are Prettier's job too, through the parser's
- * `hasPragma` / `hasIgnorePragma` hooks below.
+ * `\r\r\n`. A config file's `"lf"` or `"crlf"` is handed to Prettier
+ * instead (see `preprocess`); its `"auto"` cannot be, because Prettier
+ * has resolved `auto` and normalized the line breaks before the plugin
+ * sees the text, so Prettier's own `endOfLine` applies. Without a config
+ * file, pragmas are Prettier's job, through the parser's `hasPragma` /
+ * `hasIgnorePragma` hooks below; a config file's pragma options reach
+ * the engine, as they do from the CLI.
  */
-function engineOptions(options: PrettierOptions): FormatOptions {
-  const fromFile = options.filepath ? resolveConfig(options.filepath) : null;
+function engineOptions(options: PrettierOptions, fromFile: FormatOptions | null): FormatOptions {
   const base: FormatOptions = fromFile ?? {
     indent: options.useTabs ? 1 : (options.tabWidth ?? 2),
     useTabs: options.useTabs ?? false,
@@ -65,7 +69,7 @@ function engineOptions(options: PrettierOptions): FormatOptions {
     bracketSpacing: options.bracketSpacing ?? true,
     objectWrap: options.objectWrap ?? "preserve",
   };
-  return { ...base, newline: "\n", endOfLine: "lf", checkIgnorePragma: false, requirePragma: false };
+  return { ...base, newline: "\n", endOfLine: "lf" };
 }
 
 const languages: SupportLanguage[] = [
@@ -84,7 +88,14 @@ const parsers: Record<string, Parser<FbsRoot>> = {
     // "AST" is just an opaque wrapper around the formatted string.
     preprocess: (text, options) => {
       try {
-        return fbsFormat(text, engineOptions(options as PrettierOptions));
+        const prettierOptions = options as PrettierOptions & { endOfLine?: string };
+        const fromFile = prettierOptions.filepath ? resolveConfig(prettierOptions.filepath) : null;
+        if (fromFile?.endOfLine === "lf" || fromFile?.endOfLine === "crlf") {
+          // The options object Prettier prints with, so this sets the
+          // line endings of the result.
+          prettierOptions.endOfLine = fromFile.endOfLine;
+        }
+        return fbsFormat(text, engineOptions(prettierOptions, fromFile));
       } catch (e) {
         if (e instanceof FormatError) {
           // Re-throw as a SyntaxError carrying Prettier's expected

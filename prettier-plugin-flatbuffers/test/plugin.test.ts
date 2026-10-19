@@ -162,3 +162,21 @@ test("useTabs: one tab per level whatever tabWidth is, as in Prettier", async ()
     assert.equal(out, "table T {\n\tx: int;\n\ty: string;\n}\n", `tabWidth ${tabWidth}`);
   }
 });
+
+test("a config file's endOfLine and pragma options apply as they do from the CLI", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "fbs-prettier-config-eol-"));
+  const config = join(dir, ".flatbuffers-format.json");
+  const fmtFile = (src: string, opts: Record<string, unknown> = {}) =>
+    prettier.format(src, { filepath: join(dir, "schema.fbs"), plugins: [plugin], ...opts });
+
+  writeFileSync(config, JSON.stringify({ endOfLine: "crlf" }));
+  assert.equal(await fmtFile("table T{x:int;}\n"), "table T { x: int; }\r\n");
+  writeFileSync(config, JSON.stringify({ endOfLine: "lf" }));
+  assert.equal(await fmtFile("table T{x:int;}\r\n", { endOfLine: "crlf" }), "table T { x: int; }\n");
+
+  writeFileSync(config, JSON.stringify({ requirePragma: true }));
+  assert.equal(await fmtFile("table T{x:int;}"), "table T{x:int;}");
+  assert.equal(await fmtFile("// @format\ntable T{x:int;}"), "// @format\ntable T { x: int; }\n");
+  writeFileSync(config, JSON.stringify({ checkIgnorePragma: true }));
+  assert.equal(await fmtFile("// @noformat\ntable T{x:int;}"), "// @noformat\ntable T{x:int;}");
+});
