@@ -329,8 +329,14 @@ class Parser {
     this.expect("colon");
     const type = this.parseType();
     let defaultValue: ScalarValue | undefined;
+    let emptyVectorDefault: boolean | undefined;
     if (this.match("equals")) {
-      defaultValue = this.parseScalar();
+      if (this.match("lbracket")) {
+        this.expect("rbracket");
+        emptyVectorDefault = true;
+      } else {
+        defaultValue = this.parseScalar();
+      }
     }
     const metadata = this.tryParseMetadata();
     this.expect("semi");
@@ -338,6 +344,7 @@ class Parser {
       name: nameTok.value,
       type,
       defaultValue,
+      emptyVectorDefault,
       metadata,
       ...this.itemTrivia(start),
     };
@@ -460,9 +467,13 @@ class Parser {
     } else {
       type = firstParts.join(".");
     }
+    const value = this.match("equals") ? this.parseScalar() : undefined;
+    const metadata = this.tryParseMetadata();
     return {
       alias,
       type,
+      value,
+      metadata,
       ...this.itemTrivia(start),
     };
   }
@@ -547,7 +558,7 @@ class Parser {
     const t = this.peek();
     if (t.kind === "string") {
       this.advance();
-      return { kind: "string", raw: `"${t.value}"` };
+      return { kind: "string", raw: t.value };
     }
     return this.parseScalar();
   }
@@ -569,12 +580,12 @@ class Parser {
     if (t.kind === "string") {
       if (sign) throw new ParseError("string with sign prefix", t);
       this.advance();
-      return { kind: "string", raw: `"${t.value}"` };
+      return { kind: "string", raw: t.value };
     }
     if (t.kind === "ident") {
-      if (sign) throw new ParseError("identifier with sign prefix", t);
+      // A sign only makes sense on nan / inf, but flatc decides that.
       this.advance();
-      return { kind: "ident", raw: t.value };
+      return { kind: "ident", raw: sign + t.value };
     }
     throw new ParseError("expected scalar value", t);
   }
@@ -623,7 +634,7 @@ class Parser {
       key = keyTok.value;
     } else if (keyTok.kind === "string") {
       this.advance();
-      key = `"${keyTok.value}"`;
+      key = keyTok.value;
     } else {
       throw new ParseError("expected object key", keyTok);
     }

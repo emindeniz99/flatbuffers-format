@@ -113,12 +113,15 @@ export function tokenize(source: string): Token[] {
     throw new LexError("unterminated block comment", startLine, startCol);
   };
 
+  // Either quote style, as flatc reads both. The token's value is the
+  // whole literal, quotes included, so the printer keeps the style.
   const readString = (): Token => {
     const startLine = line;
     const startCol = col;
-    advance(); // opening "
+    const quote = peek();
     const start = i;
-    while (!eof() && peek() !== "\"") {
+    advance(); // opening quote
+    while (!eof() && peek() !== quote) {
       if (peek() === "\\" && !eof()) {
         advance(2);
       } else if (peek() === "\n") {
@@ -130,9 +133,8 @@ export function tokenize(source: string): Token[] {
     if (eof()) {
       throw new LexError("unterminated string literal", startLine, startCol);
     }
-    const value = source.slice(start, i);
-    advance(); // closing "
-    return makeToken("string", value, startLine, startCol);
+    advance(); // closing quote
+    return makeToken("string", source.slice(start, i), startLine, startCol);
   };
 
   const isDigit = (c: string | undefined) => c !== undefined && c >= "0" && c <= "9";
@@ -269,7 +271,7 @@ export function tokenize(source: string): Token[] {
       consecutiveNewlines = 0;
       continue;
     }
-    if (c === "\"") {
+    if (c === "\"" || c === "'") {
       out.push(readString());
       continue;
     }

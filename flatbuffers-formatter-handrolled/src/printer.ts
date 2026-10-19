@@ -20,6 +20,7 @@ import type {
   Trivia,
   TypeRef,
   UnionDecl,
+  UnionValueDecl,
   WithBody,
   WithTrivia,
 } from "./types.js";
@@ -256,7 +257,7 @@ class Printer {
 
     switch (item.kind) {
       case "include":
-        this.out.push(`${item.native ? "native_include" : "include"} "${item.path}";`);
+        this.out.push(`${item.native ? "native_include" : "include"} ${item.path};`);
         this.endLine(item.trailing ?? [], 0);
         return;
       case "namespace":
@@ -264,11 +265,7 @@ class Printer {
         this.endLine(item.trailing ?? [], 0);
         return;
       case "attribute":
-        if (item.quoted) {
-          this.out.push(`attribute "${item.value}";`);
-        } else {
-          this.out.push(`attribute ${item.value};`);
-        }
+        this.out.push(`attribute ${item.value};`);
         this.endLine(item.trailing ?? [], 0);
         return;
       case "root_type":
@@ -276,11 +273,11 @@ class Printer {
         this.endLine(item.trailing ?? [], 0);
         return;
       case "file_extension":
-        this.out.push(`file_extension "${item.value}";`);
+        this.out.push(`file_extension ${item.value};`);
         this.endLine(item.trailing ?? [], 0);
         return;
       case "file_identifier":
-        this.out.push(`file_identifier "${item.value}";`);
+        this.out.push(`file_identifier ${item.value};`);
         this.endLine(item.trailing ?? [], 0);
         return;
       case "table":
@@ -351,6 +348,8 @@ class Printer {
     let s = `${field.name}:${this.formatType(field.type)}`;
     if (field.defaultValue) {
       s += ` = ${formatScalar(field.defaultValue)}`;
+    } else if (field.emptyVectorDefault) {
+      s += " = []";
     }
     if (field.metadata) s += ` ${this.formatMetadata(field.metadata)}`;
     s += ";";
@@ -445,7 +444,7 @@ class Printer {
     this.endLine(decl.openTrailing, 1);
     for (let i = 0; i < decl.values.length; i++) {
       const v = decl.values[i]!;
-      let s = v.alias ? `${v.alias}: ${v.type}` : v.type;
+      let s = this.formatUnionVal(v);
       if (i < decl.values.length - 1 || this.opts.trailingComma === "all") s += ",";
       this.writeItem(v, s, i === 0);
     }
@@ -458,17 +457,25 @@ class Printer {
     if (decl.values.length === 0) return false;
     for (let i = 0; i < decl.values.length; i++) {
       const v = decl.values[i]!;
+      if (v.metadata) return false;
       const leading = i === 0 ? stripLeadingBlankLines(v.leading) : v.leading;
       if (leading.length > 0) return false;
       if (v.trailing?.length) return false;
     }
     if (decl.trailing?.length) return false;
-    const parts = decl.values.map((v) => (v.alias ? `${v.alias}: ${v.type}` : v.type));
+    const parts = decl.values.map((v) => this.formatUnionVal(v));
     const candidate = `${head} ${this.braced(parts.join(", "))}`;
     if (candidate.length > this.opts.lineWidth) return false;
     this.out.push(candidate);
     this.nl();
     return true;
+  }
+
+  private formatUnionVal(v: UnionValueDecl): string {
+    let s = v.alias ? `${v.alias}: ${v.type}` : v.type;
+    if (v.value) s += ` = ${formatScalar(v.value)}`;
+    if (v.metadata) s += " " + this.formatMetadata(v.metadata);
+    return s;
   }
 
   private printRpcService(decl: RpcServiceDecl) {

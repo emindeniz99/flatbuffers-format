@@ -100,7 +100,7 @@ export type WithBody = {
 
 export type IncludeDecl = WithTrivia & {
   kind: "include";
-  path: string; // string literal, without surrounding quotes
+  path: string; // string literal, quotes included
   // `native_include` (FlatBuffers extension for native types) vs
   // plain `include` for schema files.
   native?: boolean;
@@ -161,6 +161,8 @@ export type FieldDecl = WithTrivia & {
   name: string;
   type: TypeRef;
   defaultValue?: ScalarValue;
+  // `= []`, the one default a vector field can have.
+  emptyVectorDefault?: boolean;
   metadata?: Metadata;
 };
 
@@ -196,6 +198,9 @@ export type UnionValueDecl = WithTrivia & {
   // `MyType` or `alias:MyType`
   alias?: string;
   type: string;
+  // Explicit discriminant, `A = 5`.
+  value?: ScalarValue;
+  metadata?: Metadata;
 };
 
 export type RpcServiceDecl = WithTrivia & WithBody & {
