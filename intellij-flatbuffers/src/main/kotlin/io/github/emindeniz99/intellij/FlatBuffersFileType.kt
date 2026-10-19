@@ -22,5 +22,14 @@ class FlatBuffersFileType private constructor() : LanguageFileType(FlatBuffersLa
     companion object {
         @JvmField
         val INSTANCE: FlatBuffersFileType = FlatBuffersFileType()
+
+        /**
+         * Whether a file extension marks a FlatBuffers schema. Shared by the
+         * formatting service and [DeferToOtherFlatBuffersPlugin] so a file
+         * this plugin hands to another plugin is always one it still
+         * formats — `.FBS` included, as on a case-insensitive filesystem.
+         */
+        fun isSchemaExtension(extension: String?): Boolean =
+            extension.equals("fbs", ignoreCase = true)
     }
 }

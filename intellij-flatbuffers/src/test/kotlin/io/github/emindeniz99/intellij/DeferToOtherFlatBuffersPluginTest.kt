@@ -1,8 +1,10 @@
 package io.github.emindeniz99.intellij
 
 import com.intellij.openapi.fileTypes.FileType
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import javax.swing.Icon
 
@@ -33,6 +35,19 @@ class DeferToOtherFlatBuffersPluginTest {
         val theirs = type("Flatbuffers", "fbs")
         val registered = listOf(FlatBuffersFileType.INSTANCE, type("JSON", "json"), theirs)
         assertSame(theirs, DeferToOtherFlatBuffersPlugin.otherFlatBuffersFileType(registered))
+    }
+
+    @Test
+    fun everyFileWeDeferIsOneWeStillFormat() {
+        // The overrider and the formatting service decide "is this a
+        // schema" with the same function; `.FBS` handed to another
+        // plugin must not lose Reformat Code.
+        for (ext in listOf("fbs", "FBS", "Fbs")) {
+            assertTrue(ext, FlatBuffersFileType.isSchemaExtension(ext))
+        }
+        for (ext in listOf(null, "", "fb", "fbsx", "json")) {
+            assertFalse("$ext", FlatBuffersFileType.isSchemaExtension(ext))
+        }
     }
 
     @Test

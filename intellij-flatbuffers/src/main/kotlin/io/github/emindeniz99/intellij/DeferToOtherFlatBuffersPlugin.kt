@@ -30,7 +30,7 @@ class DeferToOtherFlatBuffersPlugin : FileTypeOverrider {
     override fun getOverriddenFileType(file: VirtualFile): FileType? {
         // Called for every file the IDE types, so leave everything that
         // is not a schema before touching the file type registry.
-        if (!file.extension.equals("fbs", ignoreCase = true)) return null
+        if (!FlatBuffersFileType.isSchemaExtension(file.extension)) return null
         return otherFlatBuffersFileType(FileTypeManager.getInstance().registeredFileTypes.asList())
     }
 
