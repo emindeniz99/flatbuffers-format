@@ -506,20 +506,13 @@ test("per-enum-value metadata accepts ugly input and lands on canonical form", (
   );
 });
 
-test("malformed input: signed inf/nan rejected (only bare inf/nan are supported)", () => {
-  // We documented in docs/grammar-comparison.md that the lexer accepts bare
-  // `inf` and `nan` as float defaults, but rejects `+inf`, `-inf`, `+nan`,
-  // `-nan`. This test pins that behaviour so a future "feature add" doesn't
-  // silently broaden the accepted dialect without an explicit decision.
-  // Bare forms must continue to work: multi-field table → stays
-  // expanded under compactSingleLine: true.
+test("signed inf/nan are accepted, as flatc and upstream's monster_test.fbs use them", () => {
+  // These were rejected until flatbuffers' own test schemas showed real
+  // files use them (`+inf`, `-nan`, `-infinity`); flatc reads all.
   assert.equal(
-    format(`table T { a: float = inf; b: float = nan; }`),
-    `table T {\n  a: float = inf;\n  b: float = nan;\n}\n`,
+    format(`table T { a: float = inf; b: float = - nan; c: double = +infinity; }`),
+    `table T {\n  a: float = inf;\n  b: float = -nan;\n  c: double = +infinity;\n}\n`,
   );
-  // Signed forms must continue to fail:
-  assert.throws(() => format(`table T { a: float = -inf; }`));
-  assert.throws(() => format(`table T { a: float = +inf; }`));
 });
 
 // ---------------------------------------------------------------------------

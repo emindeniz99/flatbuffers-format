@@ -13,6 +13,7 @@ import { FileIdentifierDeclContext } from "./FlatBuffersParser.js";
 import { TableDeclContext } from "./FlatBuffersParser.js";
 import { StructDeclContext } from "./FlatBuffersParser.js";
 import { FieldDeclContext } from "./FlatBuffersParser.js";
+import { EmptyVectorContext } from "./FlatBuffersParser.js";
 import { VectorTypeContext } from "./FlatBuffersParser.js";
 import { NamedTypeContext } from "./FlatBuffersParser.js";
 import { NsIdentContext } from "./FlatBuffersParser.js";
@@ -155,6 +156,16 @@ export class FlatBuffersListener implements ParseTreeListener {
      * @param ctx the parse tree
      */
     exitFieldDecl?: (ctx: FieldDeclContext) => void;
+    /**
+     * Enter a parse tree produced by `FlatBuffersParser.emptyVector`.
+     * @param ctx the parse tree
+     */
+    enterEmptyVector?: (ctx: EmptyVectorContext) => void;
+    /**
+     * Exit a parse tree produced by `FlatBuffersParser.emptyVector`.
+     * @param ctx the parse tree
+     */
+    exitEmptyVector?: (ctx: EmptyVectorContext) => void;
     /**
      * Enter a parse tree produced by the `vectorType`
      * labeled alternative in `FlatBuffersParser.typeRef`.

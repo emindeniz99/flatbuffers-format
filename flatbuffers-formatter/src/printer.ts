@@ -505,6 +505,7 @@ export class Printer {
     let s = `${ctx.identifier().getText()}: ${this.formatType(ctx.typeRef())}`;
     const scalar = ctx.scalar();
     if (scalar) s += ` = ${this.formatScalar(scalar)}`;
+    else if (ctx.emptyVector()) s += " = []";
     const meta = ctx.metadata();
     if (meta) s += " " + this.formatMetadata(meta);
     s += ";";
@@ -560,7 +561,7 @@ export class Printer {
       return `${sign}${ctx.HEX_FLOAT_LITERAL().getText()}`;
     }
     if (ctx instanceof StringScalarContext) return ctx.STRING_LITERAL().getText();
-    if (ctx instanceof IdentScalarContext) return ctx.identifier().getText();
+    if (ctx instanceof IdentScalarContext) return `${signText(ctx)}${ctx.identifier().getText()}`;
     return ctx.getText();
   }
 
@@ -675,6 +676,7 @@ export class Printer {
     if (vals.length === 0) return false;
     for (let i = 0; i < vals.length; i++) {
       const v = vals[i]!;
+      if (v.metadata()) return false;
       const leading = this.leadingFor(v, i === 0);
       if (leading.length > 0) return false;
       if (this.trailingFor(v)) return false;
@@ -691,8 +693,13 @@ export class Printer {
 
   private formatUnionVal(v: UnionValDeclContext): string {
     const alias = v.identifier();
-    const type = this.formatNsIdent(v.nsIdent());
-    return alias ? `${alias.getText()}: ${type}` : type;
+    let s = this.formatNsIdent(v.nsIdent());
+    if (alias) s = `${alias.getText()}: ${s}`;
+    const sc = v.scalar();
+    if (sc) s += ` = ${this.formatScalar(sc)}`;
+    const meta = v.metadata();
+    if (meta) s += " " + this.formatMetadata(meta);
+    return s;
   }
 
   private printRpc(ctx: RpcServiceDeclContext) {
@@ -809,7 +816,9 @@ export class Printer {
   }
 }
 
-function signText(ctx: IntScalarContext | FloatScalarContext | HexFloatScalarContext): string {
+function signText(
+  ctx: IntScalarContext | FloatScalarContext | HexFloatScalarContext | IdentScalarContext,
+): string {
   const text = ctx.getText();
   if (text.startsWith("-")) return "-";
   if (text.startsWith("+")) return "+";

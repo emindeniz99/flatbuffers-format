@@ -266,22 +266,23 @@ type Scanned = { comments: string[]; code: string[] };
 
 // The comments of `text`, trimmed, and its code tokens, both in order.
 // Mirrors the grammar's lexer rules for the only tokens that can hold
-// `/`: string literals (no newlines, backslash escapes) and the three
-// comment kinds. Other code is split into runs of word characters and
-// single punctuation characters, which is enough to see any change
-// besides whitespace: joining or splitting a word changes the runs.
-// `.` is punctuation, so `a . b` and `a.b` (a namespace) read the same. Run
-// on both the input and the output, so the two sides are always read
-// the same way; it avoids a second ANTLR lex, which is the slow part.
+// `/`: string literals (either quote, no newlines, backslash escapes)
+// and the three comment kinds. Other code is split into runs of word
+// characters and single punctuation characters, which is enough to see
+// any change besides whitespace: joining or splitting a word changes
+// the runs. `.` is punctuation, so `a . b` and `a.b` (a namespace) read
+// the same. Run on both the input and the output, so the two sides are
+// always read the same way; it avoids a second ANTLR lex, which is the
+// slow part.
 function scan(text: string): Scanned {
   const comments: string[] = [];
   const code: string[] = [];
   let i = 0;
   while (i < text.length) {
     const c = text[i]!;
-    if (c === '"') {
+    if (c === '"' || c === "'") {
       const start = i++;
-      while (i < text.length && text[i] !== '"' && text[i] !== "\n") i += text[i] === "\\" ? 2 : 1;
+      while (i < text.length && text[i] !== c && text[i] !== "\n") i += text[i] === "\\" ? 2 : 1;
       i++;
       code.push(text.slice(start, i));
     } else if (c === "/" && text[i + 1] === "/") {
