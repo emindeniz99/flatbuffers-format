@@ -85,7 +85,9 @@ export function tokenize(source: string): Token[] {
     const isDoc = peek(2) === "/";
     advance(isDoc ? 3 : 2);
     const start = i;
-    while (!eof() && peek() !== "\n") advance();
+    // Stop at `\r` too, as the grammar's LINE_COMMENT does: with CRLF
+    // line endings the `\r` is the line break, not part of the comment.
+    while (!eof() && peek() !== "\n" && peek() !== "\r") advance();
     const value = source.slice(start, i);
     void startCol;
     return isDoc
