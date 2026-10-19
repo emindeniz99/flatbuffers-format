@@ -202,20 +202,31 @@ export type RpcMethodDecl = WithTrivia & {
   metadata?: Metadata;
 };
 
-export type ObjectLiteralDecl = WithTrivia & {
+export type ObjectLiteralDecl = WithTrivia & ObjectLiteral;
+
+// Object and array literals keep comments like a declaration body: on
+// the opening bracket's line, per field or element, and before the
+// closing bracket.
+export type ObjectLiteral = WithBody & {
   kind: "object";
   fields: ObjectField[];
 };
 
+export type ArrayLiteral = WithBody & {
+  kind: "array";
+  values: ArrayElement[];
+};
+
 export type ObjectField = WithTrivia & {
-  key: string;
+  key: string; // a string key keeps its quotes
   value: ObjectValue;
 };
 
-export type ObjectValue =
-  | ScalarValue
-  | { kind: "object"; fields: ObjectField[] }
-  | { kind: "array"; values: ObjectValue[] };
+export type ArrayElement = WithTrivia & {
+  value: ObjectValue;
+};
+
+export type ObjectValue = ScalarValue | ObjectLiteral | ArrayLiteral;
 
 export type ScalarValue =
   | { kind: "int"; raw: string }

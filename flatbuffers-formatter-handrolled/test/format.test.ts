@@ -348,6 +348,15 @@ test("object literal: a quoted key keeps its quotes", () => {
   assert.equal(format('{ "a": 1, b: "x" }\n'), '{\n  "a": 1,\n  b: "x"\n}\n');
 });
 
+test("object literal: comments stay with their field, element or bracket", () => {
+  const out = format("{ a: 1, // one\n  b: [2, /* two */ 3],\n  c /* odd */ : { d: 4\n    // before }\n  }\n}\n");
+  assert.equal(
+    out,
+    "{\n  a: 1, // one\n  b: [\n    2, /* two */\n    3\n  ],\n  /* odd */\n  c: {\n    d: 4\n    // before }\n  }\n}\n",
+  );
+  assert.equal(format(out), out);
+});
+
 test("CRLF line endings: a line comment does not keep the \\r", () => {
   // The grammar ends LINE_COMMENT at \r as well as \n. Keeping the \r
   // here made this engine disagree with the ANTLR one on every Windows

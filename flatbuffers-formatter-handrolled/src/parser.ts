@@ -6,12 +6,14 @@
 // surfaced by `flatc` and not our job.
 
 import type {
+  ArrayElement,
   EnumDecl,
   EnumValueDecl,
   FieldDecl,
   Metadata,
   MetadataEntry,
   ObjectField,
+  ObjectLiteral,
   ObjectLiteralDecl,
   ObjectValue,
   RpcMethodDecl,
@@ -574,13 +576,23 @@ class Parser {
     const start = this.pos;
     const obj = this.parseObject();
     return {
-      kind: "object",
-      fields: obj.fields,
-      ...this.declTrivia(start),
+      ...obj,
+      leading: this.tokens[start]!.leading,
+      trailing: this.tokens[this.pos - 1]!.trailing,
     };
   }
 
-  private parseObject(): { fields: ObjectField[] } {
+  // Trivia of a `{ … }` or `[ … ]` literal: `open` is its opening
+  // bracket and the token just consumed its closing one.
+  private bracketTrivia(open: number): WithBody {
+    return {
+      openTrailing: this.tokens[open]!.trailing,
+      closeLeading: this.tokens[this.pos - 1]!.leading,
+    };
+  }
+
+  private parseObject(): ObjectLiteral {
+    const open = this.pos;
     this.expect("lbrace");
     const fields: ObjectField[] = [];
     if (!this.check("rbrace")) {
@@ -591,10 +603,11 @@ class Parser {
       }
     }
     this.expect("rbrace");
-    return { fields };
+    return { kind: "object", fields, ...this.bracketTrivia(open) };
   }
 
   private parseObjectField(): ObjectField {
+    const start = this.pos;
     const keyTok = this.peek();
     let key: string;
     if (keyTok.kind === "ident") {
@@ -607,29 +620,44 @@ class Parser {
       throw new ParseError("expected object key", keyTok);
     }
     this.expect("colon");
+    const valueStart = this.pos;
     const value = this.parseObjectValue();
-    return { key, value, leading: keyTok.leading };
+    const trivia = this.itemTrivia(start);
+    // Comments between the key and a nested literal's bracket are
+    // hoisted; the literal keeps the ones inside it.
+    if (!isScalar(value)) trivia.interior = this.commentsBetween(start, valueStart);
+    return { key, value, ...trivia };
+  }
+
+  private parseArrayElement(): ArrayElement {
+    const start = this.pos;
+    const value = this.parseObjectValue();
+    const trivia = this.itemTrivia(start);
+    if (!isScalar(value)) trivia.interior = [];
+    return { value, ...trivia };
   }
 
   private parseObjectValue(): ObjectValue {
-    if (this.check("lbrace")) {
-      const o = this.parseObject();
-      return { kind: "object", fields: o.fields };
-    }
+    if (this.check("lbrace")) return this.parseObject();
+    const open = this.pos;
     if (this.match("lbracket")) {
-      const values: ObjectValue[] = [];
+      const values: ArrayElement[] = [];
       if (!this.check("rbracket")) {
-        values.push(this.parseObjectValue());
+        values.push(this.parseArrayElement());
         while (this.match("comma")) {
           if (this.check("rbracket")) break;
-          values.push(this.parseObjectValue());
+          values.push(this.parseArrayElement());
         }
       }
       this.expect("rbracket");
-      return { kind: "array", values };
+      return { kind: "array", values, ...this.bracketTrivia(open) };
     }
     return this.parseSingleValue();
   }
+}
+
+function isScalar(v: ObjectValue): v is ScalarValue {
+  return v.kind !== "object" && v.kind !== "array";
 }
 
 export function parse(source: string): Schema {

@@ -3,11 +3,12 @@
 // formatted source is a no-op (fixed point).
 
 import type {
+  ArrayLiteral,
   EnumDecl,
   EnumValueDecl,
   FieldDecl,
   Metadata,
-  ObjectField,
+  ObjectLiteral,
   ObjectLiteralDecl,
   ObjectValue,
   RpcServiceDecl,
@@ -458,39 +459,76 @@ class Printer {
   }
 
   private printObjectLiteral(decl: ObjectLiteralDecl) {
-    // Comments inside the literal were hoisted above it as `interior`.
-    this.out.push(this.formatObjectValue({ kind: "object", fields: decl.fields }, 0));
+    this.writeObject(decl, 0);
     this.endLine(decl.trailing ?? [], 0);
   }
 
-  private formatObjectValue(v: ObjectValue, depth: number): string {
-    if ("kind" in v && v.kind === "object") {
-      if (v.fields.length === 0) return "{}";
-      const inner = this.indentStr(depth + 1);
-      const close = this.indentStr(depth);
-      const parts = v.fields.map((f) => inner + this.formatObjectField(f, depth + 1));
-      return `{${this.opts.newline}${parts.join("," + this.opts.newline)}${this.opts.newline}${close}}`;
-    }
-    if ("kind" in v && v.kind === "array") {
-      if (v.values.length === 0) return "[]";
-      // Inline short arrays of scalars.
-      const allScalar = v.values.every((x) => !("fields" in x) && !("values" in x));
-      if (allScalar) {
-        const parts = v.values.map((x) => formatScalar(x as ScalarValue));
-        const inline = `[${parts.join(", ")}]`;
-        if (inline.length + depth * this.opts.indent <= this.opts.lineWidth) return inline;
-      }
-      const inner = this.indentStr(depth + 1);
-      const close = this.indentStr(depth);
-      const parts = v.values.map((x) => inner + this.formatObjectValue(x, depth + 1));
-      return `[${this.opts.newline}${parts.join("," + this.opts.newline)}${this.opts.newline}${close}]`;
-    }
-    return formatScalar(v as ScalarValue);
+  // Object and array literals are written line by line, like a body:
+  // each field or element ends its own line and keeps the comments on
+  // it, and comments before a closing bracket stay inside. Blank lines
+  // inside a literal are dropped, as they always were.
+  private writeObject(o: ObjectLiteral, depth: number) {
+    this.writeBracketed("{}", o, o.fields, depth, (f) => {
+      this.writeLeading(f.interior ?? [], depth + 1);
+      this.out.push(`${this.indentStr(depth + 1)}${f.key}: `);
+      this.writeObjectValue(f.value, depth + 1);
+    });
   }
 
-  private formatObjectField(f: ObjectField, depth: number): string {
-    return `${f.key}: ${this.formatObjectValue(f.value, depth)}`;
+  private writeObjectValue(v: ObjectValue, depth: number) {
+    if (v.kind === "object") this.writeObject(v, depth);
+    else if (v.kind === "array") this.writeArray(v, depth);
+    else this.out.push(formatScalar(v));
   }
+
+  private writeArray(a: ArrayLiteral, depth: number) {
+    const scalars: ScalarValue[] = [];
+    for (const x of a.values) {
+      if (x.value.kind !== "object" && x.value.kind !== "array") scalars.push(x.value);
+    }
+    if (a.values.length > 0 && scalars.length === a.values.length && !bodyHasComments(a, a.values)) {
+      const inline = `[${scalars.map(formatScalar).join(", ")}]`;
+      if (inline.length + depth * this.opts.indent <= this.opts.lineWidth) {
+        this.out.push(inline);
+        return;
+      }
+    }
+    this.writeBracketed("[]", a, a.values, depth, (x) => {
+      this.writeLeading(x.interior ?? [], depth + 1);
+      this.out.push(this.indentStr(depth + 1));
+      this.writeObjectValue(x.value, depth + 1);
+    });
+  }
+
+  // A bracketed list at `depth`, one item per line written by
+  // `writeItem` after the item's leading comments. The closing bracket
+  // is left on the current line for the caller to end.
+  private writeBracketed<T extends WithTrivia>(
+    brackets: "{}" | "[]",
+    body: WithBody,
+    items: T[],
+    depth: number,
+    writeItem: (item: T) => void,
+  ) {
+    if (items.length === 0 && !bodyHasComments(body, [])) {
+      this.out.push(brackets);
+      return;
+    }
+    this.out.push(brackets[0]!);
+    this.endLine(body.openTrailing, depth + 1);
+    items.forEach((item, i) => {
+      this.writeLeading(commentsOnly(item.leading), depth + 1);
+      writeItem(item);
+      if (i < items.length - 1) this.out.push(",");
+      this.endLine(item.trailing ?? [], depth + 1);
+    });
+    this.writeLeading(commentsOnly(body.closeLeading), depth + 1);
+    this.out.push(this.indentStr(depth) + brackets[1]!);
+  }
+}
+
+function commentsOnly(trivia: Trivia[]): Trivia[] {
+  return trivia.filter((t) => t.kind !== "blank_line");
 }
 
 function formatScalar(v: ScalarValue): string {
