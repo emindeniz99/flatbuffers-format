@@ -91,81 +91,9 @@
     </p>
   ]]></description>
 
-  <!-- KEEP THE TOP HEADING IN STEP WITH gradle.properties' pluginVersion.
-       release-please bumps that file (the only entry in this package's
-       `extra-files`) and never touches this block, so the two drift
-       silently and the Marketplace renders the wrong notes under the
-       right version — 0.3.0 shipped showing 0.2.0's list. Nothing checks
-       this at build time; it is on whoever cuts the release. -->
-  <change-notes><![CDATA[
-    <h3>Unreleased</h3>
-    <ul>
-      <li>Comments are no longer deleted. The bundled engine used to drop a
-        comment after the comma of an enum or union value, the comment in a
-        comment-only body, comments before a closing brace and comments
-        inside a declaration. It now keeps all of them, and refuses to
-        format a file rather than lose one.</li>
-      <li>Project config file: when a schema has a
-        <code>.flatbuffers-format.json</code> in its directory or a parent,
-        the plugin formats with it instead of the settings page, so the IDE
-        matches the CLI and CI. The settings page shows the file in use
-        and disables the options it overrides.</li>
-      <li>The file type, language and color scheme page now show as
-        <i>FlatBuffers (flatbuffers-format)</i>, so they can be told apart
-        from another FlatBuffers plugin's <i>Flatbuffers</i> entries. Your
-        existing <code>*.fbs</code> association is kept.</li>
-      <li>With another FlatBuffers plugin installed (such as "Flatbuffers
-        Support"), <code>.fbs</code> files now use that plugin's
-        highlighting and navigation automatically, and this plugin keeps
-        formatting them. Previously the IDE picked one plugin's file type
-        at random and you had to fix it in Settings → File Types. A
-        <code>*.fbs</code> mapping you chose yourself still wins, and
-        Settings → Tools → FlatBuffers can turn this off.</li>
-    </ul>
-    <h3>0.3.0</h3>
-    <ul>
-      <li>First public release on the JetBrains Marketplace.</li>
-      <li>Fixed a bug that could corrupt a schema: formatting a selection,
-        or saving with <i>Actions on Save → Reformat code</i> scoped to
-        changed lines, asked for a range but got the whole formatted file
-        back — splicing the file into itself. Partial-range requests are
-        now declined with an explanation; the engine formats whole
-        schemas only.</li>
-      <li>The formatter now ships <i>inside</i> the plugin as a JavaScript
-        bundle and runs on any Node 20+ on your machine, including one
-        installed by nvm, fnm, Volta, asdf, nodenv or mise — which an IDE
-        started from the Dock or a desktop shortcut could not previously
-        find. A Node below that floor is refused rather than used, and
-        every fallback is reported once with the action that fixes it.</li>
-      <li>Bundled-engine download: if the <code>flatbuffers-format</code>
-        CLI isn't on your <code>PATH</code>, the settings page can fetch a
-        matching prebuilt binary from the project's GitHub Release and
-        verify it against its published SHA256 sidecar.</li>
-      <li>The formatter's options are now real fields on the settings page —
-        indent width, indent with tabs, line width, single-line collapsing of
-        small enum/union/single-field bodies, max blank lines, comment
-        reflow and comment width — each labelled with the engine's default
-        and validated before it is saved. They used to be reachable only by
-        typing flags into the free-text "Extra arguments" box, where a typo
-        did nothing and said nothing. That box stays, for options the fields
-        don't cover; anything you leave alone is still decided by the engine,
-        not by the plugin.</li>
-      <li>Removed a non-functional "Format on save" checkbox. Use
-        <i>Settings → Tools → Actions on Save → Reformat code</i>, which
-        drives this formatter through the platform's formatting service.</li>
-    </ul>
-    <h3>0.1.0</h3>
-    <ul>
-      <li>Initial release.</li>
-      <li><code>.fbs</code> file-type registration.</li>
-      <li>Lexer-driven syntax highlighting.</li>
-      <li>External formatter integration via
-        <code>AsyncDocumentFormattingService</code>.</li>
-      <li>Settings page under <i>Tools → FlatBuffers</i>.</li>
-      <li>Line/block comment toggle support (<kbd>Ctrl/⌘ + /</kbd>,
-        <kbd>Ctrl/⌘ + Shift + /</kbd>).</li>
-    </ul>
-  ]]></change-notes>
+  <!-- <change-notes> is generated at build time from the CHANGELOG.md
+       files release-please writes (`changeNotesHtml` in build.gradle.kts).
+       Don't add one here. -->
 
   <!-- The lone hard dependency: every IntelliJ-family IDE ships this.
        Adding more `<depends>` lines is a footgun — it restricts which

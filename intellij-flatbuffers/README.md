@@ -200,7 +200,11 @@ When release-please merges the bump PR, the
 [`intellij-flatbuffers.yml`](../../.github/workflows/intellij-flatbuffers.yml)
 workflow:
 
-1. Builds the plugin distribution.
+1. Builds the plugin distribution. The Marketplace change notes are
+   generated from this package's `CHANGELOG.md` section for the new
+   version, followed by the bundled engine's section from
+   `flatbuffers-formatter/CHANGELOG.md`. Nobody edits them by hand, and
+   the build fails if either section is missing.
 2. Runs the IntelliJ Plugin Verifier against every recommended IDE.
 3. Signs the `.zip` with the Marketplace certificate
    (`JETBRAINS_CERTIFICATE_CHAIN` + `JETBRAINS_PRIVATE_KEY` +
