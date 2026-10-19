@@ -1,7 +1,7 @@
 // Hand-written lexer for FlatBuffers schema files.
 //
 // Whitespace and comments are "trivia" — attached to the next real
-// token as `leading` (or to the previous token as `trailing` when on
+// token as `leading` (or to the previous token's `trailing` list when on
 // the same line). Two or more consecutive newlines collapse to a single
 // `blank_line` trivia so the printer can preserve paragraph breaks.
 
@@ -75,10 +75,7 @@ export function tokenize(source: string): Token[] {
 
   const tryAttachTrailing = (t: Trivia): boolean => {
     if (sawNewlineSinceToken || out.length === 0) return false;
-    if (t.kind !== "line_comment" && t.kind !== "block_comment") return false;
-    const last = out[out.length - 1]!;
-    if (last.trailing) return false;
-    last.trailing = t;
+    out[out.length - 1]!.trailing.push(t);
     return true;
   };
 
@@ -220,6 +217,7 @@ export function tokenize(source: string): Token[] {
       line: tLine,
       col: tCol,
       leading: pending,
+      trailing: [],
     };
     pending = [];
     consecutiveNewlines = 0;
@@ -296,6 +294,7 @@ export function tokenize(source: string): Token[] {
     line,
     col,
     leading: pending,
+    trailing: [],
   });
   return out;
 }

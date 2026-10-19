@@ -27,6 +27,8 @@ import type {
   TypeRef,
   UnionDecl,
   UnionValueDecl,
+  WithBody,
+  WithTrivia,
 } from "./types.js";
 import { tokenize } from "./lexer.js";
 
@@ -128,6 +130,7 @@ class Parser {
   }
 
   private parseInclude(): TopLevel {
+    const start = this.pos;
     const kw = this.advance();
     const str = this.expect("string");
     this.expect("semi");
@@ -135,19 +138,63 @@ class Parser {
       kind: "include",
       path: str.value,
       native: kw.value === "native_include",
-      leading: kw.leading,
-      trailing: lastTrailing(kw, str, this.lastSemi()),
+      ...this.declTrivia(start),
     };
   }
 
-  private lastSemi(): Token {
-    // We just consumed a semi; rewind one to peek at it without
-    // moving the position forward.
-    return this.tokens[this.pos - 1]!;
+  // Every comment strictly between the tokens at positions `from` and
+  // `to`, in source order, wherever the line breaks fall.
+  private commentsBetween(from: number, to: number): Trivia[] {
+    const out: Trivia[] = [];
+    for (let k = from; k < to; k++) {
+      out.push(...this.tokens[k]!.trailing);
+      for (const t of this.tokens[k + 1]!.leading) {
+        if (t.kind !== "blank_line") out.push(t);
+      }
+    }
+    return out;
+  }
+
+  // Trivia of a single-line declaration spanning `start` (its keyword)
+  // to the token just consumed (its `;`).
+  private declTrivia(start: number): Required<WithTrivia> {
+    const stop = this.pos - 1;
+    return {
+      leading: this.tokens[start]!.leading,
+      interior: this.commentsBetween(start, stop),
+      trailing: this.tokens[stop]!.trailing,
+    };
+  }
+
+  // Trivia of a declaration with a `{ … }` body: `start` is its
+  // keyword, `open` its `{`, and the token just consumed its `}`.
+  private bodyDeclTrivia(start: number, open: number): Required<WithTrivia> & WithBody {
+    const close = this.pos - 1;
+    return {
+      leading: this.tokens[start]!.leading,
+      interior: this.commentsBetween(start, open),
+      trailing: this.tokens[close]!.trailing,
+      openTrailing: this.tokens[open]!.trailing,
+      closeLeading: this.tokens[close]!.leading,
+    };
+  }
+
+  // Trivia of a body item spanning `start` to the token just consumed.
+  // A list item's trailing comments run through the comma after it,
+  // which the printer re-emits itself.
+  private itemTrivia(start: number): Required<WithTrivia> {
+    const stop = this.pos - 1;
+    const anchor = this.tokens[stop + 1]!.kind === "comma" ? stop + 1 : stop;
+    return {
+      leading: this.tokens[start]!.leading,
+      interior: this.commentsBetween(start, stop),
+      trailing: [...this.commentsBetween(stop, anchor), ...this.tokens[anchor]!.trailing],
+    };
   }
 
   private parseNamespace(): TopLevel {
-    const kw = this.advance();
+    const start = this.pos;
+    this.advance();
     const segments: string[] = [];
     segments.push(this.expect("ident").value);
     while (this.match("dot")) {
@@ -157,13 +204,13 @@ class Parser {
     return {
       kind: "namespace",
       segments,
-      leading: kw.leading,
-      trailing: this.lastSemi().trailing,
+      ...this.declTrivia(start),
     };
   }
 
   private parseAttribute(): TopLevel {
-    const kw = this.advance();
+    const start = this.pos;
+    this.advance();
     let value: string;
     let quoted: boolean;
     const t = this.peek();
@@ -181,44 +228,43 @@ class Parser {
       kind: "attribute",
       value,
       quoted,
-      leading: kw.leading,
-      trailing: this.lastSemi().trailing,
+      ...this.declTrivia(start),
     };
   }
 
   private parseRootType(): TopLevel {
-    const kw = this.advance();
+    const start = this.pos;
+    this.advance();
     const name = this.expect("ident").value;
     this.expect("semi");
     return {
       kind: "root_type",
       name,
-      leading: kw.leading,
-      trailing: this.lastSemi().trailing,
+      ...this.declTrivia(start),
     };
   }
 
   private parseFileExtension(): TopLevel {
-    const kw = this.advance();
+    const start = this.pos;
+    this.advance();
     const value = this.expect("string").value;
     this.expect("semi");
     return {
       kind: "file_extension",
       value,
-      leading: kw.leading,
-      trailing: this.lastSemi().trailing,
+      ...this.declTrivia(start),
     };
   }
 
   private parseFileIdentifier(): TopLevel {
-    const kw = this.advance();
+    const start = this.pos;
+    this.advance();
     const value = this.expect("string").value;
     this.expect("semi");
     return {
       kind: "file_identifier",
       value,
-      leading: kw.leading,
-      trailing: this.lastSemi().trailing,
+      ...this.declTrivia(start),
     };
   }
 
@@ -227,46 +273,49 @@ class Parser {
   // -----------------------------------------------------------------
 
   private parseTable(): TableDecl {
-    const kw = this.advance();
+    const start = this.pos;
+    this.advance();
     const name = this.expect("ident").value;
     const metadata = this.tryParseMetadata();
+    const open = this.pos;
     this.expect("lbrace");
     const fields: FieldDecl[] = [];
     while (!this.check("rbrace") && !this.atEnd()) {
       fields.push(this.parseField());
     }
-    const close = this.expect("rbrace");
+    this.expect("rbrace");
     return {
       kind: "table",
       name,
       metadata,
       fields,
-      leading: kw.leading,
-      trailing: close.trailing,
+      ...this.bodyDeclTrivia(start, open),
     };
   }
 
   private parseStruct(): StructDecl {
-    const kw = this.advance();
+    const start = this.pos;
+    this.advance();
     const name = this.expect("ident").value;
     const metadata = this.tryParseMetadata();
+    const open = this.pos;
     this.expect("lbrace");
     const fields: FieldDecl[] = [];
     while (!this.check("rbrace") && !this.atEnd()) {
       fields.push(this.parseField());
     }
-    const close = this.expect("rbrace");
+    this.expect("rbrace");
     return {
       kind: "struct",
       name,
       metadata,
       fields,
-      leading: kw.leading,
-      trailing: close.trailing,
+      ...this.bodyDeclTrivia(start, open),
     };
   }
 
   private parseField(): FieldDecl {
+    const start = this.pos;
     const nameTok = this.expect("ident");
     this.expect("colon");
     const type = this.parseType();
@@ -281,8 +330,7 @@ class Parser {
       type,
       defaultValue,
       metadata,
-      leading: nameTok.leading,
-      trailing: this.lastSemi().trailing,
+      ...this.itemTrivia(start),
     };
   }
 
@@ -311,13 +359,15 @@ class Parser {
   // -----------------------------------------------------------------
 
   private parseEnum(): EnumDecl {
-    const kw = this.advance();
+    const start = this.pos;
+    this.advance();
     const name = this.expect("ident").value;
     let baseType: string | undefined;
     if (this.match("colon")) {
       baseType = this.expect("ident").value;
     }
     const metadata = this.tryParseMetadata();
+    const open = this.pos;
     this.expect("lbrace");
     const values: EnumValueDecl[] = [];
     if (!this.check("rbrace")) {
@@ -327,19 +377,19 @@ class Parser {
         values.push(this.parseEnumValue());
       }
     }
-    const close = this.expect("rbrace");
+    this.expect("rbrace");
     return {
       kind: "enum",
       name,
       baseType,
       metadata,
       values,
-      leading: kw.leading,
-      trailing: close.trailing,
+      ...this.bodyDeclTrivia(start, open),
     };
   }
 
   private parseEnumValue(): EnumValueDecl {
+    const start = this.pos;
     const nameTok = this.expect("ident");
     let value: ScalarValue | undefined;
     if (this.match("equals")) {
@@ -350,18 +400,18 @@ class Parser {
       name: nameTok.value,
       value,
       metadata,
-      leading: nameTok.leading,
-      // Trailing on the value or the name (no semi here).
-      trailing: undefined,
+      ...this.itemTrivia(start),
     };
   }
 
   private parseUnion(): UnionDecl {
-    const kw = this.advance();
+    const start = this.pos;
+    this.advance();
     const name = this.expect("ident").value;
     let baseType: string | undefined;
     if (this.match("colon")) baseType = this.expect("ident").value;
     const metadata = this.tryParseMetadata();
+    const open = this.pos;
     this.expect("lbrace");
     const values: UnionValueDecl[] = [];
     if (!this.check("rbrace")) {
@@ -371,19 +421,19 @@ class Parser {
         values.push(this.parseUnionValue());
       }
     }
-    const close = this.expect("rbrace");
+    this.expect("rbrace");
     return {
       kind: "union",
       name,
       baseType,
       metadata,
       values,
-      leading: kw.leading,
-      trailing: close.trailing,
+      ...this.bodyDeclTrivia(start, open),
     };
   }
 
   private parseUnionValue(): UnionValueDecl {
+    const start = this.pos;
     const first = this.expect("ident");
     // Could be `Type`, `a.b.Type`, or `Alias: a.b.Type`.
     const firstParts = [first.value];
@@ -404,7 +454,7 @@ class Parser {
     return {
       alias,
       type,
-      leading: first.leading,
+      ...this.itemTrivia(start),
     };
   }
 
@@ -413,24 +463,26 @@ class Parser {
   // -----------------------------------------------------------------
 
   private parseRpcService(): RpcServiceDecl {
-    const kw = this.advance();
+    const start = this.pos;
+    this.advance();
     const name = this.expect("ident").value;
+    const open = this.pos;
     this.expect("lbrace");
     const methods: RpcMethodDecl[] = [];
     while (!this.check("rbrace") && !this.atEnd()) {
       methods.push(this.parseRpcMethod());
     }
-    const close = this.expect("rbrace");
+    this.expect("rbrace");
     return {
       kind: "rpc_service",
       name,
       methods,
-      leading: kw.leading,
-      trailing: close.trailing,
+      ...this.bodyDeclTrivia(start, open),
     };
   }
 
   private parseRpcMethod(): RpcMethodDecl {
+    const start = this.pos;
     const nameTok = this.expect("ident");
     this.expect("lparen");
     const request = this.parseNsIdent();
@@ -444,8 +496,7 @@ class Parser {
       request,
       response,
       metadata,
-      leading: nameTok.leading,
-      trailing: this.lastSemi().trailing,
+      ...this.itemTrivia(start),
     };
   }
 
@@ -520,12 +571,12 @@ class Parser {
   }
 
   private parseObjectLiteralDecl(): ObjectLiteralDecl {
-    const lb = this.peek();
+    const start = this.pos;
     const obj = this.parseObject();
     return {
       kind: "object",
       fields: obj.fields,
-      leading: lb.leading,
+      ...this.declTrivia(start),
     };
   }
 
@@ -576,14 +627,6 @@ class Parser {
     }
     return this.parseSingleValue();
   }
-}
-
-function lastTrailing(...tokens: (Token | undefined)[]): Trivia | undefined {
-  for (let i = tokens.length - 1; i >= 0; i--) {
-    const t = tokens[i];
-    if (t?.trailing) return t.trailing;
-  }
-  return undefined;
 }
 
 export function parse(source: string): Schema {
