@@ -51,7 +51,8 @@ For grammar changes:
 
 <!--
 Note for maintainers: this repo merges with a real merge commit.
-Never squash, never rebase-merge.
+Never squash, never rebase-merge. Leave the PR title out of the merge
+commit body (blank it), or release-please lists the PR twice.
 -->
 
 ## Anything reviewers should know?
