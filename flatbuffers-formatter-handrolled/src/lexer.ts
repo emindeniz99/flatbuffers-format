@@ -53,6 +53,8 @@ export function tokenize(source: string): Token[] {
   // True iff we've seen a newline since emitting the last real token.
   // Trailing comments must live on the same line as their token.
   let sawNewlineSinceToken = false;
+  // Offset where the token being read starts.
+  let tokStart = 0;
 
   const peek = (off = 0) => source[i + off];
   const eof = () => i >= source.length;
@@ -218,6 +220,8 @@ export function tokenize(source: string): Token[] {
       value,
       line: tLine,
       col: tCol,
+      start: tokStart,
+      end: i,
       leading: pending,
       trailing: [],
     };
@@ -229,6 +233,7 @@ export function tokenize(source: string): Token[] {
 
   while (!eof()) {
     const c = peek();
+    tokStart = i;
     if (c === " " || c === "\t" || c === "\r") {
       advance();
       continue;
@@ -295,6 +300,8 @@ export function tokenize(source: string): Token[] {
     value: "",
     line,
     col,
+    start: i,
+    end: i,
     leading: pending,
     trailing: [],
   });

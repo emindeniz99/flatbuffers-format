@@ -36,6 +36,9 @@ export type Token = {
   value: string;
   line: number;
   col: number;
+  // Source offsets of the token's first character and one past its last.
+  start: number;
+  end: number;
   leading: Trivia[];
   // Every comment that appears after this token on the same line. We
   // keep them on the producing token so the printer can place them back
@@ -56,7 +59,11 @@ export type Schema = {
   tail: Trivia[];
 };
 
-export type TopLevel =
+// A top-level declaration with its source text, from its first token to
+// its last, which the printer writes as is after an ignore comment.
+export type TopLevel = TopLevelDecl & { raw?: string };
+
+type TopLevelDecl =
   | IncludeDecl
   | NamespaceDecl
   | AttributeDecl

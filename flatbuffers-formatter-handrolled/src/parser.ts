@@ -42,12 +42,18 @@ export class ParseError extends Error {
 
 class Parser {
   private pos = 0;
-  constructor(private readonly tokens: Token[]) {}
+  constructor(
+    private readonly tokens: Token[],
+    private readonly source: string,
+  ) {}
 
   parse(): Schema {
     const items: TopLevel[] = [];
     while (!this.atEnd()) {
-      items.push(this.parseTopLevel());
+      const start = this.pos;
+      const item: TopLevel = this.parseTopLevel();
+      item.raw = this.source.slice(this.tokens[start]!.start, this.tokens[this.pos - 1]!.end);
+      items.push(item);
     }
     // The EOF token carries any trailing trivia (file-tail comments,
     // blank lines). Hand it to the schema so the printer can emit it.
@@ -664,5 +670,5 @@ function isScalar(v: ObjectValue): v is ScalarValue {
 
 export function parse(source: string): Schema {
   const tokens = tokenize(source);
-  return new Parser(tokens).parse();
+  return new Parser(tokens, source).parse();
 }

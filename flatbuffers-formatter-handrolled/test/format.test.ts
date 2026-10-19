@@ -408,3 +408,16 @@ test("endOfLine: crlf, lf and auto", () => {
   assert.equal(format("table T{x:int;}", { endOfLine: "auto" }), "table T { x: int; }\n");
   assert.equal(format(crlf, { endOfLine: "lf", newline: "\r\n" }), format(crlf));
 });
+
+test("ignore comment: the next top-level declaration is kept as written", () => {
+  const kept = "enum E : byte {\n  A   = 1,  // one\n  B\n}";
+  for (const comment of ["// flatbuffers-format-ignore", "/* prettier-ignore */", "// prettier-ignore hand-aligned"]) {
+    const src = `${comment}\n${kept}\ntable T{x:int;}\n`;
+    assert.equal(format(src), `${comment}\n${kept}\n\ntable T { x: int; }\n`, comment);
+  }
+  assert.equal(format("// prettier-ignored\ntable T{x:int;}"), "// prettier-ignored\ntable T { x: int; }\n");
+  assert.equal(
+    format("// prettier-ignore\r\ntable T {x:int;\r\n}\r\n", { endOfLine: "lf" }),
+    "// prettier-ignore\ntable T {x:int;\n}\n",
+  );
+});

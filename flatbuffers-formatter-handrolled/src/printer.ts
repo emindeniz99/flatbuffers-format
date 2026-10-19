@@ -247,6 +247,11 @@ class Printer {
     // separator between items is handled in `print()`.
     const leading = stripLeadingBlankLines(item.leading);
     this.writeLeading(leading, 0);
+    if (item.raw !== undefined && item.leading.some(isIgnoreComment)) {
+      this.out.push(item.raw.replace(/\r?\n/g, this.opts.newline));
+      this.endLine(item.trailing ?? [], 0);
+      return;
+    }
     this.writeLeading(item.interior ?? [], 0);
 
     switch (item.kind) {
@@ -548,6 +553,14 @@ class Printer {
     this.writeLeading(commentsOnly(body.closeLeading), depth + 1);
     this.out.push(this.indentStr(depth) + brackets[1]!);
   }
+}
+
+// `// flatbuffers-format-ignore` (or `// prettier-ignore`), optionally
+// followed by a reason, keeps the next top-level declaration as written.
+const IGNORE = /^\s*(?:flatbuffers-format|prettier)-ignore(?:\s|$)/;
+
+function isIgnoreComment(t: Trivia): boolean {
+  return (t.kind === "line_comment" || t.kind === "block_comment") && IGNORE.test(t.value);
 }
 
 function commentsOnly(trivia: Trivia[]): Trivia[] {
