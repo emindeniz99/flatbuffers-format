@@ -356,10 +356,12 @@ formatted.
 ## API
 
 ```ts
-import { format, check, FormatError, CommentLossError, CodeChangeError, VERSION } from "flatbuffers-format";
+import { format, check, hasPragma, hasIgnorePragma, FormatError, CommentLossError, CodeChangeError, VERSION } from "flatbuffers-format";
 
 format(source: string, opts?: FormatOptions): string
 check(source: string, opts?: FormatOptions): boolean   // true if already formatted
+hasPragma(source: string): boolean        // top comment has @format / @prettier
+hasIgnorePragma(source: string): boolean  // top comment has @noformat / @noprettier
 
 type FormatOptions = {
   indent?: number;             // default 2

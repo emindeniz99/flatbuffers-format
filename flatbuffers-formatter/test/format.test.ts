@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
-import { format, check, FormatError } from "../src/index.js";
+import { format, check, FormatError, hasIgnorePragma, hasPragma } from "../src/index.js";
 import { unifiedDiff } from "../src/diff.js";
 import { renderParseError } from "../src/error-render.js";
 
@@ -912,4 +912,12 @@ test("pragmas: checkIgnorePragma and requirePragma leave files untouched", () =>
   assert.equal(format(plain, { requirePragma: true }), plain);
   assert.equal(format("// @format\ntable T{x:int;}", { requirePragma: true }), "// @format\ntable T { x: int; }\n");
   assert.equal(format("// @formatter\ntable T{x:int;}", { requirePragma: true }), "// @formatter\ntable T{x:int;}");
+});
+
+test("hasPragma / hasIgnorePragma read only the comments at the top", () => {
+  assert.equal(hasPragma("/**\n * @format\n */\ntable T {}"), true);
+  assert.equal(hasPragma("// license\n\n// @prettier\ntable T {}"), true);
+  assert.equal(hasPragma("table T {} // @format"), false);
+  assert.equal(hasIgnorePragma("// @noformat\n"), true);
+  assert.equal(hasIgnorePragma("// @format\n"), false);
 });

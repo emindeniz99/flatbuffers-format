@@ -139,11 +139,8 @@ class CollectingErrorListener extends BaseErrorListener {
  * ```
  */
 export function format(source: string, options: FormatOptions = {}): string {
-  if (options.checkIgnorePragma || options.requirePragma) {
-    const header = headerComments(source);
-    if (options.checkIgnorePragma && /@(?:noformat|noprettier)\b/.test(header)) return source;
-    if (options.requirePragma && !/@(?:format|prettier)\b/.test(header)) return source;
-  }
+  if (options.checkIgnorePragma && hasIgnorePragma(source)) return source;
+  if (options.requirePragma && !hasPragma(source)) return source;
   const input = CharStream.fromString(source);
   const lexer = new FlatBuffersLexer(input);
   const lexerErrors = new CollectingErrorListener();
@@ -166,6 +163,22 @@ export function format(source: string, options: FormatOptions = {}): string {
   const output = new Printer(tokens, { ...options, newline: newlineFor(source, options) }).print(tree);
   if (!options.unsafe) assertPreserved(scan(source), scan(output), options.wrapComments ?? false);
   return output;
+}
+
+/**
+ * `true` when a comment at the top of `source` contains `@format` or
+ * `@prettier`, the pragma `requirePragma` looks for.
+ */
+export function hasPragma(source: string): boolean {
+  return /@(?:format|prettier)\b/.test(headerComments(source));
+}
+
+/**
+ * `true` when a comment at the top of `source` contains `@noformat` or
+ * `@noprettier`, the pragma `checkIgnorePragma` looks for.
+ */
+export function hasIgnorePragma(source: string): boolean {
+  return /@(?:noformat|noprettier)\b/.test(headerComments(source));
 }
 
 // The comments before the first declaration, where Prettier's pragmas
