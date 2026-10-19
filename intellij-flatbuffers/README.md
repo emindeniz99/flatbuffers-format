@@ -131,18 +131,16 @@ add language features like go-to-declaration. You can keep both: this
 plugin formats any file ending in `.fbs`, whichever plugin owns the
 file type.
 
-The IDE then lists two file types. Ours is **FlatBuffers
-(flatbuffers-format)**; the other plugin's is usually **Flatbuffers**.
-To use their highlighting and navigation with our formatting:
+When another plugin's FlatBuffers file type is installed, this plugin
+hands `.fbs` files to it automatically: that plugin highlights and
+navigates, and Reformat Code (Ctrl/⌘ + Alt + L) and Actions on Save
+still run this plugin's formatter. There is nothing to configure.
+Uninstall the other plugin and `.fbs` files go back to this plugin's
+own highlighting.
 
-1. Open Settings → Editor → File Types.
-2. Select the other plugin's file type and make sure `*.fbs` is listed
-   under it.
-3. Remove `*.fbs` from **FlatBuffers (flatbuffers-format)** if the IDE
-   kept it there.
-
-Reformat Code (Ctrl/⌘ + Alt + L) and Actions on Save still run this
-plugin's formatter.
+The IDE still lists both file types under Settings → Editor → File
+Types. Ours is **FlatBuffers (flatbuffers-format)**; the other
+plugin's is usually **Flatbuffers**.
 
 ## Supported IDEs
 
