@@ -597,9 +597,12 @@ class Parser {
   private parseObjectField(): ObjectField {
     const keyTok = this.peek();
     let key: string;
-    if (keyTok.kind === "ident" || keyTok.kind === "string") {
+    if (keyTok.kind === "ident") {
       this.advance();
       key = keyTok.value;
+    } else if (keyTok.kind === "string") {
+      this.advance();
+      key = `"${keyTok.value}"`;
     } else {
       throw new ParseError("expected object key", keyTok);
     }
