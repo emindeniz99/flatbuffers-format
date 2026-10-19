@@ -9,7 +9,10 @@
       "release-type": "node",
       "package-name": "flatbuffers-format",
       "changelog-path": "CHANGELOG.md",
-      "bump-minor-pre-major": true
+      "bump-minor-pre-major": true,
+      "extra-files": [
+        "src/version.ts"
+      ]
     },
     "prettier-plugin-flatbuffers": {
       "release-type": "node",
