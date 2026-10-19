@@ -279,9 +279,11 @@ back to `git add <paths> && git diff --cached --name-only && git commit`
    plain sentence with no `type(scope):` prefix (GitHub API:
    `commit_message`). To make this the default for the merge button:
    `gh api -X PATCH repos/emindeniz99/flatbuffers-format -f merge_commit_title=MERGE_MESSAGE -f merge_commit_message=BLANK`.
-   A `BEGIN_COMMIT_OVERRIDE` block in the PR description does not help:
-   release-please applies it to every commit of the PR, so the entry is
-   still duplicated.
+   A `BEGIN_COMMIT_OVERRIDE` block in the PR description does not help.
+   release-please's README says it doesn't work with plain merges,
+   because release-please can't tell which commit of the PR the override
+   belongs to. In practice (17.11.2) it applies the override to every
+   commit of the PR, so the entry is still duplicated.
 
 ## How releases happen
 
