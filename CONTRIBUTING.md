@@ -343,9 +343,19 @@ Actions**:
 | `NPM_TOKEN` | 3 npm-publish jobs (engine, prettier plugin, tree-sitter) | [npmjs.com → Account → Access Tokens](https://www.npmjs.com/settings/~/tokens) → New Granular Token, **Publish** scope on the three packages, type **Automation** (skips 2FA). |
 | `VSCE_PAT` | VS Code Marketplace publish | [Azure DevOps → User settings → Personal access tokens](https://dev.azure.com/) → **Marketplace (Manage)** scope. Full guide: [Publishing Extensions: get a PAT](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#get-a-personal-access-token). |
 | `OVSX_PAT` | Open VSX publish (optional) | [open-vsx.org → User Settings → Tokens](https://open-vsx.org/user-settings/tokens). The step is marked `continue-on-error: true`, so missing/expired tokens won't block a Marketplace publish — but no Open VSX update will happen either. |
-| `JETBRAINS_MARKETPLACE_TOKEN` | JetBrains Marketplace publish | [plugins.jetbrains.com → Author Profile → Tokens](https://plugins.jetbrains.com/author/me) → New token with **Plugin Developer** scope. |
-| `JETBRAINS_CERTIFICATE_CHAIN`, `JETBRAINS_PRIVATE_KEY`, `JETBRAINS_PRIVATE_KEY_PASSWORD` | IntelliJ plugin signing (optional) | Generate per the [plugin-signing docs](https://plugins.jetbrains.com/docs/intellij/plugin-signing.html). If unset, the plugin publishes unsigned (Marketplace allows it — signing just adds a verification badge). |
+| `JETBRAINS_MARKETPLACE_TOKEN` | JetBrains Marketplace publish | [plugins.jetbrains.com → Author Profile → Tokens](https://plugins.jetbrains.com/author/me) → New token with **Plugin Developer** scope. **Environment secret** of `jetbrains-marketplace`, not a repository secret (see below). |
+| `JETBRAINS_CERTIFICATE_CHAIN`, `JETBRAINS_PRIVATE_KEY`, `JETBRAINS_PRIVATE_KEY_PASSWORD` | IntelliJ plugin signing (optional) | Generate per the [plugin-signing docs](https://plugins.jetbrains.com/docs/intellij/plugin-signing.html). If unset, the plugin publishes unsigned (Marketplace allows it — signing just adds a verification badge). Also **environment secrets** of `jetbrains-marketplace`. |
 | `APPLE_DEVELOPER_ID_CERT_P12_BASE64`, `APPLE_DEVELOPER_ID_CERT_PASSWORD`, `APPLE_ID`, `APPLE_ID_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` | macOS native-binary Developer-ID signing + Apple notarization (optional) | Generate a Developer ID Application certificate from [Apple Developer → Certificates](https://developer.apple.com/account/resources/certificates/list), export as `.p12`, base64-encode (`base64 -w0 cert.p12`), and store as `APPLE_DEVELOPER_ID_CERT_P12_BASE64`. Generate an app-specific password from [appleid.apple.com → Security](https://appleid.apple.com/account/manage) and store as `APPLE_ID_APP_SPECIFIC_PASSWORD`. The team ID comes from the certificate. If unset, the native-binaries workflow falls back to an ad-hoc codesign — binaries still run, but downloaded copies hit macOS Gatekeeper quarantine until cleared manually. |
+
+The JetBrains secrets live in the **`jetbrains-marketplace` environment**
+(Settings → Environments), not under repository secrets. Only the two
+jobs that name that environment can read them: the JetBrains publish
+job in `release-please.yml` and the one in `flatbuffers-republish.yml`.
+Any other workflow, including one added in a pull request, sees an empty
+value. Adding yourself under the environment's **Required reviewers**
+makes every JetBrains publish wait for your approval. A secret with the
+same name under repository secrets would be visible to every workflow;
+delete it if one exists.
 
 Plus the one-time repo setting:
 
