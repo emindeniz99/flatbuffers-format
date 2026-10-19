@@ -52,7 +52,7 @@ class FlatBuffersColorSettingsPage : ColorSettingsPage {
 
     override fun getAttributeDescriptors(): Array<AttributesDescriptor> = DESCRIPTORS
     override fun getColorDescriptors(): Array<ColorDescriptor> = ColorDescriptor.EMPTY_ARRAY
-    override fun getDisplayName(): String = "FlatBuffers"
+    override fun getDisplayName(): String = FlatBuffersLanguage.DISPLAY_NAME
 
     companion object {
         private val DESCRIPTORS = arrayOf(

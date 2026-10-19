@@ -110,6 +110,10 @@
         the plugin formats with it instead of the settings page, so the IDE
         matches the CLI and CI. The settings page shows the file in use
         and disables the options it overrides.</li>
+      <li>The file type, language and color scheme page now show as
+        <i>FlatBuffers (flatbuffers-format)</i>, so they can be told apart
+        from another FlatBuffers plugin's <i>Flatbuffers</i> entries. Your
+        existing <code>*.fbs</code> association is kept.</li>
     </ul>
     <h3>0.3.0</h3>
     <ul>
