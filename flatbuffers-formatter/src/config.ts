@@ -28,10 +28,13 @@ export class ConfigError extends Error {
 type Check = (v: unknown) => boolean;
 const isBool: Check = (v) => typeof v === "boolean";
 const isInt = (min: number): Check => (v) => Number.isInteger(v) && (v as number) >= min;
+const oneOf = (...allowed: string[]): [Check, string] => [
+  (v) => allowed.includes(v as string),
+  `one of ${allowed.map((a) => JSON.stringify(a)).join(", ")}`,
+];
 
 // The options a config file may set, with the same bounds the CLI
-// flags enforce. `newline` is deliberately absent: the CLI has no flag
-// for it either.
+// flags enforce. `newline` is absent: `endOfLine` sets line endings.
 const KEYS: Record<string, [Check, string]> = {
   indent: [isInt(0), "a non-negative integer"],
   useTabs: [isBool, "a boolean"],
@@ -40,6 +43,10 @@ const KEYS: Record<string, [Check, string]> = {
   maxBlankLines: [isInt(0), "a non-negative integer"],
   wrapComments: [isBool, "a boolean"],
   commentWidth: [isInt(1), "a positive integer"],
+  trailingComma: oneOf("all", "none"),
+  objectWrap: oneOf("preserve", "collapse"),
+  bracketSpacing: [isBool, "a boolean"],
+  endOfLine: oneOf("lf", "crlf", "auto"),
 };
 
 /**

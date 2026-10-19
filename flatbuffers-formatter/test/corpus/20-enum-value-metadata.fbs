@@ -12,7 +12,7 @@ enum Status: byte {
   Pending,
   Active = 1 (priority: 0),
   Retired (deprecated),
-  Banned = 99 (deprecated, priority: -1)
+  Banned = 99 (deprecated, priority: -1),
 }
 
 table Holder { s: Status = Pending; }

@@ -17,8 +17,8 @@ const cliPath = join(here, "..", "src", "cli.js");
 
 const UGLY = "enum E:byte{A,B}\n";
 const COMPACT_2 = "enum E: byte { A, B }\n";
-const EXPANDED_4 = "enum E: byte {\n    A,\n    B\n}\n";
-const EXPANDED_TAB = "enum E: byte {\n\tA,\n\tB\n}\n";
+const EXPANDED_4 = "enum E: byte {\n    A,\n    B,\n}\n";
+const EXPANDED_TAB = "enum E: byte {\n\tA,\n\tB,\n}\n";
 
 // root/.flatbuffers-format.json        indent 4, never compact
 // root/a/x.fbs                          → inherits root's file
@@ -66,6 +66,10 @@ test("loadConfig rejects unknown keys and wrong types, naming the file and key",
     ['{"lineWidth": 0}', /"lineWidth" must be a positive integer/],
     ['{"maxBlankLines": 1.5}', /"maxBlankLines" must be a non-negative integer/],
     ['{"useTabs": "yes"}', /"useTabs" must be a boolean/],
+    ['{"trailingComma": "es5"}', /"trailingComma" must be one of "all", "none", got "es5"/],
+    ['{"objectWrap": true}', /"objectWrap" must be one of "preserve", "collapse"/],
+    ['{"endOfLine": "cr"}', /"endOfLine" must be one of "lf", "crlf", "auto"/],
+    ['{"bracketSpacing": 0}', /"bracketSpacing" must be a boolean/],
     ['{"newline": "\\r\\n"}', /unknown key "newline"/],
     ['{"constructor": 1}', /unknown key "constructor"/],
     ['{"__proto__": 1}', /unknown key "__proto__"/],
@@ -97,7 +101,7 @@ test("CLI: flags override the config file, --no-config ignores it", () => {
   const root = fixture();
   const x = join(root, "a", "x.fbs");
   // --indent beats the file's indent 4; the file's compactSingleLine stays.
-  assert.equal(cli(["--indent", "2", x]).stdout, "enum E: byte {\n  A,\n  B\n}\n");
+  assert.equal(cli(["--indent", "2", x]).stdout, "enum E: byte {\n  A,\n  B,\n}\n");
   assert.equal(cli(["--no-config", x]).stdout, COMPACT_2);
 });
 

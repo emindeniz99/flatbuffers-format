@@ -406,7 +406,7 @@ test("corpus 20: per-enum-value metadata round-trips through both engines", () =
   assert.match(canonical, /Pending,$/m, "value without metadata");
   assert.match(canonical, /Active = 1 \(priority: 0\),$/m, "value with single-key metadata");
   assert.match(canonical, /Retired \(deprecated\),$/m, "value-with-only-metadata (no =)");
-  assert.match(canonical, /Banned = 99 \(deprecated, priority: -1\)$/m, "value with multi-key metadata");
+  assert.match(canonical, /Banned = 99 \(deprecated, priority: -1\),$/m, "value with multi-key metadata");
 });
 
 test("corpus 23: C99-style hex float literals round-trip on both engines", () => {
@@ -502,7 +502,7 @@ test("per-enum-value metadata accepts ugly input and lands on canonical form", (
   const out = format(ugly);
   assert.equal(
     out,
-    `enum E: byte {\n  A = 1 (deprecated),\n  B = 2 (priority: 5)\n}\n`,
+    `enum E: byte {\n  A = 1 (deprecated),\n  B = 2 (priority: 5),\n}\n`,
   );
 });
 
@@ -552,7 +552,7 @@ test("FormatOptions.lineWidth: small value forces expansion", () => {
   // The candidate compact line is wider than 30, so the formatter must
   // fall back to the multi-line form.
   const out = format(`enum E:byte { A, B, C, D, F }`, { lineWidth: 20 });
-  assert.equal(out, `enum E: byte {\n  A,\n  B,\n  C,\n  D,\n  F\n}\n`);
+  assert.equal(out, `enum E: byte {\n  A,\n  B,\n  C,\n  D,\n  F,\n}\n`);
 });
 
 test("FormatOptions.compactSingleLine: default true collapses small enum", () => {
@@ -562,7 +562,7 @@ test("FormatOptions.compactSingleLine: default true collapses small enum", () =>
 
 test("FormatOptions.compactSingleLine: false keeps small enums expanded", () => {
   const out = format(`enum E:byte { A, B, C }`, { compactSingleLine: false });
-  assert.equal(out, `enum E: byte {\n  A,\n  B,\n  C\n}\n`);
+  assert.equal(out, `enum E: byte {\n  A,\n  B,\n  C,\n}\n`);
 });
 
 test("FormatOptions.maxBlankLines: default 1 collapses paragraph breaks", () => {
@@ -636,7 +636,7 @@ test("compactSingleLine: per-value metadata blocks enum collapse", () => {
   );
   assert.equal(
     out,
-    `enum E: byte {\n  Pending,\n  Active = 1 (priority: 0)\n}\n`,
+    `enum E: byte {\n  Pending,\n  Active = 1 (priority: 0),\n}\n`,
   );
 });
 
@@ -808,7 +808,7 @@ test("CLI: --no-compact-single-line keeps small enum expanded", () => {
     encoding: "utf8",
   });
   assert.equal(r.status, 0);
-  assert.equal(r.stdout, "enum E: byte {\n  A,\n  B,\n  C\n}\n");
+  assert.equal(r.stdout, "enum E: byte {\n  A,\n  B,\n  C,\n}\n");
 });
 
 test("CLI: numeric flags reject non-integer or negative values", () => {
@@ -823,5 +823,64 @@ test("CLI: numeric flags reject non-integer or negative values", () => {
       encoding: "utf8",
     });
     assert.equal(r.status, 2, `${args.join(" ")} → exit 2`);
+  }
+});
+
+// Prettier-compatible options. Same names and defaults as Prettier's, so
+// a team that knows those gets the behaviour it expects.
+
+test("trailingComma: default \"all\" ends an expanded enum and union with a comma", () => {
+  const out = format("enum E : byte {\n  A,\n  B\n}\nunion U {\n  A,\n  B\n}\n");
+  assert.equal(out, "enum E: byte {\n  A,\n  B,\n}\n\nunion U {\n  A,\n  B,\n}\n");
+});
+
+test("trailingComma: \"none\" drops the comma after the last value", () => {
+  const out = format("enum E : byte {\n  A,\n  B,\n}\n", { trailingComma: "none" });
+  assert.equal(out, "enum E: byte {\n  A,\n  B\n}\n");
+});
+
+test("trailingComma: a one-line body never gets one", () => {
+  assert.equal(format("enum E : byte { A, B, }"), "enum E: byte { A, B }\n");
+});
+
+test("objectWrap: \"preserve\" keeps a body the source broke after {", () => {
+  const src = "table T {\n  x: int;\n}\n\nenum E: byte {\n  A,\n}\n";
+  assert.equal(format(src), src);
+  // A line break later in the body does not count, as in Prettier.
+  assert.equal(format("enum E : byte { A,\n  B }"), "enum E: byte { A, B }\n");
+});
+
+test("objectWrap: \"collapse\" puts every body that fits on one line", () => {
+  const src = "table T {\n  x: int;\n}\n\nenum E: byte {\n  A,\n}\n";
+  assert.equal(format(src, { objectWrap: "collapse" }), "table T { x: int; }\n\nenum E: byte { A }\n");
+});
+
+test("bracketSpacing: false prints one-line bodies without inner spaces", () => {
+  const out = format("enum E:byte{A,B}\ntable T{x:int;}", { bracketSpacing: false });
+  assert.equal(out, "enum E: byte {A, B}\n\ntable T {x: int;}\n");
+  assert.equal(format(out, { bracketSpacing: false }), out);
+});
+
+test("endOfLine: crlf, lf and auto", () => {
+  const crlf = "enum E:byte{A,B}\r\ntable T{x:int;}\r\n";
+  assert.equal(format(crlf), "enum E: byte { A, B }\n\ntable T { x: int; }\n");
+  assert.equal(format(crlf, { endOfLine: "auto" }), "enum E: byte { A, B }\r\n\r\ntable T { x: int; }\r\n");
+  assert.equal(format("table T{x:int;}", { endOfLine: "crlf" }), "table T { x: int; }\r\n");
+  assert.equal(format("table T{x:int;}", { endOfLine: "auto" }), "table T { x: int; }\n");
+  assert.equal(format(crlf, { endOfLine: "lf", newline: "\r\n" }), format(crlf));
+});
+
+test("CLI: the Prettier-compatible flags set their options and reject unknown values", () => {
+  const run = (...args: string[]) =>
+    spawnSync(process.execPath, [cliPath, ...args, "-"], { input: "enum E:byte{\nA,B}", encoding: "utf8" });
+  assert.equal(run().stdout, "enum E: byte {\n  A,\n  B,\n}\n");
+  assert.equal(
+    run("--trailing-comma=none", "--object-wrap=collapse", "--no-bracket-spacing", "--end-of-line=crlf").stdout,
+    "enum E: byte {A, B}\r\n",
+  );
+  for (const bad of ["--trailing-comma=es5", "--object-wrap=keep", "--end-of-line=cr"]) {
+    const r = run(bad);
+    assert.equal(r.status, 2, `${bad} → exit 2`);
+    assert.match(r.stderr, /expects one of/);
   }
 });

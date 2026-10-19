@@ -112,6 +112,10 @@ Options:
 | `--max-blank-lines <n>` | Max consecutive blank lines kept between decls (default: 1) |
 | `--wrap-comments` | Reflow long line comments at whitespace |
 | `--comment-width <n>` | Wrap column for `--wrap-comments` (defaults to `--line-width`) |
+| `--trailing-comma <all\|none>` | Comma after the last value of an expanded enum/union (default: `all`) |
+| `--object-wrap <preserve\|collapse>` | Keep a body expanded when the source breaks after its `{` (default: `preserve`) |
+| `--no-bracket-spacing` | Print one-line bodies as `{a, b}` instead of `{ a, b }` |
+| `--end-of-line <lf\|crlf\|auto>` | Line endings; `auto` keeps the file's own (default: `lf`) |
 | `--config <path>` | Use this config file instead of looking one up |
 | `--no-config` | Ignore config files |
 | `--stdin-filepath <path>` | With `-`, look up the config as if stdin were this file |
@@ -138,8 +142,12 @@ all format the same way without per-developer flags or IDE settings:
 ```
 
 Keys are the format options: `indent`, `useTabs`, `lineWidth`,
-`compactSingleLine`, `maxBlankLines`, `wrapComments`, `commentWidth`.
+`compactSingleLine`, `maxBlankLines`, `wrapComments`, `commentWidth`,
+`trailingComma`, `objectWrap`, `bracketSpacing`, `endOfLine`.
 Omitted keys keep their defaults.
+
+The last four have the names, values and defaults of the Prettier
+options they copy, so a team used to Prettier gets what it expects.
 
 - **Lookup:** for each file, the nearest `.flatbuffers-format.json` in
   its directory or any parent, up to the filesystem root. Only that one
@@ -335,6 +343,10 @@ type FormatOptions = {
   maxBlankLines?: number;      // default 1 — cap on consecutive blank lines between decls
   wrapComments?: boolean;      // default false — reflow long line comments
   commentWidth?: number;       // default = lineWidth — wrap column for wrapComments
+  trailingComma?: "all" | "none";         // default "all" — comma after the last expanded enum/union value
+  objectWrap?: "preserve" | "collapse";   // default "preserve" — keep bodies the source broke after `{`
+  bracketSpacing?: boolean;               // default true — `{ a, b }` vs `{a, b}`
+  endOfLine?: "lf" | "crlf" | "auto";     // default "lf" — overrides `newline`
 };
 ```
 
@@ -390,13 +402,13 @@ commit the new baseline in the same PR.
 |---|---|---|
 | Top-level | One blank line between block declarations (table/struct/enum/union/rpc_service). Single statements collapse together. | `maxBlankLines` (default 1) |
 | Fields | `name:Type` (no space before colon, one space after type). Defaults: ` = value`. Metadata: ` (key, key: value)`. Trailing `;`. | fixed by design |
-| Enum/union/single-field bodies | Collapse to one line if the result fits in `lineWidth`; expand otherwise. Any comment inside the body, and per-value metadata, force expansion. | `compactSingleLine` (default on), `lineWidth` (default 80) |
-| Enum values | One per line (when expanded), comma-separated, no trailing comma. | fixed by design |
+| Enum/union/single-field bodies | Collapse to one line if the result fits in `lineWidth`; expand otherwise. A body with a line break after its `{` in the source stays expanded, like a Prettier object. Any comment inside the body, and per-value metadata, force expansion. | `compactSingleLine` (default on), `objectWrap` (default `preserve`), `lineWidth` (default 80), `bracketSpacing` (default on) |
+| Enum values | One per line (when expanded), comma-separated, with a comma after the last value. A one-line body never has one. | `trailingComma` (default `all`) |
 | Union variants | Same as enum values. Aliases written as `Alias: Type`. | fixed by design |
 | Metadata | Always inline: `(deprecated, key: "x")`. | fixed by design |
 | Comments | `//`, `///`, `/* */` all preserved, in order. Doc comments stay attached to the following declaration. Trailing comments stay on their owning line, after the comma for enum/union values (`Red, // first`). Comments before a `}` and in comment-only bodies stay inside the braces. A comment inside a declaration, where the output has no slot for it (between a field name and its `:`, inside metadata, inside an object literal), moves onto its own line above that declaration. Long `//` lines optionally reflowed. | `wrapComments` (default off), `commentWidth` (default = lineWidth) |
 | Indent | 2 spaces. | `indent` (count), `useTabs` (char) |
-| Newlines | LF, single trailing newline at EOF. | `newline` |
+| Newlines | LF, single trailing newline at EOF. | `endOfLine` (default `lf`) |
 
 ## Standards conformance
 

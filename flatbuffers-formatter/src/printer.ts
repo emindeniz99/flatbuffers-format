@@ -99,9 +99,34 @@ export type FormatOptions = {
   wrapComments?: boolean;
   /** Wrap column for `wrapComments`. Defaults to `lineWidth`. */
   commentWidth?: number;
+  /**
+   * `"all"` puts a comma after the last value of an enum or union
+   * written one value per line; `"none"` leaves it off. A body
+   * collapsed onto one line never gets one. Same name and default as
+   * Prettier's option. Default: "all".
+   */
+  trailingComma?: "all" | "none";
+  /**
+   * `"preserve"` keeps a body expanded when the source has a line break
+   * between its `{` and the first item, as Prettier does for objects;
+   * `"collapse"` puts every body that fits on one line (see
+   * `compactSingleLine`). Default: "preserve".
+   */
+  objectWrap?: "preserve" | "collapse";
+  /**
+   * Spaces inside the braces of a body collapsed onto one line:
+   * `{ a, b }` when true, `{a, b}` when false. Default: true.
+   */
+  bracketSpacing?: boolean;
+  /**
+   * Line endings: `"lf"`, `"crlf"`, or `"auto"` to keep the ones the
+   * source uses (decided by its first line break). Takes precedence
+   * over `newline`. Default: "lf".
+   */
+  endOfLine?: "lf" | "crlf" | "auto";
 };
 
-type Resolved = Required<Omit<FormatOptions, "commentWidth">> & {
+type Resolved = Required<Omit<FormatOptions, "commentWidth" | "endOfLine">> & {
   commentWidth: number;
 };
 const DEFAULTS = {
@@ -112,6 +137,9 @@ const DEFAULTS = {
   compactSingleLine: true,
   maxBlankLines: 1,
   wrapComments: false,
+  trailingComma: "all" as "all" | "none",
+  objectWrap: "preserve" as "preserve" | "collapse",
+  bracketSpacing: true,
 };
 
 // Token types of the grammar's anonymous `{` and `,` literals. Compared
@@ -132,7 +160,8 @@ export class Printer {
   private out: string[] = [];
   private readonly opts: Resolved;
   constructor(private readonly stream: BufferedTokenStream, opts: FormatOptions) {
-    const merged = { ...DEFAULTS, ...opts };
+    const { endOfLine: _, ...rest } = opts;
+    const merged = { ...DEFAULTS, ...rest };
     this.opts = {
       ...merged,
       commentWidth: opts.commentWidth ?? merged.lineWidth,
@@ -372,6 +401,7 @@ export class Printer {
     if (
       this.opts.compactSingleLine &&
       !hasCommentsBetween(open, close, this.stream) &&
+      !this.keepExpanded(open) &&
       this.tryCompactTableLike(head, ctx, fields, 0)
     ) return;
 
@@ -406,11 +436,27 @@ export class Printer {
     if (this.trailingFor(f)) return false;
     if (this.trailingFor(ctx)) return false;
     const body = this.formatField(f);
-    const candidate = `${this.indent(depth)}${head} { ${body} }`;
+    const candidate = `${this.indent(depth)}${head} ${this.braced(body)}`;
     if (candidate.length > this.opts.lineWidth) return false;
     this.out.push(candidate);
     this.nl();
     return true;
+  }
+
+  // With `objectWrap: "preserve"`, a body the source broke after its
+  // `{` stays expanded.
+  private keepExpanded(open: number): boolean {
+    if (this.opts.objectWrap !== "preserve") return false;
+    const brace = this.stream.get(open);
+    for (let i = open + 1; i < this.stream.size; i++) {
+      const tok = this.stream.get(i);
+      if (tok.channel === 0) return tok.line > brace.line;
+    }
+    return false;
+  }
+
+  private braced(body: string): string {
+    return this.opts.bracketSpacing ? `{ ${body} }` : `{${body}}`;
   }
 
   private leadingFor(ctx: any, stripBlank: boolean): Trivia[] {
@@ -497,6 +543,7 @@ export class Printer {
     if (
       this.opts.compactSingleLine &&
       !hasCommentsBetween(open, close, this.stream) &&
+      !this.keepExpanded(open) &&
       this.tryCompactEnumLike(head, ctx, values, 0)
     ) return;
 
@@ -507,7 +554,7 @@ export class Printer {
       this.writeInterior(v.start!.tokenIndex, v.stop!.tokenIndex, 1);
       this.out.push(this.indent(1));
       this.out.push(this.formatEnumVal(v));
-      if (i < values.length - 1) this.out.push(",");
+      if (i < values.length - 1 || this.opts.trailingComma === "all") this.out.push(",");
       const stop = v.stop!.tokenIndex;
       this.endLine(stop, 1, this.anchorAfter(stop));
     });
@@ -538,7 +585,7 @@ export class Printer {
     if (this.trailingFor(ctx)) return false;
     const parts = values.map((v) => this.formatEnumVal(v));
     const body = parts.join(", ");
-    const candidate = `${this.indent(depth)}${head} { ${body} }`;
+    const candidate = `${this.indent(depth)}${head} ${this.braced(body)}`;
     if (candidate.length > this.opts.lineWidth) return false;
     this.out.push(candidate);
     this.nl();
@@ -566,6 +613,7 @@ export class Printer {
     if (
       this.opts.compactSingleLine &&
       !hasCommentsBetween(open, close, this.stream) &&
+      !this.keepExpanded(open) &&
       this.tryCompactUnion(head, ctx, vals, 0)
     ) return;
 
@@ -576,7 +624,7 @@ export class Printer {
       this.writeInterior(v.start!.tokenIndex, v.stop!.tokenIndex, 1);
       this.out.push(this.indent(1));
       this.out.push(this.formatUnionVal(v));
-      if (i < vals.length - 1) this.out.push(",");
+      if (i < vals.length - 1 || this.opts.trailingComma === "all") this.out.push(",");
       const stop = v.stop!.tokenIndex;
       this.endLine(stop, 1, this.anchorAfter(stop));
     });
@@ -601,7 +649,7 @@ export class Printer {
     if (this.trailingFor(ctx)) return false;
     const parts = vals.map((v) => this.formatUnionVal(v));
     const body = parts.join(", ");
-    const candidate = `${this.indent(depth)}${head} { ${body} }`;
+    const candidate = `${this.indent(depth)}${head} ${this.braced(body)}`;
     if (candidate.length > this.opts.lineWidth) return false;
     this.out.push(candidate);
     this.nl();

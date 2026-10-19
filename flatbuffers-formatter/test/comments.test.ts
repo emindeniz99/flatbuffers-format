@@ -59,12 +59,12 @@ table Point {
   // comment on. Losing them also let compact mode collapse Color.
   const expected = `enum Color: byte {
     Red, // first
-    Green // second
+    Green, // second
 }
 
 enum Size: byte {
     Small, // kept?
-    Large // last, no comma
+    Large, // last, no comma
 }
 
 table Empty {
@@ -100,7 +100,7 @@ test("enum: comments after commas, in runs, before the first value and the }", (
   D, /* a */ /* b */ // c
   // first of two
   // second of two
-  E // last, trailing comma
+  E, // last, trailing comma
   // before close
 }
 `,
@@ -110,7 +110,7 @@ test("enum: comments after commas, in runs, before the first value and the }", (
 test("enum: last value without a trailing comma keeps its comment", () => {
   assertFormatsTo(
     "enum E : byte { A, // middle\n  B // last, no comma\n}\n",
-    "enum E: byte {\n  A, // middle\n  B // last, no comma\n}\n",
+    "enum E: byte {\n  A, // middle\n  B, // last, no comma\n}\n",
   );
 });
 
@@ -133,7 +133,7 @@ test("enum: comments inside a value or before its comma stay with that value", (
   // between = and value
   B = 2,
   C, /* before comma */
-  D // before comma, own line
+  D, // before comma, own line
 }
 `,
   );
@@ -155,7 +155,7 @@ test("union: comments after commas, before the first value and the }", () => {
   A, // middle
   B, /// doc
   C, /* block */
-  alias: D // last, trailing comma
+  alias: D, // last, trailing comma
   // before close
 }
 `,
@@ -271,7 +271,7 @@ struct B { /* only a block */
 
 enum C: byte { // brace line
   // body
-  X
+  X,
 }
 
 union D {
@@ -298,7 +298,9 @@ namespace a. /* mid */ b;
     out,
     `// why a
 /* why b */
-table T (a, b) { x: int; }
+table T (a, b) {
+  x: int;
+}
 
 /* quoted */
 attribute "priority";

@@ -132,9 +132,24 @@ export function format(source: string, options: FormatOptions = {}): string {
     throw all[0]!;
   }
 
-  const output = new Printer(tokens, options).print(tree);
+  const output = new Printer(tokens, { ...options, newline: newlineFor(source, options) }).print(tree);
   assertCommentsPreserved(source, output, options.wrapComments ?? false);
   return output;
+}
+
+// `endOfLine` wins over `newline`; "auto" keeps the source's first
+// line break, and LF when it has none.
+function newlineFor(source: string, options: FormatOptions): "\n" | "\r\n" {
+  switch (options.endOfLine) {
+    case "lf":
+      return "\n";
+    case "crlf":
+      return "\r\n";
+    case "auto":
+      return /\r?\n/.exec(source)?.[0] === "\r\n" ? "\r\n" : "\n";
+    default:
+      return options.newline ?? "\n";
+  }
 }
 
 // Every comment of the input must appear in the output, compared as a
