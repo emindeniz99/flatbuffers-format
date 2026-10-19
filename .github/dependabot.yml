@@ -1,0 +1,54 @@
+# Dependency update PRs. SECURITY.md promises a cooldown, and .npmrc's
+# `minimum-release-age` enforces the same 7 days at install time:
+# Dependabot does not propose a version until it has been public for
+# 7 days (30 for a semver-major), long enough for a malicious release
+# to be caught and yanked first. Minor and patch updates are grouped
+# per ecosystem, so they arrive as one PR a week.
+
+version: 2
+updates:
+  # The pnpm workspace: one lockfile at the root covers every package.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
+    groups:
+      npm-minor-and-patch:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: build
+      prefix-development: build
+      include: scope
+
+  # Actions are pinned by commit SHA with the tag in a comment;
+  # Dependabot updates both.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
+    groups:
+      actions-minor-and-patch:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: ci
+      include: scope
+
+  - package-ecosystem: gradle
+    directory: /intellij-flatbuffers
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
+    groups:
+      gradle-minor-and-patch:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: build
+      include: scope

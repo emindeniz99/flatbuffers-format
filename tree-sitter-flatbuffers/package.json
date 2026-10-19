@@ -53,11 +53,11 @@
     }
   },
   "dependencies": {
-    "node-addon-api": "^7.1.1",
+    "node-addon-api": "^8.9.2",
     "node-gyp-build": "^4.8.4"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",
-    "tree-sitter-cli": "^0.26.13"
+    "tree-sitter-cli": "^0.27.1"
   }
 }

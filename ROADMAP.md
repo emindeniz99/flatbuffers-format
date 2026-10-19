@@ -134,12 +134,6 @@ family's supply chain.
   `.github/workflows/scorecard.yml` from the
   [canonical template](https://github.com/ossf/scorecard-action#installation).
 
-- **SHA-pin third-party GitHub Actions.** Every external action is
-  referenced by tag (`actions/checkout@v4`), not a commit SHA — a
-  compromised maintainer can retag silently. *Next step:* sweep
-  `.github/workflows/**`, replace `@vN` with `@<sha>`; Dependabot's
-  `github-actions` entry already proposes the bumps.
-
 - **gitleaks secret scanning.** No active scanning beyond GitHub's
   built-in. *Next step:* `.github/workflows/gitleaks.yml` on PR;
   optionally extend `.pre-commit-hooks.yaml` with `gitleaks-protect`.

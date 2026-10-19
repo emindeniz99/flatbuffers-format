@@ -17,13 +17,13 @@ jobs:
     name: prettier-plugin-flatbuffers / test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         with:
           package_json_file: package.json
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: pnpm
@@ -37,3 +37,49 @@ jobs:
       - name: Test
         working-directory: .
         run: pnpm --filter prettier-plugin-flatbuffers test
+
+  # The `engines: node >=20` floor, checked on what a consumer installs:
+  # the packed engine and plugin tarballs, installed with npm next to
+  # Prettier and run on Node 20. The job above cannot run on 20 (pnpm 11
+  # requires Node >=22.13), so packing happens on 22. Node 20 is end of
+  # life since April 2026; it stays supported, and tested, until 2027.
+  prettier-plugin-flatbuffers-node20:
+    name: prettier-plugin-flatbuffers / packed tarball on node 20
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Build engine + plugin
+        run: pnpm --filter flatbuffers-format --filter prettier-plugin-flatbuffers build
+      # pnpm pack rewrites the plugin's workspace:^ engine dependency to
+      # the engine's version, as publishing does.
+      - name: Pack the engine and the plugin
+        run: |
+          pnpm --filter flatbuffers-format pack --pack-destination "$RUNNER_TEMP/pack"
+          pnpm --filter prettier-plugin-flatbuffers pack --pack-destination "$RUNNER_TEMP/pack"
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 20
+      - name: Install into a clean consumer and format # zizmor: ignore[adhoc-packages]
+        run: |
+          set -euo pipefail
+          consumer="$RUNNER_TEMP/consumer"
+          mkdir -p "$consumer"
+          cd "$consumer"
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund prettier "$RUNNER_TEMP"/pack/*.tgz
+          printf 'table T{x:int;y:string;}\n' > t.fbs
+          npx prettier --plugin=prettier-plugin-flatbuffers t.fbs > out.fbs
+          printf 'table T {\n  x: int;\n  y: string;\n}\n' | diff -u - out.fbs
+          echo "formatted on $(node --version) with prettier $(npx prettier --version)"

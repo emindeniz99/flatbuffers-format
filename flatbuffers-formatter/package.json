@@ -77,6 +77,6 @@
     "antlr-ng": "^1.0.10",
     "esbuild": "^0.28.2",
     "typedoc": "^0.28.20",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.3"
   }
 }
