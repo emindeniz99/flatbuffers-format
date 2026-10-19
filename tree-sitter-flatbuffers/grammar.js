@@ -101,10 +101,13 @@ module.exports = grammar({
         field("name", $.identifier),
         ":",
         field("type", $.type_ref),
-        optional(seq("=", field("default", $.scalar))),
+        optional(seq("=", field("default", choice($.scalar, $.empty_vector)))),
         optional(field("metadata", $.metadata)),
         ";",
       ),
+
+    // `= []`, the one default a vector field can have (flatc 23+).
+    empty_vector: (_) => seq("[", "]"),
 
     // ---------- type references ----------
     type_ref: ($) =>
@@ -152,7 +155,12 @@ module.exports = grammar({
       ),
 
     union_value_decl: ($) =>
-      seq(optional(seq(field("alias", $.identifier), ":")), field("type", $.dotted_identifier)),
+      seq(
+        optional(seq(field("alias", $.identifier), ":")),
+        field("type", $.dotted_identifier),
+        optional(seq("=", field("value", $.scalar))),
+        optional(field("metadata", $.metadata)),
+      ),
 
     // ---------- RPC ----------
     rpc_service_decl: ($) =>
@@ -190,7 +198,8 @@ module.exports = grammar({
         seq(optional($._sign), $.float_literal),
         seq(optional($._sign), $.int_literal),
         $.string_literal,
-        $.identifier,
+        // nan, +inf, -infinity, true, enum values
+        seq(optional($._sign), $.identifier),
       ),
 
     _sign: ($) => choice("+", "-"),
@@ -244,7 +253,8 @@ module.exports = grammar({
     // resolves correctly inside `token(choice(...))`.
     int_literal: ($) => token(choice(/0[xX][0-9a-fA-F]+/, /[0-9]+/)),
 
-    string_literal: ($) => token(/"([^"\\\r\n]|\\.)*"/),
+    // Either quote style, as flatc reads both.
+    string_literal: ($) => token(choice(/"([^"\\\r\n]|\\.)*"/, /'([^'\\\r\n]|\\.)*'/)),
 
     // Comments — three forms. Doc comments (`///`) come before line
     // comments so the longest-match tie favours them.

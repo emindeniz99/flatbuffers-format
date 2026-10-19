@@ -1,0 +1,36 @@
+// Syntax flatc accepts that real schemas use, from flatbuffers' own tests
+// (monster_test.fbs, more_defaults.fbs, union_underlying_type_test.fbs,
+// rust_namer_test.fbs, the TypeScript include tests).
+
+include 'other_schema.fbs';
+
+attribute 'priority';
+
+table FieldTable {}
+table A {}
+table B {}
+table C {}
+
+// Explicit discriminants on a union with an underlying type.
+union ABC: int { A = 555, B = 666, C = 777}
+
+// Metadata on a union value.
+union FieldUnion {
+  f :FieldTable (id: 0),
+}
+
+table Defaults {
+  // Special float values, signed or not.
+  d0:double = nan;
+  d1:double = -nan; // the sign of NaN is ignored
+  d2:double = +inf;
+  d3:float = -infinity;
+  // The empty vector is the only default a vector can have.
+  ints: [int] = [];
+  floats: [float] = [     ];
+  // Single-quoted strings, slashes and all.
+  url: string = 'https://example.com/a//b';
+  quote: string = 'say "hi"';
+}
+
+root_type Defaults;

@@ -39,18 +39,29 @@ automatically as long as Prettier itself does.
 
 ## Behavior
 
-The plugin maps Prettier's layout options to `flatbuffers-format`'s
+If a `.flatbuffers-format.json` applies to the file (the nearest one in
+its directory or any parent), the plugin uses it and ignores Prettier's
+options below, so Prettier formats exactly as the `flatbuffers-format`
+CLI and the other editor plugins do. See the
+[config file docs](../flatbuffers-formatter/README.md#config-file).
+
+Without one, the plugin maps Prettier's options to `flatbuffers-format`'s
 `FormatOptions`:
 
 | Prettier option            | Effect                                                                          |
 |----------------------------|---------------------------------------------------------------------------------|
 | `tabWidth` (default `2`)   | Forwarded as the engine's `indent` (count of indent characters per level).      |
-| `useTabs` (default `false`)| Forwarded as the engine's `useTabs`. The engine emits literal tab characters when this is `true` (since `flatbuffers-format` ≥ 0.2). Combine with `tabWidth: 1` for the usual "one tab per level" setting. |
+| `useTabs` (default `false`)| One tab per indent level, as in Prettier; `tabWidth` then only sets how wide a tab looks in your editor. |
 | `printWidth` (default `80`)| Forwarded as the engine's `lineWidth`. Drives the "does it fit on one line" decision for small enums/unions/single-field bodies and for line-comment wrapping. |
+| `trailingComma` (default `"all"`) | `"all"` and `"es5"` put a comma after the last value of an expanded enum or union; `"none"` leaves it off. |
+| `bracketSpacing` (default `true`) | `{ A, B }` or `{A, B}` for bodies on one line. |
+| `objectWrap` (default `"preserve"`) | `"preserve"` keeps a body expanded when the source has a line break after its `{`; `"collapse"` puts every body that fits on one line. |
 | `endOfLine`                | Handled by Prettier itself (`"lf"`, `"crlf"`, `"cr"`, `"auto"`). The engine always emits `\n`; Prettier post-processes the output to the requested line ending. |
+| `requirePragma`, `checkIgnorePragma`, `insertPragma` | Work as in Prettier: the pragmas are `@format` / `@prettier` and `@noformat` / `@noprettier` in a comment at the top of the file. |
 
-Other Prettier options (`singleQuote`, `trailingComma`, etc.) are
-ignored — `.fbs` has no syntactic surface for them.
+`// prettier-ignore` above a declaration keeps it as written. Other
+Prettier options (`singleQuote`, `semi`, …) are ignored, as `.fbs` has
+no syntax for them.
 
 ## How it works
 

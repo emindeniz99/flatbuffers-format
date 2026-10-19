@@ -100,6 +100,29 @@
           "default": 80,
           "minimum": 1,
           "description": "Wrap column for `wrapComments`. Defaults to `lineWidth` when unset."
+        },
+        "flatbuffers.format.trailingComma": {
+          "type": "string",
+          "enum": [
+            "all",
+            "none"
+          ],
+          "default": "all",
+          "description": "`all` puts a comma after the last value of an enum or union written one value per line; `none` leaves it off. Same as Prettier's option."
+        },
+        "flatbuffers.format.objectWrap": {
+          "type": "string",
+          "enum": [
+            "preserve",
+            "collapse"
+          ],
+          "default": "preserve",
+          "description": "`preserve` keeps a body expanded when the source has a line break after its `{`; `collapse` puts every body that fits on one line. Same as Prettier's option."
+        },
+        "flatbuffers.format.bracketSpacing": {
+          "type": "boolean",
+          "default": true,
+          "description": "Spaces inside the braces of a body on one line: `{ A, B }` rather than `{A, B}`. Same as Prettier's option."
         }
       }
     }
@@ -113,12 +136,12 @@
     "publish": "vsce publish --no-dependencies"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.5",
-    "@types/node": "^22.10.0",
+    "@biomejs/biome": "^2.5.15",
+    "@types/node": "^22.20.5",
     "@types/vscode": "~1.94.0",
     "@vscode/vsce": "^3.9.2",
-    "esbuild": "^0.28.1",
+    "esbuild": "^0.28.2",
     "flatbuffers-format": "workspace:^",
-    "typescript": "^5.6.0"
+    "typescript": "^5.9.3"
   }
 }

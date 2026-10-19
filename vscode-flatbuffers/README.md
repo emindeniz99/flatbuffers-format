@@ -44,6 +44,9 @@ Or invoke "Format Document" (Shift+Alt+F) anytime.
 | `flatbuffers.format.maxBlankLines` | `1` | Maximum consecutive blank lines preserved between top-level declarations. |
 | `flatbuffers.format.wrapComments` | `false` | Reflow long line comments at whitespace boundaries. Block comments and doc comments are left untouched. |
 | `flatbuffers.format.commentWidth` | `80` | Wrap column for `wrapComments`. Defaults to `lineWidth` when unset. |
+| `flatbuffers.format.trailingComma` | `"all"` | `"all"` puts a comma after the last value of an expanded enum or union; `"none"` leaves it off. |
+| `flatbuffers.format.objectWrap` | `"preserve"` | `"preserve"` keeps a body expanded when the source breaks after its `{`; `"collapse"` puts every body that fits on one line. |
+| `flatbuffers.format.bracketSpacing` | `true` | Spaces inside the braces of a body on one line: `{ A, B }` rather than `{A, B}`. |
 
 For details on what each option does, see the
 [`flatbuffers-format` README](https://www.npmjs.com/package/flatbuffers-format#api).

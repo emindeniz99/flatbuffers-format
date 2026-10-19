@@ -40,7 +40,9 @@ fileIdentifierDecl : FILE_IDENTIFIER STRING_LITERAL ';' ;
 tableDecl  : TABLE  identifier metadata? '{' fieldDecl* '}' ;
 structDecl : STRUCT identifier metadata? '{' fieldDecl* '}' ;
 
-fieldDecl  : identifier ':' typeRef ('=' scalar)? metadata? ';' ;
+// A vector field's only default is the empty vector, `= []` (flatc 23+).
+fieldDecl  : identifier ':' typeRef ('=' (scalar | emptyVector))? metadata? ';' ;
+emptyVector : '[' ']' ;
 
 typeRef
     : '[' typeRef (':' INT_LITERAL)? ']'   # vectorType
@@ -61,8 +63,10 @@ unionDecl
       '{' (unionValDecl (',' unionValDecl)* ','?)? '}'
     ;
 
+// flatc also takes an explicit discriminant (`A = 5`) and metadata
+// (`f: T (id: 0)`) on a union value.
 unionValDecl
-    : (identifier ':')? nsIdent
+    : (identifier ':')? nsIdent ('=' scalar)? metadata?
     ;
 
 rpcServiceDecl : RPC_SERVICE identifier '{' rpcMethod* '}' ;
@@ -78,7 +82,7 @@ scalar
     | ('+' | '-')? FLOAT_LITERAL        # floatScalar
     | ('+' | '-')? HEX_FLOAT_LITERAL    # hexFloatScalar
     | STRING_LITERAL                 # stringScalar
-    | identifier                     # identScalar
+    | ('+' | '-')? identifier        # identScalar   // nan, +inf, -infinity, true, enum values
     ;
 
 objectLiteralDecl : objectLiteral ;
@@ -154,7 +158,10 @@ FLOAT_LITERAL  : [0-9]+ '.' [0-9]* EXP?
 
 fragment EXP   : [eE] [+\-]? [0-9]+ ;
 
-STRING_LITERAL : '"' (~["\\\r\n] | '\\' .)* '"' ;
+// flatc reads a string in either quote style.
+STRING_LITERAL : '"' (~["\\\r\n] | '\\' .)* '"'
+               | '\'' (~['\\\r\n] | '\\' .)* '\''
+               ;
 
 IDENT          : [a-zA-Z_] [a-zA-Z_0-9]* ;
 

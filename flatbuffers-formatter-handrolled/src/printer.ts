@@ -20,6 +20,7 @@ import type {
   Trivia,
   TypeRef,
   UnionDecl,
+  UnionValueDecl,
   WithBody,
   WithTrivia,
 } from "./types.js";
@@ -66,9 +67,17 @@ export type FormatOptions = {
   wrapComments?: boolean;
   /** Wrap column for `wrapComments`. Defaults to `lineWidth`. */
   commentWidth?: number;
+  /** Comma after the last value of an expanded enum/union. Default "all". */
+  trailingComma?: "all" | "none";
+  /** "preserve" keeps a body expanded when the source broke after `{`. Default "preserve". */
+  objectWrap?: "preserve" | "collapse";
+  /** Spaces inside a one-line body's braces. Default true. */
+  bracketSpacing?: boolean;
+  /** Line endings; "auto" keeps the source's. Overrides `newline`. Default "lf". */
+  endOfLine?: "lf" | "crlf" | "auto";
 };
 
-type Resolved = Required<Omit<FormatOptions, "commentWidth">> & {
+type Resolved = Required<Omit<FormatOptions, "commentWidth" | "endOfLine">> & {
   commentWidth: number;
 };
 
@@ -80,13 +89,17 @@ const DEFAULTS = {
   compactSingleLine: true,
   maxBlankLines: 1,
   wrapComments: false,
+  trailingComma: "all" as "all" | "none",
+  objectWrap: "preserve" as "preserve" | "collapse",
+  bracketSpacing: true,
 };
 
 class Printer {
   private out: string[] = [];
   private readonly opts: Resolved;
   constructor(opts: FormatOptions) {
-    const merged = { ...DEFAULTS, ...opts };
+    const { endOfLine: _, ...rest } = opts;
+    const merged = { ...DEFAULTS, ...rest };
     this.opts = {
       ...merged,
       commentWidth: opts.commentWidth ?? merged.lineWidth,
@@ -235,11 +248,16 @@ class Printer {
     // separator between items is handled in `print()`.
     const leading = stripLeadingBlankLines(item.leading);
     this.writeLeading(leading, 0);
+    if (item.raw !== undefined && item.leading.some(isIgnoreComment)) {
+      this.out.push(item.raw.replace(/\r?\n/g, this.opts.newline));
+      this.endLine(item.trailing ?? [], 0);
+      return;
+    }
     this.writeLeading(item.interior ?? [], 0);
 
     switch (item.kind) {
       case "include":
-        this.out.push(`${item.native ? "native_include" : "include"} "${item.path}";`);
+        this.out.push(`${item.native ? "native_include" : "include"} ${item.path};`);
         this.endLine(item.trailing ?? [], 0);
         return;
       case "namespace":
@@ -247,11 +265,7 @@ class Printer {
         this.endLine(item.trailing ?? [], 0);
         return;
       case "attribute":
-        if (item.quoted) {
-          this.out.push(`attribute "${item.value}";`);
-        } else {
-          this.out.push(`attribute ${item.value};`);
-        }
+        this.out.push(`attribute ${item.value};`);
         this.endLine(item.trailing ?? [], 0);
         return;
       case "root_type":
@@ -259,11 +273,11 @@ class Printer {
         this.endLine(item.trailing ?? [], 0);
         return;
       case "file_extension":
-        this.out.push(`file_extension "${item.value}";`);
+        this.out.push(`file_extension ${item.value};`);
         this.endLine(item.trailing ?? [], 0);
         return;
       case "file_identifier":
-        this.out.push(`file_identifier "${item.value}";`);
+        this.out.push(`file_identifier ${item.value};`);
         this.endLine(item.trailing ?? [], 0);
         return;
       case "table":
@@ -292,6 +306,7 @@ class Printer {
     if (
       this.opts.compactSingleLine &&
       !bodyHasComments(decl, decl.fields) &&
+      !this.keepExpanded(decl) &&
       this.tryCompactTableLike(head, decl)
     ) return;
 
@@ -301,6 +316,14 @@ class Printer {
     this.writeBodyEnd(decl, decl.fields.length === 0);
     this.out.push("}");
     this.endLine(decl.trailing ?? [], 0);
+  }
+
+  private keepExpanded(decl: WithBody): boolean {
+    return this.opts.objectWrap === "preserve" && decl.openBreak;
+  }
+
+  private braced(body: string): string {
+    return this.opts.bracketSpacing ? `{ ${body} }` : `{${body}}`;
   }
 
   private tryCompactTableLike(head: string, decl: TableDecl | StructDecl): boolean {
@@ -314,7 +337,7 @@ class Printer {
     if (f.trailing?.length) return false;
     if (decl.trailing?.length) return false;
     const body = this.formatField(f);
-    const candidate = `${head} { ${body} }`;
+    const candidate = `${head} ${this.braced(body)}`;
     if (candidate.length > this.opts.lineWidth) return false;
     this.out.push(candidate);
     this.nl();
@@ -325,6 +348,8 @@ class Printer {
     let s = `${field.name}:${this.formatType(field.type)}`;
     if (field.defaultValue) {
       s += ` = ${formatScalar(field.defaultValue)}`;
+    } else if (field.emptyVectorDefault) {
+      s += " = []";
     }
     if (field.metadata) s += ` ${this.formatMetadata(field.metadata)}`;
     s += ";";
@@ -356,6 +381,7 @@ class Printer {
     if (
       this.opts.compactSingleLine &&
       !bodyHasComments(decl, decl.values) &&
+      !this.keepExpanded(decl) &&
       this.tryCompactEnum(head, decl)
     ) return;
 
@@ -378,7 +404,7 @@ class Printer {
     }
     if (decl.trailing?.length) return false;
     const parts = decl.values.map((v) => this.formatEnumValInline(v));
-    const candidate = `${head} { ${parts.join(", ")} }`;
+    const candidate = `${head} ${this.braced(parts.join(", "))}`;
     if (candidate.length > this.opts.lineWidth) return false;
     this.out.push(candidate);
     this.nl();
@@ -398,7 +424,7 @@ class Printer {
       let s = v.name;
       if (v.value) s += ` = ${formatScalar(v.value)}`;
       if (v.metadata) s += " " + this.formatMetadata(v.metadata);
-      if (i < values.length - 1) s += ",";
+      if (i < values.length - 1 || this.opts.trailingComma === "all") s += ",";
       this.writeItem(v, s, i === 0);
     }
   }
@@ -410,6 +436,7 @@ class Printer {
     if (
       this.opts.compactSingleLine &&
       !bodyHasComments(decl, decl.values) &&
+      !this.keepExpanded(decl) &&
       this.tryCompactUnion(head, decl)
     ) return;
 
@@ -417,8 +444,8 @@ class Printer {
     this.endLine(decl.openTrailing, 1);
     for (let i = 0; i < decl.values.length; i++) {
       const v = decl.values[i]!;
-      let s = v.alias ? `${v.alias}: ${v.type}` : v.type;
-      if (i < decl.values.length - 1) s += ",";
+      let s = this.formatUnionVal(v);
+      if (i < decl.values.length - 1 || this.opts.trailingComma === "all") s += ",";
       this.writeItem(v, s, i === 0);
     }
     this.writeBodyEnd(decl, decl.values.length === 0);
@@ -430,17 +457,25 @@ class Printer {
     if (decl.values.length === 0) return false;
     for (let i = 0; i < decl.values.length; i++) {
       const v = decl.values[i]!;
+      if (v.metadata) return false;
       const leading = i === 0 ? stripLeadingBlankLines(v.leading) : v.leading;
       if (leading.length > 0) return false;
       if (v.trailing?.length) return false;
     }
     if (decl.trailing?.length) return false;
-    const parts = decl.values.map((v) => (v.alias ? `${v.alias}: ${v.type}` : v.type));
-    const candidate = `${head} { ${parts.join(", ")} }`;
+    const parts = decl.values.map((v) => this.formatUnionVal(v));
+    const candidate = `${head} ${this.braced(parts.join(", "))}`;
     if (candidate.length > this.opts.lineWidth) return false;
     this.out.push(candidate);
     this.nl();
     return true;
+  }
+
+  private formatUnionVal(v: UnionValueDecl): string {
+    let s = v.alias ? `${v.alias}: ${v.type}` : v.type;
+    if (v.value) s += ` = ${formatScalar(v.value)}`;
+    if (v.metadata) s += " " + this.formatMetadata(v.metadata);
+    return s;
   }
 
   private printRpcService(decl: RpcServiceDecl) {
@@ -525,6 +560,14 @@ class Printer {
     this.writeLeading(commentsOnly(body.closeLeading), depth + 1);
     this.out.push(this.indentStr(depth) + brackets[1]!);
   }
+}
+
+// `// flatbuffers-format-ignore` (or `// prettier-ignore`), optionally
+// followed by a reason, keeps the next top-level declaration as written.
+const IGNORE = /^\s*(?:flatbuffers-format|prettier)-ignore(?:\s|$)/;
+
+function isIgnoreComment(t: Trivia): boolean {
+  return (t.kind === "line_comment" || t.kind === "block_comment") && IGNORE.test(t.value);
 }
 
 function commentsOnly(trivia: Trivia[]): Trivia[] {

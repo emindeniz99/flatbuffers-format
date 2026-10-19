@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
-import { format, check, FormatError } from "../src/index.js";
+import { format, check, FormatError, hasIgnorePragma, hasPragma } from "../src/index.js";
 import { unifiedDiff } from "../src/diff.js";
 import { renderParseError } from "../src/error-render.js";
 
@@ -287,7 +287,7 @@ test("corpus 17: feature checklist — every advertised grammar feature appears 
   assert.match(out, /abilities: \[Attack\];/, "vector of union");
 
   // Keyword as field name.
-  assert.match(out, /^  enum: int;/m, "reserved word used as field name");
+  assert.match(out, /^ {2}enum: int;/m, "reserved word used as field name");
 
   // RPC service: all four streaming variants + idempotent flag.
   assert.match(out, /Store\(Monster\): Stat;/, "RPC method, no streaming");
@@ -296,7 +296,7 @@ test("corpus 17: feature checklist — every advertised grammar feature appears 
   assert.match(out, /Bidi\(Stat\): Stat \(streaming: "bidi", idempotent\);/, "bidi + idempotent");
 
   // Object literal at end of schema.
-  assert.match(out, /\{\n  name: "Sample",/, "object literal preserved");
+  assert.match(out, /\{\n {2}name: "Sample",/, "object literal preserved");
 });
 
 test("corpus 17: doc comments stay glued to their target declarations", () => {
@@ -313,7 +313,7 @@ test("corpus 17: doc comments stay glued to their target declarations", () => {
   // Doc comment on the bit_flags enum.
   assert.match(
     out,
-    /\/\/\/ Bit-flags enum\. Exercises:[\s\S]*?\/\/\/   - members with no explicit value \(auto-assigned\)\nenum Color:/,
+    /\/\/\/ Bit-flags enum\. Exercises:[\s\S]*?\/\/\/ {3}- members with no explicit value \(auto-assigned\)\nenum Color:/,
     "Color enum doc comment glued to its declaration",
   );
 
@@ -327,7 +327,7 @@ test("corpus 17: doc comments stay glued to their target declarations", () => {
   // Doc comment on the inline hp_max field deep inside Monster.
   assert.match(
     out,
-    /\/\/\/ Doc-style comment attached to the next field\.[\s\S]*?\n  hp_max: short;/,
+    /\/\/\/ Doc-style comment attached to the next field\.[\s\S]*?\n {2}hp_max: short;/,
     "hp_max field doc comment glued",
   );
 
@@ -406,7 +406,7 @@ test("corpus 20: per-enum-value metadata round-trips through both engines", () =
   assert.match(canonical, /Pending,$/m, "value without metadata");
   assert.match(canonical, /Active = 1 \(priority: 0\),$/m, "value with single-key metadata");
   assert.match(canonical, /Retired \(deprecated\),$/m, "value-with-only-metadata (no =)");
-  assert.match(canonical, /Banned = 99 \(deprecated, priority: -1\)$/m, "value with multi-key metadata");
+  assert.match(canonical, /Banned = 99 \(deprecated, priority: -1\),$/m, "value with multi-key metadata");
 });
 
 test("corpus 23: C99-style hex float literals round-trip on both engines", () => {
@@ -502,24 +502,17 @@ test("per-enum-value metadata accepts ugly input and lands on canonical form", (
   const out = format(ugly);
   assert.equal(
     out,
-    `enum E: byte {\n  A = 1 (deprecated),\n  B = 2 (priority: 5)\n}\n`,
+    `enum E: byte {\n  A = 1 (deprecated),\n  B = 2 (priority: 5),\n}\n`,
   );
 });
 
-test("malformed input: signed inf/nan rejected (only bare inf/nan are supported)", () => {
-  // We documented in docs/grammar-comparison.md that the lexer accepts bare
-  // `inf` and `nan` as float defaults, but rejects `+inf`, `-inf`, `+nan`,
-  // `-nan`. This test pins that behaviour so a future "feature add" doesn't
-  // silently broaden the accepted dialect without an explicit decision.
-  // Bare forms must continue to work: multi-field table → stays
-  // expanded under compactSingleLine: true.
+test("signed inf/nan are accepted, as flatc and upstream's monster_test.fbs use them", () => {
+  // These were rejected until flatbuffers' own test schemas showed real
+  // files use them (`+inf`, `-nan`, `-infinity`); flatc reads all.
   assert.equal(
-    format(`table T { a: float = inf; b: float = nan; }`),
-    `table T {\n  a: float = inf;\n  b: float = nan;\n}\n`,
+    format(`table T { a: float = inf; b: float = - nan; c: double = +infinity; }`),
+    `table T {\n  a: float = inf;\n  b: float = -nan;\n  c: double = +infinity;\n}\n`,
   );
-  // Signed forms must continue to fail:
-  assert.throws(() => format(`table T { a: float = -inf; }`));
-  assert.throws(() => format(`table T { a: float = +inf; }`));
 });
 
 // ---------------------------------------------------------------------------
@@ -532,7 +525,7 @@ test("malformed input: signed inf/nan rejected (only bare inf/nan are supported)
 test("FormatOptions.useTabs: default is spaces", () => {
   const out = format(`table T { a:int; b:int; }`);
   assert.ok(!out.includes("\t"), "default output must not contain tabs");
-  assert.match(out, /^  a: int;$/m, "default is 2-space indent");
+  assert.match(out, /^ {2}a: int;$/m, "default is 2-space indent");
 });
 
 test("FormatOptions.useTabs: true emits tab indentation", () => {
@@ -552,7 +545,7 @@ test("FormatOptions.lineWidth: small value forces expansion", () => {
   // The candidate compact line is wider than 30, so the formatter must
   // fall back to the multi-line form.
   const out = format(`enum E:byte { A, B, C, D, F }`, { lineWidth: 20 });
-  assert.equal(out, `enum E: byte {\n  A,\n  B,\n  C,\n  D,\n  F\n}\n`);
+  assert.equal(out, `enum E: byte {\n  A,\n  B,\n  C,\n  D,\n  F,\n}\n`);
 });
 
 test("FormatOptions.compactSingleLine: default true collapses small enum", () => {
@@ -562,7 +555,7 @@ test("FormatOptions.compactSingleLine: default true collapses small enum", () =>
 
 test("FormatOptions.compactSingleLine: false keeps small enums expanded", () => {
   const out = format(`enum E:byte { A, B, C }`, { compactSingleLine: false });
-  assert.equal(out, `enum E: byte {\n  A,\n  B,\n  C\n}\n`);
+  assert.equal(out, `enum E: byte {\n  A,\n  B,\n  C,\n}\n`);
 });
 
 test("FormatOptions.maxBlankLines: default 1 collapses paragraph breaks", () => {
@@ -588,7 +581,7 @@ test("FormatOptions.maxBlankLines: 2 preserves a double blank line", () => {
 });
 
 test("FormatOptions.wrapComments: default off leaves long line comments alone", () => {
-  const longComment = "// " + "x".repeat(200);
+  const longComment = `// ${"x".repeat(200)}`;
   const out = format(`${longComment}\ntable T { x: int; y: int; }`);
   assert.match(out, new RegExp(`^// ${"x".repeat(200)}$`, "m"));
 });
@@ -636,7 +629,7 @@ test("compactSingleLine: per-value metadata blocks enum collapse", () => {
   );
   assert.equal(
     out,
-    `enum E: byte {\n  Pending,\n  Active = 1 (priority: 0)\n}\n`,
+    `enum E: byte {\n  Pending,\n  Active = 1 (priority: 0),\n}\n`,
   );
 });
 
@@ -648,7 +641,7 @@ test("compactSingleLine: doc comment between { and first value blocks collapse",
 }`;
   const out = format(input);
   // Doc comment must survive on its own line; enum stays expanded.
-  assert.match(out, /\/\/\/ pending state\n  Pending,/);
+  assert.match(out, /\/\/\/ pending state\n {2}Pending,/);
 });
 
 test("compactSingleLine: single-field table collapses by default", () => {
@@ -808,7 +801,7 @@ test("CLI: --no-compact-single-line keeps small enum expanded", () => {
     encoding: "utf8",
   });
   assert.equal(r.status, 0);
-  assert.equal(r.stdout, "enum E: byte {\n  A,\n  B,\n  C\n}\n");
+  assert.equal(r.stdout, "enum E: byte {\n  A,\n  B,\n  C,\n}\n");
 });
 
 test("CLI: numeric flags reject non-integer or negative values", () => {
@@ -824,4 +817,100 @@ test("CLI: numeric flags reject non-integer or negative values", () => {
     });
     assert.equal(r.status, 2, `${args.join(" ")} → exit 2`);
   }
+});
+
+// Prettier-compatible options. Same names and defaults as Prettier's, so
+// a team that knows those gets the behaviour it expects.
+
+test("trailingComma: default \"all\" ends an expanded enum and union with a comma", () => {
+  const out = format("enum E : byte {\n  A,\n  B\n}\nunion U {\n  A,\n  B\n}\n");
+  assert.equal(out, "enum E: byte {\n  A,\n  B,\n}\n\nunion U {\n  A,\n  B,\n}\n");
+});
+
+test("trailingComma: \"none\" drops the comma after the last value", () => {
+  const out = format("enum E : byte {\n  A,\n  B,\n}\n", { trailingComma: "none" });
+  assert.equal(out, "enum E: byte {\n  A,\n  B\n}\n");
+});
+
+test("trailingComma: a one-line body never gets one", () => {
+  assert.equal(format("enum E : byte { A, B, }"), "enum E: byte { A, B }\n");
+});
+
+test("objectWrap: \"preserve\" keeps a body the source broke after {", () => {
+  const src = "table T {\n  x: int;\n}\n\nenum E: byte {\n  A,\n}\n";
+  assert.equal(format(src), src);
+  // A line break later in the body does not count, as in Prettier.
+  assert.equal(format("enum E : byte { A,\n  B }"), "enum E: byte { A, B }\n");
+});
+
+test("objectWrap: \"collapse\" puts every body that fits on one line", () => {
+  const src = "table T {\n  x: int;\n}\n\nenum E: byte {\n  A,\n}\n";
+  assert.equal(format(src, { objectWrap: "collapse" }), "table T { x: int; }\n\nenum E: byte { A }\n");
+});
+
+test("bracketSpacing: false prints one-line bodies without inner spaces", () => {
+  const out = format("enum E:byte{A,B}\ntable T{x:int;}", { bracketSpacing: false });
+  assert.equal(out, "enum E: byte {A, B}\n\ntable T {x: int;}\n");
+  assert.equal(format(out, { bracketSpacing: false }), out);
+});
+
+test("endOfLine: crlf, lf and auto", () => {
+  const crlf = "enum E:byte{A,B}\r\ntable T{x:int;}\r\n";
+  assert.equal(format(crlf), "enum E: byte { A, B }\n\ntable T { x: int; }\n");
+  assert.equal(format(crlf, { endOfLine: "auto" }), "enum E: byte { A, B }\r\n\r\ntable T { x: int; }\r\n");
+  assert.equal(format("table T{x:int;}", { endOfLine: "crlf" }), "table T { x: int; }\r\n");
+  assert.equal(format("table T{x:int;}", { endOfLine: "auto" }), "table T { x: int; }\n");
+  assert.equal(format(crlf, { endOfLine: "lf", newline: "\r\n" }), format(crlf));
+});
+
+test("CLI: the Prettier-compatible flags set their options and reject unknown values", () => {
+  const run = (...args: string[]) =>
+    spawnSync(process.execPath, [cliPath, ...args, "-"], { input: "enum E:byte{\nA,B}", encoding: "utf8" });
+  assert.equal(run().stdout, "enum E: byte {\n  A,\n  B,\n}\n");
+  assert.equal(
+    run("--trailing-comma=none", "--object-wrap=collapse", "--no-bracket-spacing", "--end-of-line=crlf").stdout,
+    "enum E: byte {A, B}\r\n",
+  );
+  for (const bad of ["--trailing-comma=es5", "--object-wrap=keep", "--end-of-line=cr"]) {
+    const r = run(bad);
+    assert.equal(r.status, 2, `${bad} → exit 2`);
+    assert.match(r.stderr, /expects one of/);
+  }
+});
+
+test("ignore comment: the next top-level declaration is kept as written", () => {
+  const kept = "enum E : byte {\n  A   = 1,  // one\n  B\n}";
+  for (const comment of ["// flatbuffers-format-ignore", "/* prettier-ignore */", "// prettier-ignore hand-aligned"]) {
+    const src = `${comment}\n${kept}\ntable T{x:int;}\n`;
+    assert.equal(format(src), `${comment}\n${kept}\n\ntable T { x: int; }\n`, comment);
+  }
+  // Only the declaration right after it; a lookalike does not count.
+  assert.equal(format("// prettier-ignored\ntable T{x:int;}"), "// prettier-ignored\ntable T { x: int; }\n");
+  // The kept text takes the output's line endings.
+  assert.equal(
+    format("// prettier-ignore\r\ntable T {x:int;\r\n}\r\n", { endOfLine: "lf" }),
+    "// prettier-ignore\ntable T {x:int;\n}\n",
+  );
+});
+
+test("pragmas: checkIgnorePragma and requirePragma leave files untouched", () => {
+  const ignored = "/** @noformat */\ntable T{x:int;}";
+  assert.equal(format(ignored, { checkIgnorePragma: true }), ignored);
+  assert.equal(format("// @noprettier\nnot even valid", { checkIgnorePragma: true }), "// @noprettier\nnot even valid");
+  assert.equal(format(ignored), "/** @noformat */\ntable T { x: int; }\n", "off by default");
+  // Only the comments above the first declaration count.
+  assert.equal(format("table T{x:int;} // @noformat", { checkIgnorePragma: true }), "table T {\n  x: int;\n} // @noformat\n");
+
+  const plain = "table T{x:int;}";
+  assert.equal(format(plain, { requirePragma: true }), plain);
+  assert.equal(format("// @format\ntable T{x:int;}", { requirePragma: true }), "// @format\ntable T { x: int; }\n");
+  assert.equal(format("// @formatter\ntable T{x:int;}", { requirePragma: true }), "// @formatter\ntable T{x:int;}");
+});
+
+test("hasPragma / hasIgnorePragma read only the comments at the top", () => {
+  assert.equal(hasPragma("/**\n * @format\n */\ntable T {}"), true);
+  assert.equal(hasPragma("// license\n\n// @prettier\ntable T {}"), true);
+  assert.equal(hasPragma("table T {} // @format"), false);
+  assert.equal(hasIgnorePragma("// @noformat\n"), true);
+  assert.equal(hasIgnorePragma("// @format\n"), false);
 });

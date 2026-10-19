@@ -6,7 +6,7 @@
 // `ctx.identifier()?.getText()` rather than a bare `IDENT()` lookup.
 // `nsIdent` is used in every type-bearing position.
 
-import type { BufferedTokenStream, ParserRuleContext } from "antlr4ng";
+import { type BufferedTokenStream, ParserRuleContext } from "antlr4ng";
 import {
   ArrayValueContext,
   AttributeDeclContext,
@@ -99,9 +99,52 @@ export type FormatOptions = {
   wrapComments?: boolean;
   /** Wrap column for `wrapComments`. Defaults to `lineWidth`. */
   commentWidth?: number;
+  /**
+   * `"all"` puts a comma after the last value of an enum or union
+   * written one value per line; `"none"` leaves it off. A body
+   * collapsed onto one line never gets one. Same name and default as
+   * Prettier's option. Default: "all".
+   */
+  trailingComma?: "all" | "none";
+  /**
+   * `"preserve"` keeps a body expanded when the source has a line break
+   * between its `{` and the first item, as Prettier does for objects;
+   * `"collapse"` puts every body that fits on one line (see
+   * `compactSingleLine`). Default: "preserve".
+   */
+  objectWrap?: "preserve" | "collapse";
+  /**
+   * Spaces inside the braces of a body collapsed onto one line:
+   * `{ a, b }` when true, `{a, b}` when false. Default: true.
+   */
+  bracketSpacing?: boolean;
+  /**
+   * Line endings: `"lf"`, `"crlf"`, or `"auto"` to keep the ones the
+   * source uses (decided by its first line break). Takes precedence
+   * over `newline`. Default: "lf".
+   */
+  endOfLine?: "lf" | "crlf" | "auto";
+  /**
+   * Leave a file unchanged when a comment at its top contains
+   * `@noformat` or `@noprettier`. Default: false.
+   */
+  checkIgnorePragma?: boolean;
+  /**
+   * Format only files with a comment at their top containing `@format`
+   * or `@prettier`; leave every other file unchanged. Default: false.
+   */
+  requirePragma?: boolean;
+  /**
+   * Skip the checks that the output keeps every comment and code token
+   * of the input. Only for working around a bug in those checks.
+   * Default: false.
+   */
+  unsafe?: boolean;
 };
 
-type Resolved = Required<Omit<FormatOptions, "commentWidth">> & {
+type Resolved = Required<
+  Omit<FormatOptions, "commentWidth" | "endOfLine" | "checkIgnorePragma" | "requirePragma" | "unsafe">
+> & {
   commentWidth: number;
 };
 const DEFAULTS = {
@@ -112,6 +155,9 @@ const DEFAULTS = {
   compactSingleLine: true,
   maxBlankLines: 1,
   wrapComments: false,
+  trailingComma: "all" as "all" | "none",
+  objectWrap: "preserve" as "preserve" | "collapse",
+  bracketSpacing: true,
 };
 
 // Token types of the grammar's anonymous `{` and `,` literals. Compared
@@ -132,7 +178,8 @@ export class Printer {
   private out: string[] = [];
   private readonly opts: Resolved;
   constructor(private readonly stream: BufferedTokenStream, opts: FormatOptions) {
-    const merged = { ...DEFAULTS, ...opts };
+    const { endOfLine: _, checkIgnorePragma: _i, requirePragma: _r, unsafe: _u, ...rest } = opts;
+    const merged = { ...DEFAULTS, ...rest };
     this.opts = {
       ...merged,
       commentWidth: opts.commentWidth ?? merged.lineWidth,
@@ -144,14 +191,14 @@ export class Printer {
     let prev: DeclContext | undefined;
     for (const d of decls) {
       const item = d.getChild(0);
-      if (!item || !(item instanceof Object) || !("constructor" in item)) continue;
+      if (!(item instanceof ParserRuleContext)) continue;
 
       if (prev) {
         const prevName = prev.getChild(0)?.constructor.name ?? "";
         const itemName = item.constructor.name;
         const wasBlock = isBlockCtxName(prevName);
         const isBlock = isBlockCtxName(itemName);
-        const blanks = countBlankLines(leadingTrivia(item as any, this.stream));
+        const blanks = countBlankLines(leadingTrivia(item, this.stream));
         // Decl separator: at least one blank line around block decls
         // or when the user had any blank line in the source; otherwise
         // adjacent single-line decls (include / namespace / ...) stay
@@ -163,7 +210,7 @@ export class Printer {
         else if (blanks > 0) want = Math.min(blanks, this.opts.maxBlankLines);
         for (let k = 0; k < want; k++) this.nl();
       }
-      this.printDeclItem(item as any);
+      this.printDeclItem(item);
       prev = d;
     }
 
@@ -294,17 +341,32 @@ export class Printer {
     return stop;
   }
 
-  private writeLeading(ctx: any, depth: number, stripBlank = false) {
+  // The source text from token `start` through token `stop`, with its
+  // line breaks converted to the output's.
+  private verbatim(start: number, stop: number): string {
+    const from = this.stream.get(start);
+    const text = from.inputStream!.getTextFromRange(from.start, this.stream.get(stop).stop);
+    return text.replace(/\r?\n/g, this.opts.newline);
+  }
+
+  private writeLeading(ctx: ParserRuleContext, depth: number, stripBlank = false) {
     let trivia = leadingTrivia(ctx, this.stream);
     if (stripBlank) trivia = stripLeadingBlanks(trivia);
     this.writeTrivia(trivia, depth);
   }
 
   // ---------------------------------------------------------------
-  private printDeclItem(item: any) {
+  private printDeclItem(item: ParserRuleContext) {
     this.writeLeading(item, 0, true);
-    const headerEnd = hasBody(item) ? this.openBrace(item) : item.stop.tokenIndex;
-    this.writeInterior(item.start.tokenIndex, headerEnd, 0);
+    if (leadingTrivia(item, this.stream).some(isIgnoreComment)) {
+      const start = item.start!.tokenIndex;
+      const stop = item.stop!.tokenIndex;
+      this.out.push(this.verbatim(start, stop));
+      this.endLine(stop, 0);
+      return;
+    }
+    const headerEnd = hasBody(item) ? this.openBrace(item) : item.stop!.tokenIndex;
+    this.writeInterior(item.start!.tokenIndex, headerEnd, 0);
     if (item instanceof IncludeDeclContext) return this.printInclude(item);
     if (item instanceof NamespaceDeclContext) return this.printNamespace(item);
     if (item instanceof AttributeDeclContext) return this.printAttribute(item);
@@ -361,7 +423,7 @@ export class Printer {
     const name = ctx.identifier().getText();
     let head = `${kw} ${name}`;
     const meta = ctx.metadata();
-    if (meta) head += " " + this.formatMetadata(meta);
+    if (meta) head += ` ${this.formatMetadata(meta)}`;
     const fields = ctx.fieldDecl();
     const open = this.openBrace(ctx);
     const close = ctx.stop!.tokenIndex;
@@ -372,6 +434,7 @@ export class Printer {
     if (
       this.opts.compactSingleLine &&
       !hasCommentsBetween(open, close, this.stream) &&
+      !this.keepExpanded(open) &&
       this.tryCompactTableLike(head, ctx, fields, 0)
     ) return;
 
@@ -406,28 +469,45 @@ export class Printer {
     if (this.trailingFor(f)) return false;
     if (this.trailingFor(ctx)) return false;
     const body = this.formatField(f);
-    const candidate = `${this.indent(depth)}${head} { ${body} }`;
+    const candidate = `${this.indent(depth)}${head} ${this.braced(body)}`;
     if (candidate.length > this.opts.lineWidth) return false;
     this.out.push(candidate);
     this.nl();
     return true;
   }
 
-  private leadingFor(ctx: any, stripBlank: boolean): Trivia[] {
+  // With `objectWrap: "preserve"`, a body the source broke after its
+  // `{` stays expanded.
+  private keepExpanded(open: number): boolean {
+    if (this.opts.objectWrap !== "preserve") return false;
+    const brace = this.stream.get(open);
+    for (let i = open + 1; i < this.stream.size; i++) {
+      const tok = this.stream.get(i);
+      if (tok.channel === 0) return tok.line > brace.line;
+    }
+    return false;
+  }
+
+  private braced(body: string): string {
+    return this.opts.bracketSpacing ? `{ ${body} }` : `{${body}}`;
+  }
+
+  private leadingFor(ctx: ParserRuleContext, stripBlank: boolean): Trivia[] {
     let trivia = leadingTrivia(ctx, this.stream);
     if (stripBlank) trivia = stripLeadingBlanks(trivia);
     return trivia;
   }
-  private trailingFor(ctx: any): boolean {
-    return trailingComments(ctx.stop.tokenIndex, this.stream).length > 0;
+  private trailingFor(ctx: ParserRuleContext): boolean {
+    return trailingComments(ctx.stop!.tokenIndex, this.stream).length > 0;
   }
 
   private formatField(ctx: FieldDeclContext): string {
     let s = `${ctx.identifier().getText()}: ${this.formatType(ctx.typeRef())}`;
     const scalar = ctx.scalar();
     if (scalar) s += ` = ${this.formatScalar(scalar)}`;
+    else if (ctx.emptyVector()) s += " = []";
     const meta = ctx.metadata();
-    if (meta) s += " " + this.formatMetadata(meta);
+    if (meta) s += ` ${this.formatMetadata(meta)}`;
     s += ";";
     return s;
   }
@@ -481,7 +561,7 @@ export class Printer {
       return `${sign}${ctx.HEX_FLOAT_LITERAL().getText()}`;
     }
     if (ctx instanceof StringScalarContext) return ctx.STRING_LITERAL().getText();
-    if (ctx instanceof IdentScalarContext) return ctx.identifier().getText();
+    if (ctx instanceof IdentScalarContext) return `${signText(ctx)}${ctx.identifier().getText()}`;
     return ctx.getText();
   }
 
@@ -490,13 +570,14 @@ export class Printer {
     let head = `enum ${ids[0]!.getText()}`;
     if (ids.length > 1) head += `: ${ids[1]!.getText()}`;
     const meta = ctx.metadata();
-    if (meta) head += " " + this.formatMetadata(meta);
+    if (meta) head += ` ${this.formatMetadata(meta)}`;
     const values = ctx.enumValDecl();
     const open = this.openBrace(ctx);
     const close = ctx.stop!.tokenIndex;
     if (
       this.opts.compactSingleLine &&
       !hasCommentsBetween(open, close, this.stream) &&
+      !this.keepExpanded(open) &&
       this.tryCompactEnumLike(head, ctx, values, 0)
     ) return;
 
@@ -507,7 +588,7 @@ export class Printer {
       this.writeInterior(v.start!.tokenIndex, v.stop!.tokenIndex, 1);
       this.out.push(this.indent(1));
       this.out.push(this.formatEnumVal(v));
-      if (i < values.length - 1) this.out.push(",");
+      if (i < values.length - 1 || this.opts.trailingComma === "all") this.out.push(",");
       const stop = v.stop!.tokenIndex;
       this.endLine(stop, 1, this.anchorAfter(stop));
     });
@@ -538,7 +619,7 @@ export class Printer {
     if (this.trailingFor(ctx)) return false;
     const parts = values.map((v) => this.formatEnumVal(v));
     const body = parts.join(", ");
-    const candidate = `${this.indent(depth)}${head} { ${body} }`;
+    const candidate = `${this.indent(depth)}${head} ${this.braced(body)}`;
     if (candidate.length > this.opts.lineWidth) return false;
     this.out.push(candidate);
     this.nl();
@@ -550,7 +631,7 @@ export class Printer {
     const sc = v.scalar();
     if (sc) s += ` = ${this.formatScalar(sc)}`;
     const meta = v.metadata();
-    if (meta) s += " " + this.formatMetadata(meta);
+    if (meta) s += ` ${this.formatMetadata(meta)}`;
     return s;
   }
 
@@ -559,13 +640,14 @@ export class Printer {
     let head = `union ${ids[0]!.getText()}`;
     if (ids.length > 1) head += `: ${ids[1]!.getText()}`;
     const meta = ctx.metadata();
-    if (meta) head += " " + this.formatMetadata(meta);
+    if (meta) head += ` ${this.formatMetadata(meta)}`;
     const vals = ctx.unionValDecl();
     const open = this.openBrace(ctx);
     const close = ctx.stop!.tokenIndex;
     if (
       this.opts.compactSingleLine &&
       !hasCommentsBetween(open, close, this.stream) &&
+      !this.keepExpanded(open) &&
       this.tryCompactUnion(head, ctx, vals, 0)
     ) return;
 
@@ -576,7 +658,7 @@ export class Printer {
       this.writeInterior(v.start!.tokenIndex, v.stop!.tokenIndex, 1);
       this.out.push(this.indent(1));
       this.out.push(this.formatUnionVal(v));
-      if (i < vals.length - 1) this.out.push(",");
+      if (i < vals.length - 1 || this.opts.trailingComma === "all") this.out.push(",");
       const stop = v.stop!.tokenIndex;
       this.endLine(stop, 1, this.anchorAfter(stop));
     });
@@ -594,6 +676,7 @@ export class Printer {
     if (vals.length === 0) return false;
     for (let i = 0; i < vals.length; i++) {
       const v = vals[i]!;
+      if (v.metadata()) return false;
       const leading = this.leadingFor(v, i === 0);
       if (leading.length > 0) return false;
       if (this.trailingFor(v)) return false;
@@ -601,7 +684,7 @@ export class Printer {
     if (this.trailingFor(ctx)) return false;
     const parts = vals.map((v) => this.formatUnionVal(v));
     const body = parts.join(", ");
-    const candidate = `${this.indent(depth)}${head} { ${body} }`;
+    const candidate = `${this.indent(depth)}${head} ${this.braced(body)}`;
     if (candidate.length > this.opts.lineWidth) return false;
     this.out.push(candidate);
     this.nl();
@@ -610,8 +693,13 @@ export class Printer {
 
   private formatUnionVal(v: UnionValDeclContext): string {
     const alias = v.identifier();
-    const type = this.formatNsIdent(v.nsIdent());
-    return alias ? `${alias.getText()}: ${type}` : type;
+    let s = this.formatNsIdent(v.nsIdent());
+    if (alias) s = `${alias.getText()}: ${s}`;
+    const sc = v.scalar();
+    if (sc) s += ` = ${this.formatScalar(sc)}`;
+    const meta = v.metadata();
+    if (meta) s += ` ${this.formatMetadata(meta)}`;
+    return s;
   }
 
   private printRpc(ctx: RpcServiceDeclContext) {
@@ -636,7 +724,7 @@ export class Printer {
     const nss = m.nsIdent();
     let s = `${name}(${this.formatNsIdent(nss[0]!)}): ${this.formatNsIdent(nss[1]!)}`;
     const meta = m.metadata();
-    if (meta) s += " " + this.formatMetadata(meta);
+    if (meta) s += ` ${this.formatMetadata(meta)}`;
     s += ";";
     return s;
   }
@@ -728,7 +816,9 @@ export class Printer {
   }
 }
 
-function signText(ctx: IntScalarContext | FloatScalarContext | HexFloatScalarContext): string {
+function signText(
+  ctx: IntScalarContext | FloatScalarContext | HexFloatScalarContext | IdentScalarContext,
+): string {
   const text = ctx.getText();
   if (text.startsWith("-")) return "-";
   if (text.startsWith("+")) return "+";
@@ -781,6 +871,15 @@ function hasBody(item: unknown): boolean {
   );
 }
 
+// `// flatbuffers-format-ignore` (or Prettier's `// prettier-ignore`),
+// optionally followed by a reason, keeps the next top-level declaration
+// exactly as written.
+const IGNORE = /^\s*(?:flatbuffers-format|prettier)-ignore(?:\s|$)/;
+
+function isIgnoreComment(t: Trivia): boolean {
+  return (t.kind === "line_comment" || t.kind === "block_comment") && IGNORE.test(t.value);
+}
+
 function commentsOnly(trivia: Trivia[]): Trivia[] {
   return trivia.filter((t) => t.kind !== "blank_line");
 }
@@ -830,7 +929,7 @@ function packTokens(tokens: string[], budget: number): string[] {
       continue;
     }
     if (cur.length + 1 + t.length <= budget) {
-      cur += " " + t;
+      cur += ` ${t}`;
     } else {
       lines.push(cur);
       cur = t;

@@ -87,6 +87,10 @@ newline) and that's it.
 - Keywords as field names (`table T { enum: int; }`)
 - Object literals (the `flatc` text format)
 - All metadata: `(deprecated)`, `(key: "value")`, etc.
+- Everything in flatbuffers' own `tests/` and `samples/` schemas, checked
+  in CI: `+inf` / `-nan` defaults, the empty-vector default `= []`, union
+  values with an explicit value or metadata (`A = 5`, `f: T (id: 0)`),
+  single-quoted strings
 
 ## CLI
 
@@ -112,6 +116,13 @@ Options:
 | `--max-blank-lines <n>` | Max consecutive blank lines kept between decls (default: 1) |
 | `--wrap-comments` | Reflow long line comments at whitespace |
 | `--comment-width <n>` | Wrap column for `--wrap-comments` (defaults to `--line-width`) |
+| `--trailing-comma <all\|none>` | Comma after the last value of an expanded enum/union (default: `all`) |
+| `--object-wrap <preserve\|collapse>` | Keep a body expanded when the source breaks after its `{` (default: `preserve`) |
+| `--no-bracket-spacing` | Print one-line bodies as `{a, b}` instead of `{ a, b }` |
+| `--end-of-line <lf\|crlf\|auto>` | Line endings; `auto` keeps the file's own (default: `lf`) |
+| `--check-ignore-pragma` | Leave files whose top comment has `@noformat` or `@noprettier` |
+| `--require-pragma` | Format only files whose top comment has `@format` or `@prettier` |
+| `--unsafe` | Skip the checks that every comment and code token survives (see below) |
 | `--config <path>` | Use this config file instead of looking one up |
 | `--no-config` | Ignore config files |
 | `--stdin-filepath <path>` | With `-`, look up the config as if stdin were this file |
@@ -138,8 +149,17 @@ all format the same way without per-developer flags or IDE settings:
 ```
 
 Keys are the format options: `indent`, `useTabs`, `lineWidth`,
-`compactSingleLine`, `maxBlankLines`, `wrapComments`, `commentWidth`.
-Omitted keys keep their defaults.
+`compactSingleLine`, `maxBlankLines`, `wrapComments`, `commentWidth`,
+`trailingComma`, `objectWrap`, `bracketSpacing`, `endOfLine`,
+`checkIgnorePragma`, `requirePragma`. Omitted keys keep their defaults.
+
+`minVersion` (for example `"0.5.0"`) makes an older flatbuffers-format
+refuse the file with a message to update, instead of formatting with
+different output. Set it when the config uses a key a teammate's older
+copy may not know.
+
+The last six have the names, values and defaults of the Prettier
+options they copy, so a team used to Prettier gets what it expects.
 
 - **Lookup:** for each file, the nearest `.flatbuffers-format.json` in
   its directory or any parent, up to the filesystem root. Only that one
@@ -318,13 +338,34 @@ You can also embed the formatter in your own page:
 </script>
 ```
 
+### Keeping code as written
+
+A `// flatbuffers-format-ignore` comment keeps the next top-level
+declaration exactly as written; Prettier's `// prettier-ignore` works
+too, and either may be followed by a reason:
+
+```fbs
+// flatbuffers-format-ignore -- aligned by hand
+enum Opcode : ubyte {
+  Nop   = 0x00,
+  Load  = 0x01,
+}
+```
+
+To skip a whole file, put `@noformat` (or `@noprettier`) in a comment at
+its top and turn on `checkIgnorePragma`. `requirePragma` works the other
+way round: only files with `@format` (or `@prettier`) there are
+formatted.
+
 ## API
 
 ```ts
-import { format, check, FormatError, CommentLossError } from "flatbuffers-format";
+import { format, check, hasPragma, hasIgnorePragma, FormatError, CommentLossError, CodeChangeError, VERSION } from "flatbuffers-format";
 
 format(source: string, opts?: FormatOptions): string
 check(source: string, opts?: FormatOptions): boolean   // true if already formatted
+hasPragma(source: string): boolean        // top comment has @format / @prettier
+hasIgnorePragma(source: string): boolean  // top comment has @noformat / @noprettier
 
 type FormatOptions = {
   indent?: number;             // default 2
@@ -335,6 +376,13 @@ type FormatOptions = {
   maxBlankLines?: number;      // default 1 — cap on consecutive blank lines between decls
   wrapComments?: boolean;      // default false — reflow long line comments
   commentWidth?: number;       // default = lineWidth — wrap column for wrapComments
+  trailingComma?: "all" | "none";         // default "all" — comma after the last expanded enum/union value
+  objectWrap?: "preserve" | "collapse";   // default "preserve" — keep bodies the source broke after `{`
+  bracketSpacing?: boolean;               // default true — `{ a, b }` vs `{a, b}`
+  endOfLine?: "lf" | "crlf" | "auto";     // default "lf" — overrides `newline`
+  checkIgnorePragma?: boolean;            // default false — skip files with @noformat / @noprettier
+  requirePragma?: boolean;                // default false — format only files with @format / @prettier
+  unsafe?: boolean;                       // default false — skip the comment and code-token checks
 };
 ```
 
@@ -347,8 +395,16 @@ every comment of the input, compared as a multiset of comment text
 formatter bug, not a problem with your schema: the check exists so a
 bug refuses to format instead of deleting comments. `.missing` lists the
 comments that would be dropped and `.added` any that would be
-duplicated. The CLI reports the file and the comments, exits 1, and
-leaves the file untouched (`--write`) or prints nothing (stdin).
+duplicated.
+
+They throw `CodeChangeError` if the output's code tokens would differ
+from the input's: a formatter may change whitespace, comments' places
+and a comma before a `}`, nothing else. `.index`, `.expected` and
+`.actual` name the first differing token.
+
+For both, the CLI reports the file and the problem, exits 1, and leaves
+the file untouched (`--write`) or prints nothing (stdin). `--unsafe`
+(`unsafe: true`) skips both checks, for working around a bug in them.
 
 ## Performance
 
@@ -390,13 +446,48 @@ commit the new baseline in the same PR.
 |---|---|---|
 | Top-level | One blank line between block declarations (table/struct/enum/union/rpc_service). Single statements collapse together. | `maxBlankLines` (default 1) |
 | Fields | `name:Type` (no space before colon, one space after type). Defaults: ` = value`. Metadata: ` (key, key: value)`. Trailing `;`. | fixed by design |
-| Enum/union/single-field bodies | Collapse to one line if the result fits in `lineWidth`; expand otherwise. Any comment inside the body, and per-value metadata, force expansion. | `compactSingleLine` (default on), `lineWidth` (default 80) |
-| Enum values | One per line (when expanded), comma-separated, no trailing comma. | fixed by design |
+| Enum/union/single-field bodies | Collapse to one line if the result fits in `lineWidth`; expand otherwise. A body with a line break after its `{` in the source stays expanded, like a Prettier object. Any comment inside the body, and per-value metadata, force expansion. | `compactSingleLine` (default on), `objectWrap` (default `preserve`), `lineWidth` (default 80), `bracketSpacing` (default on) |
+| Enum values | One per line (when expanded), comma-separated, with a comma after the last value. A one-line body never has one. | `trailingComma` (default `all`) |
 | Union variants | Same as enum values. Aliases written as `Alias: Type`. | fixed by design |
 | Metadata | Always inline: `(deprecated, key: "x")`. | fixed by design |
 | Comments | `//`, `///`, `/* */` all preserved, in order. Doc comments stay attached to the following declaration. Trailing comments stay on their owning line, after the comma for enum/union values (`Red, // first`). Comments before a `}` and in comment-only bodies stay inside the braces. A comment inside a declaration, where the output has no slot for it (between a field name and its `:`, inside metadata, inside an object literal), moves onto its own line above that declaration. Long `//` lines optionally reflowed. | `wrapComments` (default off), `commentWidth` (default = lineWidth) |
 | Indent | 2 spaces. | `indent` (count), `useTabs` (char) |
-| Newlines | LF, single trailing newline at EOF. | `newline` |
+| Newlines | LF, single trailing newline at EOF. | `endOfLine` (default `lf`) |
+
+### What changes besides whitespace
+
+Formatting never changes what a schema means. Apart from spacing,
+indentation and line breaks, the output differs from the input only in:
+
+- **The comma after the last value** of an enum or union written one
+  value per line: added by `trailingComma: "all"` (the default), removed
+  by `"none"`. A body on one line never has one.
+- **Comments the output has no slot for** (between a field's name and
+  its `:`, inside a metadata list) move onto their own line above the
+  declaration, unchanged.
+- **Long `//` comments** are rewrapped, only with `wrapComments` on.
+- **Line endings**, per `endOfLine`.
+
+Three checks hold that line. `format()` compares every comment and code
+token of the output with the input and refuses to return output that
+loses or changes one (`CommentLossError`, `CodeChangeError`). CI
+compiles every corpus file and every schema in flatbuffers' own
+`tests/` with `flatc` before and after formatting, with the default
+options and with every option changed, and requires byte-identical C++
+code and binary schemas. To check your own schemas the same way:
+
+```bash
+flatc --cpp -o before/ schema.fbs
+flatbuffers-format --write schema.fbs
+flatc --cpp -o after/ schema.fbs
+diff -r before/ after/
+```
+
+`flatc --conform old.fbs new.fbs` answers a different question: whether
+`new.fbs` is a compatible evolution of `old.fbs` (no removed fields, no
+changed ids). A formatted schema always passes it against its own
+original, but it does not prove the two are the same schema; the
+codegen diff above does.
 
 ## Standards conformance
 
@@ -411,7 +502,7 @@ runtime deps) lives at
 [`../flatbuffers-formatter-handrolled`](../flatbuffers-formatter-handrolled) in the same
 monorepo. Both formatters are **differential-tested**: every file in
 `test/corpus/` must produce byte-identical output from both engines, on
-every commit, via `bash test/crosscheck.sh` — currently **23/23 pass**.
+every commit, via `bash test/crosscheck.sh` — currently **28/28 pass**.
 That cross-check runs in `prepublishOnly` before any release, so a
 grammar bug in either implementation cannot ship.
 
@@ -428,7 +519,12 @@ npm run test:flatc-conform
 
 The script (`scripts/flatc-conform.sh`) runs
 `flatc -b --schema --no-warnings` on each corpus file and reports a
-pass/fail summary. It is **deliberately not** part of `prepublishOnly`,
+pass/fail summary. For every file flatc accepts, it then formats the
+file (with the defaults, and with every option changed) and requires
+flatc's C++ code and binary schema to come out byte-identical; this
+part needs the engine built. `scripts/upstream-schemas.sh <flatbuffers
+checkout>` runs the same check over flatbuffers' own test schemas,
+which CI pins to the flatc release it uses. It is **deliberately not** part of `prepublishOnly`,
 because `flatc` is a *system* dependency (installed via
 `apt-get install flatbuffers-compiler`, `brew install flatbuffers`,
 etc.), not an npm one — wiring it into the publish chain would break

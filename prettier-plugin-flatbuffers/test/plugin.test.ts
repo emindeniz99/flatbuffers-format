@@ -1,10 +1,13 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import prettier from "prettier";
 import plugin from "../src/index.js";
 
-// All tests run prettier.format with our plugin in-memory; nothing
-// touches the filesystem so the suite stays hermetic.
+// The tests run prettier.format with our plugin in-memory; only the
+// config-file test writes, to its own temp directory.
 
 test("round-trip: ugly .fbs becomes canonical", async () => {
   const ugly = "table T{x:int;y:string=\"hi\";}\n";
@@ -52,7 +55,6 @@ test("useTabs: true forwards to the engine and produces tab indentation", async 
     parser: "flatbuffers-format",
     plugins: [plugin],
     useTabs: true,
-    tabWidth: 1,
   });
   assert.ok(out.includes("\t"), "expected tab characters in output");
   assert.equal(out, "table T {\n\tx: int;\n\ty: string;\n}\n");
@@ -69,7 +71,7 @@ test("printWidth: 40 forwards to the engine's lineWidth", async () => {
     printWidth: 30,
   });
   // Expanded form: one value per line.
-  assert.match(out, /^  Red,$/m, "narrow printWidth must force expansion");
+  assert.match(out, /^ {2}Red,$/m, "narrow printWidth must force expansion");
 });
 
 test("endOfLine: 'crlf' produces CRLF newlines", async () => {
@@ -103,4 +105,78 @@ test("bad input surfaces a SyntaxError with loc.start", async () => {
   // Prettier's diagnostic layer.
   const msg = String((err as Error).message);
   assert.match(msg, /line\s*\d+/i, `expected line/col in error message, got: ${msg}`);
+});
+
+// Prettier's own options with a FlatBuffers meaning reach the engine
+// with Prettier's semantics, so a project's .prettierrc applies to .fbs.
+
+const fmt = (src: string, opts: Record<string, unknown> = {}) =>
+  prettier.format(src, { parser: "flatbuffers-format", plugins: [plugin], ...opts });
+
+test("trailingComma: 'all' and 'es5' keep a comma after the last value, 'none' drops it", async () => {
+  const src = "enum E : byte {\n  A,\n  B\n}\n";
+  assert.equal(await fmt(src), "enum E: byte {\n  A,\n  B,\n}\n");
+  assert.equal(await fmt(src, { trailingComma: "es5" }), "enum E: byte {\n  A,\n  B,\n}\n");
+  assert.equal(await fmt(src, { trailingComma: "none" }), "enum E: byte {\n  A,\n  B\n}\n");
+});
+
+test("bracketSpacing and objectWrap forward to the engine", async () => {
+  assert.equal(await fmt("enum E:byte{A,B}", { bracketSpacing: false }), "enum E: byte {A, B}\n");
+  const broken = "enum E : byte {\n  A, B\n}\n";
+  assert.equal(await fmt(broken), "enum E: byte {\n  A,\n  B,\n}\n");
+  assert.equal(await fmt(broken, { objectWrap: "collapse" }), "enum E: byte { A, B }\n");
+});
+
+test("requirePragma, checkIgnorePragma and insertPragma use the file's top comment", async () => {
+  const ugly = "table T{x:int;}";
+  assert.equal(await fmt(ugly, { requirePragma: true }), ugly);
+  assert.equal(await fmt(`// @format\n${ugly}`, { requirePragma: true }), "// @format\ntable T { x: int; }\n");
+  assert.equal(await fmt(`// @noformat\n${ugly}`, { checkIgnorePragma: true }), `// @noformat\n${ugly}`);
+  assert.equal(await fmt(ugly, { insertPragma: true }), "// @format\ntable T { x: int; }\n");
+});
+
+test("a .flatbuffers-format.json next to the file wins over Prettier's options", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "fbs-prettier-config-"));
+  writeFileSync(join(dir, ".flatbuffers-format.json"), JSON.stringify({ indent: 4, trailingComma: "none" }));
+  const out = await prettier.format("enum E : byte {\n  A,\n  B,\n}\n", {
+    filepath: join(dir, "schema.fbs"),
+    plugins: [plugin],
+    tabWidth: 8,
+    endOfLine: "crlf",
+  });
+  // The file's options, and Prettier's line endings converted once.
+  assert.equal(out, "enum E: byte {\r\n    A,\r\n    B\r\n}\r\n");
+});
+
+test("useTabs: one tab per level whatever tabWidth is, as in Prettier", async () => {
+  // In Prettier tabWidth only sets how wide a tab is drawn; a project with
+  // `useTabs: true` (or `indent_style = tab` in .editorconfig) and the
+  // default tabWidth 2 got two tabs per level before.
+  for (const tabWidth of [2, 4, 8]) {
+    const out = await prettier.format("table T{x:int;y:string;}\n", {
+      parser: "flatbuffers-format",
+      plugins: [plugin],
+      useTabs: true,
+      tabWidth,
+    });
+    assert.equal(out, "table T {\n\tx: int;\n\ty: string;\n}\n", `tabWidth ${tabWidth}`);
+  }
+});
+
+test("a config file's endOfLine and pragma options apply as they do from the CLI", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "fbs-prettier-config-eol-"));
+  const config = join(dir, ".flatbuffers-format.json");
+  const fmtFile = (src: string, opts: Record<string, unknown> = {}) =>
+    prettier.format(src, { filepath: join(dir, "schema.fbs"), plugins: [plugin], ...opts });
+
+  writeFileSync(config, JSON.stringify({ endOfLine: "crlf" }));
+  assert.equal(await fmtFile("table T{x:int;}\n"), "table T { x: int; }\r\n");
+  writeFileSync(config, JSON.stringify({ endOfLine: "lf" }));
+  assert.equal(await fmtFile("table T{x:int;}\r\n", { endOfLine: "crlf" }), "table T { x: int; }\n");
+
+  writeFileSync(config, JSON.stringify({ requirePragma: true }));
+  assert.equal(await fmtFile("table T{x:int;}"), "table T{x:int;}");
+  assert.equal(await fmtFile("// @format\ntable T{x:int;}"), "// @format\ntable T { x: int; }\n");
+  writeFileSync(config, JSON.stringify({ checkIgnorePragma: true }));
+  assert.equal(await fmtFile("// @noformat\ntable T{x:int;}"), "// @noformat\ntable T{x:int;}");
 });

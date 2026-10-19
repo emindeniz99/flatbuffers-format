@@ -78,6 +78,15 @@ function readFormatOptions(
   const commentWidth = config.get<number>("format.commentWidth");
   if (typeof commentWidth === "number") opts.commentWidth = commentWidth;
 
+  const trailingComma = config.get<string>("format.trailingComma");
+  if (trailingComma === "all" || trailingComma === "none") opts.trailingComma = trailingComma;
+
+  const objectWrap = config.get<string>("format.objectWrap");
+  if (objectWrap === "preserve" || objectWrap === "collapse") opts.objectWrap = objectWrap;
+
+  const bracketSpacing = config.get<boolean>("format.bracketSpacing");
+  if (typeof bracketSpacing === "boolean") opts.bracketSpacing = bracketSpacing;
+
   return opts;
 }
 

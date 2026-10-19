@@ -42,9 +42,9 @@ below.
 | 3 | `namespace_decl` | `namespaceDecl` | yes | Dot-separated identifier path terminated by `;`. |
 | 4 | `attribute_decl` | `attributeDecl` | yes | Quoted string **or** bare identifier — matches upstream. |
 | 5 | `type_decl` | `tableDecl`, `structDecl` | yes | Upstream uses one rule with `(table\|struct)`; we split for clarity. The accepted language is identical. Our field list is `fieldDecl*` (zero or more); upstream's `field_decl+` requires at least one. See [Deliberate extensions](#deliberate-extensions). |
-| 6 | `enum_decl` | `enumDecl`, `unionDecl`, `unionValDecl` | yes | Upstream folds enum and union into one production. We split them: `enumDecl` handles `enum NAME : TYPE { … }`, `unionDecl` handles `union NAME (':' identifier)? { … }`. Union underlying type was added to flatc after 2.0.8 (the upstream EBNF page still understates this); our grammar accepts it as of 2026-05-14. Pinned by `test/corpus/22-union-underlying-type.fbs`. One extension preserved: union members may carry an optional `name :` prefix (`unionValDecl: (identifier ':')? nsIdent`), which `flatc` accepts but the EBNF does not formalize. |
+| 6 | `enum_decl` | `enumDecl`, `unionDecl`, `unionValDecl` | yes | Upstream folds enum and union into one production. We split them: `enumDecl` handles `enum NAME : TYPE { … }`, `unionDecl` handles `union NAME (':' identifier)? { … }`. Union underlying type was added to flatc after 2.0.8 (the upstream EBNF page still understates this); our grammar accepts it as of 2026-05-14. Pinned by `test/corpus/22-union-underlying-type.fbs`. Extensions: union members may carry an optional `name :` prefix, an explicit discriminant (`A = 5`) and metadata (`unionValDecl: (identifier ':')? nsIdent ('=' scalar)? metadata?`), all of which `flatc` accepts but the EBNF does not formalize. The last two closed on 2026-10-19, found by running the formatter over flatbuffers' own `tests/` schemas. |
 | 7 | `root_decl` | `rootTypeDecl` | yes | `root_type` + namespaced identifier + `;`. |
-| 8 | `field_decl` | `fieldDecl` | yes | `IDENT ':' type ('=' scalar)? metadata? ';'`. |
+| 8 | `field_decl` | `fieldDecl`, `emptyVector` | extension | `IDENT ':' type ('=' (scalar \| '[' ']'))? metadata? ';'`. The empty-vector default `= []` is newer than the EBNF (flatc 23+); closed on 2026-10-19. |
 | 9 | `rpc_decl` | `rpcServiceDecl` | partial | Upstream requires one or more `rpc_method` (`rpc_method+`); we accept zero or more (`rpcMethod*`). An empty `rpc_service` body is technically out-of-spec but is harmless for a formatter and matches `flatc`. |
 | 10 | `rpc_method` | `rpcMethod` | yes | `IDENT '(' nsIdent ')' ':' nsIdent metadata? ';'`. |
 | 11 | `type` | `typeRef`, `nsIdent` | partial | Upstream enumerates base type names (`bool`, `byte`, `int32`, `string`, …) as keywords. We lex them as `IDENT` and accept any `IDENT` (or namespaced `IDENT`) in type position. Strictly broader than the spec; flagged as **partial** rather than **extension** because the looseness is incidental, not deliberate. A non-existent type name parses cleanly in our grammar; `flatc` would reject it at semantic-analysis time. |
@@ -64,7 +64,7 @@ below.
 | 25 | `integer_constant` | `INT_LITERAL` + parser sign in `scalar` | yes | Decimal or hex; sign lives in `scalar`. Same accepted language. |
 | 26 | `dec_float_constant` | `FLOAT_LITERAL` | yes | `[0-9]+ '.' [0-9]* EXP?`, `'.' [0-9]+ EXP?`, or `[0-9]+ EXP`. Sign in `scalar`. |
 | 27 | `hex_float_constant` | `HEX_FLOAT_LITERAL` + `hexFloatScalar` | yes | Upstream allows hex float literals (`0x1.8p3`). Closed on 2026-05-14 — both engines lex `0x[hex]+(.[hex]*)?[pP][+-]?[0-9]+` and round-trip the value verbatim. Pinned by `test/corpus/23-hex-floats.fbs`. |
-| 28 | `special_float_constant` | `identifier` via `scalar` | yes | `inf`, `infinity`, `nan` are lexed as `IDENT` and accepted in scalar position. Sign handled by `scalar`'s `('+' \| '-')?` prefix. |
+| 28 | `special_float_constant` | `identifier` via `scalar` | yes | `inf`, `infinity`, `nan` are lexed as `IDENT` and accepted in scalar position, with an optional sign (`identScalar: ('+' \| '-')? identifier`). The sign was rejected until 2026-10-19, although this row claimed otherwise; `monster_test.fbs` uses `+inf`. |
 | 29 | `float_constant` | `FLOAT_LITERAL` + `HEX_FLOAT_LITERAL` + `identifier` in `scalar` | yes | Decimal, hex, and special floats (`inf`/`nan`) all covered. Hex floats closed in row 27. |
 | 30 | `boolean_constant` | `identifier` via `scalar` | yes | `true` / `false` lex as `IDENT` and are accepted in scalar position. We don't restrict to literally `true`/`false`; any identifier is valid here, which is the same looseness as type names (row 11). |
 
@@ -99,6 +99,11 @@ describes, because `flatc` and real-world `.fbs` files in the wild do.
    `nsIdent : identifier ('.' identifier)*` is used wherever upstream
    uses bare `ident`. Strictly broader, but matches every real `.fbs`
    that crosses namespaces.
+9. **Single-quoted strings** — `STRING_LITERAL` also matches `'…'`, which
+   flatc's lexer reads like `"…"` (`include 'a.fbs';` in flatbuffers'
+   TypeScript tests). The formatter keeps the quote style.
+10. **Empty-vector default and union discriminants / metadata** — see
+   rows 6 and 8.
 
 ## Known gaps
 

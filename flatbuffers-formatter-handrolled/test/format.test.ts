@@ -204,7 +204,7 @@ test("FormatOptions.lineWidth: default 80 collapses a small enum", () => {
 
 test("FormatOptions.lineWidth: small value forces expansion", () => {
   const out = format(`enum E:byte { A, B, C, D, F }`, { lineWidth: 20 });
-  assert.equal(out, `enum E: byte {\n  A,\n  B,\n  C,\n  D,\n  F\n}\n`);
+  assert.equal(out, `enum E: byte {\n  A,\n  B,\n  C,\n  D,\n  F,\n}\n`);
 });
 
 test("FormatOptions.compactSingleLine: default true collapses small enum", () => {
@@ -214,7 +214,7 @@ test("FormatOptions.compactSingleLine: default true collapses small enum", () =>
 
 test("FormatOptions.compactSingleLine: false keeps small enums expanded", () => {
   const out = format(`enum E:byte { A, B, C }`, { compactSingleLine: false });
-  assert.equal(out, `enum E: byte {\n  A,\n  B,\n  C\n}\n`);
+  assert.equal(out, `enum E: byte {\n  A,\n  B,\n  C,\n}\n`);
 });
 
 test("FormatOptions.maxBlankLines: default 1 collapses paragraph breaks", () => {
@@ -305,7 +305,7 @@ union U { A, /* block */ B, /// doc
 `;
   const expected = `enum Color: byte {
   Red, // first
-  Green // second
+  Green, // second
 }
 
 table Empty {
@@ -314,7 +314,7 @@ table Empty {
 
 union U {
   A, /* block */
-  B /// doc
+  B, /// doc
   // before close
 }
 `;
@@ -338,7 +338,7 @@ test("several comments on one line all survive; a line comment ends the line", (
   const out = format("table T {\n  x: int; /* a */ /* b */ // c\n}\n");
   assert.equal(out, "table T {\n  x: int; /* a */ /* b */ // c\n}\n");
   const moved = format("enum E : byte {\n  A // a\n  , // b\n  B\n}\n");
-  assert.equal(moved, "enum E: byte {\n  A, // a\n  // b\n  B\n}\n");
+  assert.equal(moved, "enum E: byte {\n  A, // a\n  // b\n  B,\n}\n");
   assert.equal(format(moved), moved);
 });
 
@@ -363,4 +363,61 @@ test("CRLF line endings: a line comment does not keep the \\r", () => {
   // checkout with a `//` comment.
   const lf = "table T {\n  x: int; // trailing\n  // own line\n  y: int;\n}\n";
   assert.equal(format(lf.replace(/\n/g, "\r\n")), format(lf));
+});
+
+// Prettier-compatible options. Same names and defaults as Prettier's, so
+// a team that knows those gets the behaviour it expects.
+
+test("trailingComma: default \"all\" ends an expanded enum and union with a comma", () => {
+  const out = format("enum E : byte {\n  A,\n  B\n}\nunion U {\n  A,\n  B\n}\n");
+  assert.equal(out, "enum E: byte {\n  A,\n  B,\n}\n\nunion U {\n  A,\n  B,\n}\n");
+});
+
+test("trailingComma: \"none\" drops the comma after the last value", () => {
+  const out = format("enum E : byte {\n  A,\n  B,\n}\n", { trailingComma: "none" });
+  assert.equal(out, "enum E: byte {\n  A,\n  B\n}\n");
+});
+
+test("trailingComma: a one-line body never gets one", () => {
+  assert.equal(format("enum E : byte { A, B, }"), "enum E: byte { A, B }\n");
+});
+
+test("objectWrap: \"preserve\" keeps a body the source broke after {", () => {
+  const src = "table T {\n  x: int;\n}\n\nenum E: byte {\n  A,\n}\n";
+  assert.equal(format(src), src);
+  // A line break later in the body does not count, as in Prettier.
+  assert.equal(format("enum E : byte { A,\n  B }"), "enum E: byte { A, B }\n");
+});
+
+test("objectWrap: \"collapse\" puts every body that fits on one line", () => {
+  const src = "table T {\n  x: int;\n}\n\nenum E: byte {\n  A,\n}\n";
+  assert.equal(format(src, { objectWrap: "collapse" }), "table T { x: int; }\n\nenum E: byte { A }\n");
+});
+
+test("bracketSpacing: false prints one-line bodies without inner spaces", () => {
+  const out = format("enum E:byte{A,B}\ntable T{x:int;}", { bracketSpacing: false });
+  assert.equal(out, "enum E: byte {A, B}\n\ntable T {x: int;}\n");
+  assert.equal(format(out, { bracketSpacing: false }), out);
+});
+
+test("endOfLine: crlf, lf and auto", () => {
+  const crlf = "enum E:byte{A,B}\r\ntable T{x:int;}\r\n";
+  assert.equal(format(crlf), "enum E: byte { A, B }\n\ntable T { x: int; }\n");
+  assert.equal(format(crlf, { endOfLine: "auto" }), "enum E: byte { A, B }\r\n\r\ntable T { x: int; }\r\n");
+  assert.equal(format("table T{x:int;}", { endOfLine: "crlf" }), "table T { x: int; }\r\n");
+  assert.equal(format("table T{x:int;}", { endOfLine: "auto" }), "table T { x: int; }\n");
+  assert.equal(format(crlf, { endOfLine: "lf", newline: "\r\n" }), format(crlf));
+});
+
+test("ignore comment: the next top-level declaration is kept as written", () => {
+  const kept = "enum E : byte {\n  A   = 1,  // one\n  B\n}";
+  for (const comment of ["// flatbuffers-format-ignore", "/* prettier-ignore */", "// prettier-ignore hand-aligned"]) {
+    const src = `${comment}\n${kept}\ntable T{x:int;}\n`;
+    assert.equal(format(src), `${comment}\n${kept}\n\ntable T { x: int; }\n`, comment);
+  }
+  assert.equal(format("// prettier-ignored\ntable T{x:int;}"), "// prettier-ignored\ntable T { x: int; }\n");
+  assert.equal(
+    format("// prettier-ignore\r\ntable T {x:int;\r\n}\r\n", { endOfLine: "lf" }),
+    "// prettier-ignore\ntable T {x:int;\n}\n",
+  );
 });

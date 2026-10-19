@@ -79,9 +79,10 @@ const parser: StreamParser<State> = {
       return "blockComment";
     }
 
-    // Strings — `"..."` with `\"` and `\\` escapes; stops at newline so
-    // an unterminated string doesn't bleed into the rest of the file.
-    if (stream.match(/"(?:\\.|[^"\\\n])*"?/)) return "string";
+    // Strings — `"..."` or `'...'` (flatc reads both) with backslash
+    // escapes; stops at newline so an unterminated string doesn't bleed
+    // into the rest of the file.
+    if (stream.match(/"(?:\\.|[^"\\\n])*"?|'(?:\\.|[^'\\\n])*'?/)) return "string";
 
     // Numbers: hex float `0x1.fp+2`, hex `0xFF`, float `1.5e-2`, int.
     if (

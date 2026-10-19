@@ -13,7 +13,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { CharStream, CommonTokenStream } from "antlr4ng";
 import { FlatBuffersLexer } from "../generated/FlatBuffersLexer.js";
-import { CommentLossError, format, type FormatOptions } from "../src/index.js";
+import { CodeChangeError, CommentLossError, format, type FormatOptions } from "../src/index.js";
 import { Printer } from "../src/printer.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -59,12 +59,12 @@ table Point {
   // comment on. Losing them also let compact mode collapse Color.
   const expected = `enum Color: byte {
     Red, // first
-    Green // second
+    Green, // second
 }
 
 enum Size: byte {
     Small, // kept?
-    Large // last, no comma
+    Large, // last, no comma
 }
 
 table Empty {
@@ -100,7 +100,7 @@ test("enum: comments after commas, in runs, before the first value and the }", (
   D, /* a */ /* b */ // c
   // first of two
   // second of two
-  E // last, trailing comma
+  E, // last, trailing comma
   // before close
 }
 `,
@@ -110,7 +110,7 @@ test("enum: comments after commas, in runs, before the first value and the }", (
 test("enum: last value without a trailing comma keeps its comment", () => {
   assertFormatsTo(
     "enum E : byte { A, // middle\n  B // last, no comma\n}\n",
-    "enum E: byte {\n  A, // middle\n  B // last, no comma\n}\n",
+    "enum E: byte {\n  A, // middle\n  B, // last, no comma\n}\n",
   );
 });
 
@@ -133,7 +133,7 @@ test("enum: comments inside a value or before its comma stay with that value", (
   // between = and value
   B = 2,
   C, /* before comma */
-  D // before comma, own line
+  D, // before comma, own line
 }
 `,
   );
@@ -155,7 +155,7 @@ test("union: comments after commas, before the first value and the }", () => {
   A, // middle
   B, /// doc
   C, /* block */
-  alias: D // last, trailing comma
+  alias: D, // last, trailing comma
   // before close
 }
 `,
@@ -271,7 +271,7 @@ struct B { /* only a block */
 
 enum C: byte { // brace line
   // body
-  X
+  X,
 }
 
 union D {
@@ -298,7 +298,9 @@ namespace a. /* mid */ b;
     out,
     `// why a
 /* why b */
-table T (a, b) { x: int; }
+table T (a, b) {
+  x: int;
+}
 
 /* quoted */
 attribute "priority";
@@ -485,6 +487,41 @@ test("invariant check: a duplicated comment is reported as added", () => {
           err instanceof CommentLossError && err.added[0] === "// once" && err.missing.length === 0,
       );
     },
+  );
+});
+
+test("invariant check: format throws CodeChangeError when the printer changes code", () => {
+  // Each mangle is a printer bug the comment check cannot see.
+  const cases: [string, (out: string) => string, string, string][] = [
+    ["table T { x: int = 1; }", (out) => out.replace("= 1", "= 2"), "1", "2"],
+    ["table T { x: int; }", (out) => out.replace("x: int", "x int"), ":", "int"],
+    ["table T { xy: int; }", (out) => out.replace("xy", "x y"), "xy", "x"],
+    ["table T { x: int; }", (out) => out.replace(";", ""), ";", "}"],
+    ["enum E: byte { A, B }", (out) => out.replace(", B", ""), ",", "}"],
+  ];
+  for (const [input, mangle, expected, actual] of cases) {
+    withMangledPrinter(mangle, () => {
+      assert.throws(
+        () => format(input),
+        (err: unknown) =>
+          err instanceof CodeChangeError &&
+          err.expected === expected &&
+          err.actual === actual &&
+          /refusing to format/.test(err.message),
+        input,
+      );
+    });
+  }
+});
+
+test("invariant check: whitespace and a comma before } may change; unsafe skips the checks", () => {
+  withMangledPrinter(
+    (out) => out.replace("B,\n}", "B\n}").replace("  A", "\tA"),
+    () => assert.equal(format("enum E : byte {\n  A,\n  B\n}\n"), "enum E: byte {\n\tA,\n  B\n}\n"),
+  );
+  withMangledPrinter(
+    (out) => out.replace("int", "long").replace(" // c", ""),
+    () => assert.equal(format("table T { x: int; } // c", { unsafe: true }), "table T {\n  x: long;\n}\n"),
   );
 });
 

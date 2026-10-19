@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
 # flatc-conform.sh — validate every .fbs file in test/corpus/ with Google's
-# official `flatc` compiler.
+# official `flatc` compiler, and check that formatting never changes what
+# flatc generates from it.
 #
 # Why this exists:
 #   Our formatter is driven by an ANTLR4 grammar (and a hand-rolled sibling).
@@ -11,6 +12,12 @@
 #   the formatter against a fictional dialect — that defeats the point.
 #   This script provides an independent third-party check: each corpus
 #   schema must round-trip through `flatc` without error.
+#
+#   Second, the formatter must not change a schema's meaning. For every
+#   accepted file, flatc's C++ code and binary schema (doc comments
+#   included) from the formatted file must be byte-identical to those from
+#   the original, under the default options and under every option moved
+#   off its default. This needs the engine built (dist/src/cli.js).
 #
 # Why opt-in (not in prepublishOnly):
 #   flatc is a *system* dependency (apt-get install flatbuffers-compiler),
@@ -30,7 +37,8 @@
 #       with a clear warning so `npm run` enumeration still works on fresh
 #       checkouts without flatc). Skip-rather-than-fail is deliberate: this
 #       is a supplementary check, not a gate.
-#   1 — flatc is on PATH and at least one corpus file failed validation.
+#   1 — flatc is on PATH and at least one corpus file failed validation, or
+#       formatting one changed flatc's output.
 
 set -u  # not -e: we want to keep iterating past failures to gather them all.
 
@@ -84,6 +92,7 @@ declare -A MIN_FLATC_MAJOR=(
   ["20-enum-value-metadata.fbs"]=23
   ["21-offset64-vector64-attrs.fbs"]=23
   ["22-union-underlying-type.fbs"]=23
+  ["27-upstream-syntax.fbs"]=23
 )
 
 shopt -s nullglob
@@ -99,6 +108,7 @@ pass=0
 fail=0
 skip=0
 failed_files=()
+declare -A ACCEPTED=()
 
 for f in "${files[@]}"; do
   base="$(basename "${f}")"
@@ -119,6 +129,7 @@ for f in "${files[@]}"; do
   # output focused on hard errors; we treat warnings as informational.
   if err="$(flatc -b --schema --no-warnings -o "${OUT_DIR}" "${f}" 2>&1)"; then
     pass=$((pass + 1))
+    ACCEPTED["${base}"]=1
   else
     fail=$((fail + 1))
     failed_files+=("${f}")
@@ -128,12 +139,66 @@ for f in "${files[@]}"; do
   fi
 done
 
+# --- codegen equivalence ---
+# The original and each formatted copy live in sibling directories with
+# the same file names, so `include` lines resolve the same way in both.
+CLI="${PKG_DIR}/dist/src/cli.js"
+if [[ ! -f "${CLI}" ]]; then
+  echo "flatc-conform: ${CLI} not found; build the engine first (pnpm --filter flatbuffers-format build)." >&2
+  exit 1
+fi
+declare -A OPTION_SETS=(
+  [defaults]=""
+  [changed]="--trailing-comma=none --object-wrap=collapse --no-bracket-spacing --use-tabs --indent=1 --line-width=40 --max-blank-lines=0 --wrap-comments --no-compact-single-line"
+)
+cp -r "${CORPUS_DIR}" "${OUT_DIR}/original"
+codegen_fail=0
+codegen_checked=0
+# generate <schema dir> <file> <output dir>
+generate() {
+  mkdir -p "$3"
+  flatc --cpp -b --schema --bfbs-comments --no-warnings -I "$1" -o "$3" "$1/$2" >/dev/null 2>&1
+}
+for set_name in "${!OPTION_SETS[@]}"; do
+  formatted="${OUT_DIR}/formatted-${set_name}"
+  mkdir -p "${formatted}"
+  for f in "${CORPUS_DIR}"/*.fbs; do
+    # Word splitting of the flag list is intended.
+    # shellcheck disable=SC2086
+    if ! node "${CLI}" --no-config ${OPTION_SETS[$set_name]} "${f}" > "${formatted}/$(basename "${f}")"; then
+      codegen_fail=$((codegen_fail + 1))
+      echo "FORMAT FAILED: $(basename "${f}") (${set_name})"
+    fi
+  done
+  for f in "${files[@]}"; do
+    base="$(basename "${f}")"
+    # Only files flatc accepted above; the rest have nothing to compare.
+    [[ -n "${ACCEPTED[${base}]:-}" ]] || continue
+    codegen_checked=$((codegen_checked + 1))
+    if ! generate "${OUT_DIR}/original" "${base}" "${OUT_DIR}/gen-a"; then
+      codegen_fail=$((codegen_fail + 1))
+      echo "CODEGEN FAILED on the original: ${base}"
+      rm -rf "${OUT_DIR}/gen-a"
+      continue
+    fi
+    if ! generate "${formatted}" "${base}" "${OUT_DIR}/gen-b" || ! diff -r "${OUT_DIR}/gen-a" "${OUT_DIR}/gen-b" >/dev/null; then
+      codegen_fail=$((codegen_fail + 1))
+      echo "---"
+      echo "CODEGEN CHANGED: ${base} (${set_name}: ${OPTION_SETS[$set_name]:-default options})"
+      diff -r "${OUT_DIR}/gen-a" "${OUT_DIR}/gen-b" | head -20 | sed 's/^/    /'
+    fi
+    rm -rf "${OUT_DIR}/gen-a" "${OUT_DIR}/gen-b"
+  done
+done
+echo "---"
+echo "Codegen: ${codegen_checked} file/option checks, ${codegen_fail} changed flatc's output"
+
 checked=$((pass + fail))
 total=$((checked + skip))
 echo "---"
 echo "Summary: ${pass}/${checked} checked files accepted by flatc (${skip} skipped, ${total} total)"
 
-if [[ ${fail} -gt 0 ]]; then
+if [[ ${fail} -gt 0 || ${codegen_fail} -gt 0 ]]; then
   echo "Failed files:"
   for f in "${failed_files[@]}"; do
     echo "  - $(basename "${f}")"

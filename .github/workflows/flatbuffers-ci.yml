@@ -254,8 +254,24 @@ jobs:
       - name: Install
         working-directory: .
         run: pnpm install --frozen-lockfile --filter flatbuffers-format... --filter flatbuffers-format-handrolled...
-      - name: Build engine
+      - name: Build engine and oracle
         working-directory: .
-        run: pnpm --filter flatbuffers-format build
+        run: pnpm --filter flatbuffers-format --filter flatbuffers-format-handrolled build
       - name: flatc-conform
         run: bash flatbuffers-formatter/scripts/flatc-conform.sh
+      # flatbuffers' own test schemas, at the commit of the flatc release
+      # pinned above (tag v25.12.19): the syntax flatc really supports,
+      # which our corpus only covers as far as we thought of it. Bump the
+      # SHA with the flatc tag.
+      - name: Check out flatbuffers' test schemas
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: google/flatbuffers
+          ref: 7e163021e59cca4f8e1e35a7c828b5c6b7915953 # v25.12.19
+          path: _upstream-flatbuffers
+          persist-credentials: false
+          sparse-checkout: |
+            tests
+            samples
+      - name: Format flatbuffers' test schemas (codegen must not change)
+        run: bash flatbuffers-formatter/scripts/upstream-schemas.sh _upstream-flatbuffers

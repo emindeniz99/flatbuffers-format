@@ -35,6 +35,12 @@ For changes that touch `flatbuffers-format` (from the repo root):
 - [ ] `bash flatbuffers-formatter/scripts/flatc-conform.sh` passes (or is N/A on this change)
 - [ ] `pnpm --filter flatbuffers-format-handrolled test` passes
 
+If the change alters what the formatter outputs for existing input:
+
+- [ ] The commit is marked breaking (`!` and a `BREAKING CHANGE:` footer)
+      and says how to keep the old output, if an option can
+- [ ] The README's "What changes besides whitespace" list still holds
+
 For grammar changes:
 
 - [ ] Mirrored in `flatbuffers-formatter-handrolled/src/` and `tree-sitter-flatbuffers/grammar.js`

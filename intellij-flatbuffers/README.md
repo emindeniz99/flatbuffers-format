@@ -104,6 +104,9 @@ in a notification carrying the action that fixes it.
 | Max blank lines  | 1             | Consecutive blank lines kept between declarations; `0` removes them all (`--max-blank-lines`). |
 | Reflow long line comments | off  | Re-wrap long `//` comments at whitespace (`--wrap-comments`). |
 | Comment width    | 0             | Column the reflow above wraps at; `0` follows the line width, which is the engine's default (`--comment-width`). |
+| Comma after the last enum and union value | on | When the values are one per line, as Prettier's `trailingComma` (`--trailing-comma none` when off). |
+| Keep bodies expanded when the source breaks after `{` | on | As Prettier's `objectWrap` (`--object-wrap collapse` when off). |
+| Spaces inside one-line braces | on | `{ A, B }` rather than `{A, B}` (`--no-bracket-spacing` when off). |
 | Extra arguments  | *(none)*      | Whitespace-separated CLI args for anything not covered above, e.g. `--no-gitignore`. Appended after the settings above, so a flag repeated here wins. |
 
 A format option is passed to the engine **only when you change it**, so

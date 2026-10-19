@@ -35,6 +35,11 @@
     }
   },
   {
+    "type": "empty_vector",
+    "named": true,
+    "fields": {}
+  },
+  {
     "type": "enum_decl",
     "named": true,
     "fields": {
@@ -124,6 +129,10 @@
         "multiple": false,
         "required": false,
         "types": [
+          {
+            "type": "empty_vector",
+            "named": true
+          },
           {
             "type": "scalar",
             "named": true
@@ -725,12 +734,32 @@
           }
         ]
       },
+      "metadata": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "metadata",
+            "named": true
+          }
+        ]
+      },
       "type": {
         "multiple": false,
         "required": true,
         "types": [
           {
             "type": "dotted_identifier",
+            "named": true
+          }
+        ]
+      },
+      "value": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "scalar",
             "named": true
           }
         ]

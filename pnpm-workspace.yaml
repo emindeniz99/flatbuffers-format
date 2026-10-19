@@ -30,3 +30,9 @@ allowBuilds:
   # blocked. Without an explicit entry pnpm 11 fails the whole workspace
   # with ERR_PNPM_IGNORED_BUILDS — an error, not a warning.
   esbuild: false
+# Security floor for a transitive dev-only dependency: monaco-editor
+# 0.57 pins dompurify 3.4.15 exactly (GHSA-6688-9rhm-gjv2 and
+# GHSA-p98j-92pf-mc4p, fixed in 3.4.16). It never ships in a published
+# package; drop the entry once monaco's own pin moves past the fix.
+overrides:
+  dompurify: ^3.4.16

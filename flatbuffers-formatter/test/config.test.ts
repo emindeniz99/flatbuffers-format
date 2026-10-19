@@ -11,14 +11,15 @@ import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { ConfigError, loadConfig, resolveConfig } from "../src/config.js";
+import { VERSION } from "../src/index.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const cliPath = join(here, "..", "src", "cli.js");
 
 const UGLY = "enum E:byte{A,B}\n";
 const COMPACT_2 = "enum E: byte { A, B }\n";
-const EXPANDED_4 = "enum E: byte {\n    A,\n    B\n}\n";
-const EXPANDED_TAB = "enum E: byte {\n\tA,\n\tB\n}\n";
+const EXPANDED_4 = "enum E: byte {\n    A,\n    B,\n}\n";
+const EXPANDED_TAB = "enum E: byte {\n\tA,\n\tB,\n}\n";
 
 // root/.flatbuffers-format.json        indent 4, never compact
 // root/a/x.fbs                          → inherits root's file
@@ -57,15 +58,42 @@ test("resolveConfig: the nearest config file wins and files are not merged", () 
   assert.deepEqual(resolveConfig(join(root, "a", "b", "unsaved.fbs"))?.useTabs, true);
 });
 
+test("minVersion rejects an older engine and is not a format option", () => {
+  const dir = mkdtempSync(join(tmpdir(), "fbs-config-min-"));
+  const file = join(dir, ".flatbuffers-format.json");
+  const [major, minor, patch] = VERSION.split(".").map(Number) as [number, number, number];
+  writeFileSync(file, JSON.stringify({ minVersion: VERSION, indent: 4 }));
+  assert.deepEqual(loadConfig(file), { indent: 4 });
+  const next = `${major}.${minor}.${patch + 1}`;
+  writeFileSync(file, JSON.stringify({ minVersion: next }));
+  assert.throws(() => loadConfig(file), (err: Error) =>
+    err.message.includes(`needs flatbuffers-format ${next} or newer, but this is ${VERSION}; update it`));
+  writeFileSync(file, JSON.stringify({ minVersion: `${major + 1}.0.0` }));
+  assert.throws(() => loadConfig(file), /update it/);
+  writeFileSync(file, JSON.stringify({ minVersion: "^0.5" }));
+  assert.throws(() => loadConfig(file), /"minVersion" must be a version like "0.5.0", got "\^0.5"/);
+});
+
+test("VERSION is the package.json version", () => {
+  // release-please bumps both; the bundled CLI and minVersion read VERSION.
+  const pkg = JSON.parse(readFileSync(join(here, "..", "..", "package.json"), "utf8")) as { version: string };
+  assert.equal(VERSION, pkg.version);
+  assert.equal(cli(["--version"]).stdout, `flatbuffers-format ${pkg.version}\n`);
+});
+
 test("loadConfig rejects unknown keys and wrong types, naming the file and key", () => {
   const dir = mkdtempSync(join(tmpdir(), "fbs-config-bad-"));
   const cases: [string, RegExp][] = [
-    ['{"indnt": 2}', /unknown key "indnt"/],
+    ['{"indnt": 2}', /unknown key "indnt" \(allowed: minVersion, indent, .*\)\. If a newer flatbuffers-format added it, update this one/],
     ['{"indent": "4"}', /"indent" must be a non-negative integer, got "4"/],
     ['{"indent": -1}', /"indent" must be a non-negative integer/],
     ['{"lineWidth": 0}', /"lineWidth" must be a positive integer/],
     ['{"maxBlankLines": 1.5}', /"maxBlankLines" must be a non-negative integer/],
     ['{"useTabs": "yes"}', /"useTabs" must be a boolean/],
+    ['{"trailingComma": "es5"}', /"trailingComma" must be one of "all", "none", got "es5"/],
+    ['{"objectWrap": true}', /"objectWrap" must be one of "preserve", "collapse"/],
+    ['{"endOfLine": "cr"}', /"endOfLine" must be one of "lf", "crlf", "auto"/],
+    ['{"bracketSpacing": 0}', /"bracketSpacing" must be a boolean/],
     ['{"newline": "\\r\\n"}', /unknown key "newline"/],
     ['{"constructor": 1}', /unknown key "constructor"/],
     ['{"__proto__": 1}', /unknown key "__proto__"/],
@@ -97,7 +125,7 @@ test("CLI: flags override the config file, --no-config ignores it", () => {
   const root = fixture();
   const x = join(root, "a", "x.fbs");
   // --indent beats the file's indent 4; the file's compactSingleLine stays.
-  assert.equal(cli(["--indent", "2", x]).stdout, "enum E: byte {\n  A,\n  B\n}\n");
+  assert.equal(cli(["--indent", "2", x]).stdout, "enum E: byte {\n  A,\n  B,\n}\n");
   assert.equal(cli(["--no-config", x]).stdout, COMPACT_2);
 });
 

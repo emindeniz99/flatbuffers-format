@@ -84,6 +84,23 @@ class FlatBuffersSettings : PersistentStateComponent<FlatBuffersSettings.State> 
         var commentWidth: Int = FormatterCliArgs.COMMENT_WIDTH_INHERIT
 
         /**
+         * A comma after the last value of an expanded enum or union, as
+         * the engine does by default; `false` passes
+         * `--trailing-comma none`.
+         */
+        var trailingComma: Boolean = true
+
+        /**
+         * Keep a body expanded when the source has a line break after its
+         * `{`, the engine's default; `false` passes
+         * `--object-wrap collapse`.
+         */
+        var preserveObjectWrap: Boolean = true
+
+        /** `{ A, B }` rather than `{A, B}`; `false` passes `--no-bracket-spacing`. */
+        var bracketSpacing: Boolean = true
+
+        /**
          * Extra CLI arguments, for engine options this panel does not
          * model (`--no-gitignore`, anything the engine adds after this
          * release). Appended after the typed options above so they can
@@ -139,6 +156,18 @@ class FlatBuffersSettings : PersistentStateComponent<FlatBuffersSettings.State> 
     var commentWidth: Int
         get() = state.commentWidth
         set(value) { state.commentWidth = value }
+
+    var trailingComma: Boolean
+        get() = state.trailingComma
+        set(value) { state.trailingComma = value }
+
+    var preserveObjectWrap: Boolean
+        get() = state.preserveObjectWrap
+        set(value) { state.preserveObjectWrap = value }
+
+    var bracketSpacing: Boolean
+        get() = state.bracketSpacing
+        set(value) { state.bracketSpacing = value }
 
     var extraArgs: String
         get() = state.extraArgs

@@ -36,6 +36,9 @@ export type Token = {
   value: string;
   line: number;
   col: number;
+  // Source offsets of the token's first character and one past its last.
+  start: number;
+  end: number;
   leading: Trivia[];
   // Every comment that appears after this token on the same line. We
   // keep them on the producing token so the printer can place them back
@@ -56,7 +59,11 @@ export type Schema = {
   tail: Trivia[];
 };
 
-export type TopLevel =
+// A top-level declaration with its source text, from its first token to
+// its last, which the printer writes as is after an ignore comment.
+export type TopLevel = TopLevelDecl & { raw?: string };
+
+type TopLevelDecl =
   | IncludeDecl
   | NamespaceDecl
   | AttributeDecl
@@ -87,11 +94,13 @@ export type WithBody = {
   openTrailing: Trivia[];
   // Trivia between the last item (or the `{` line) and the `}`.
   closeLeading: Trivia[];
+  // The source has a line break between the `{` and what follows it.
+  openBreak: boolean;
 };
 
 export type IncludeDecl = WithTrivia & {
   kind: "include";
-  path: string; // string literal, without surrounding quotes
+  path: string; // string literal, quotes included
   // `native_include` (FlatBuffers extension for native types) vs
   // plain `include` for schema files.
   native?: boolean;
@@ -152,6 +161,8 @@ export type FieldDecl = WithTrivia & {
   name: string;
   type: TypeRef;
   defaultValue?: ScalarValue;
+  // `= []`, the one default a vector field can have.
+  emptyVectorDefault?: boolean;
   metadata?: Metadata;
 };
 
@@ -187,6 +198,9 @@ export type UnionValueDecl = WithTrivia & {
   // `MyType` or `alias:MyType`
   alias?: string;
   type: string;
+  // Explicit discriminant, `A = 5`.
+  value?: ScalarValue;
+  metadata?: Metadata;
 };
 
 export type RpcServiceDecl = WithTrivia & WithBody & {

@@ -71,10 +71,8 @@ export function bundleCli({ outFile, target = `node${nodeMajorFloor()}` }) {
     );
   }
 
-  // Read the version out of the engine's package.json so we can bake it
-  // into the bundle. Neither consumer can read a real package.json at
-  // runtime: a SEA blob has no `import.meta.url` that resolves, and the
-  // IntelliJ plugin extracts a lone .cjs into the IDE system directory.
+  // The bundle carries its version in src/version.ts, which
+  // release-please keeps equal to package.json; this one is for the log.
   const version = readPackageJson().version;
 
   // esbuild is a declared devDependency, invoked through its resolved
@@ -100,15 +98,7 @@ export function bundleCli({ outFile, target = `node${nodeMajorFloor()}` }) {
       `--outfile=${outFile}`,
       // Drop the shebang — the SEA-injected runtime owns the entry point.
       "--banner:js=",
-      // Substitute the version-read env lookup with a string literal.
-      // cli.ts checks `process.env.FLATBUFFERS_FORMAT_VERSION` first
-      // before falling back to the (unreachable here) package.json read.
-      `--define:process.env.FLATBUFFERS_FORMAT_VERSION=${JSON.stringify(version)}`,
     ],
-    // No `shell` here, deliberately. Routing this through cmd/pwsh on
-    // Windows STRIPS the quotes that JSON.stringify puts around the
-    // version, and esbuild then rejects `--define:...=0.2.0` with
-    // "Invalid define value (must be an entity name or JS literal)".
     { stdio: "inherit" },
   );
   if (result.status !== 0) {

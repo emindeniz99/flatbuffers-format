@@ -256,3 +256,51 @@ include "other.fbs";
     path: (string_literal))
   (include_decl
     path: (string_literal)))
+
+==================
+Syntax from upstream's own test schemas
+==================
+
+include 'a.fbs';
+union U : int { A = 1, f: T (id: 0) }
+table T { d: double = -inf; v: [int] = []; }
+
+---
+
+(source_file
+  (include_decl
+    path: (string_literal))
+  (union_decl
+    name: (identifier)
+    underlying_type: (identifier)
+    (union_value_decl
+      type: (dotted_identifier
+        (identifier))
+      value: (scalar
+        (int_literal)))
+    (union_value_decl
+      alias: (identifier)
+      type: (dotted_identifier
+        (identifier))
+      metadata: (metadata
+        (metadata_entry
+          key: (identifier)
+          value: (scalar
+            (int_literal))))))
+  (table_decl
+    name: (identifier)
+    body: (table_body
+      (field_decl
+        name: (identifier)
+        type: (type_ref
+          (dotted_identifier
+            (identifier)))
+        default: (scalar
+          (identifier)))
+      (field_decl
+        name: (identifier)
+        type: (type_ref
+          element: (type_ref
+            (dotted_identifier
+              (identifier))))
+        default: (empty_vector)))))

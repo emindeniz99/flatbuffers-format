@@ -9,7 +9,14 @@
 // formatter" plugin pattern used by prettier-plugin-sql,
 // prettier-plugin-go-template, and similar.
 
-import { format as fbsFormat, FormatError } from "flatbuffers-format";
+import {
+  format as fbsFormat,
+  FormatError,
+  type FormatOptions,
+  hasIgnorePragma,
+  hasPragma,
+} from "flatbuffers-format";
+import { resolveConfig } from "flatbuffers-format/config";
 import type { Parser, Plugin, Printer, SupportLanguage } from "prettier";
 
 /** The single-node AST produced by our parser and consumed by our printer. */
@@ -18,35 +25,51 @@ interface FbsRoot {
   text: string;
 }
 
-/**
- * Map Prettier's layout options onto flatbuffers-format's `FormatOptions`:
- *
- *   Prettier `tabWidth`   → engine `indent`
- *   Prettier `useTabs`    → engine `useTabs` (native tab support)
- *   Prettier `printWidth` → engine `lineWidth` (drives compact/wrap)
- *
- * Note on `endOfLine`: we deliberately do NOT forward it to the engine.
- * Prettier post-processes the formatter's output and converts `\n` to
- * `\r\n` itself when `endOfLine: "crlf"`. If we *also* emitted CRLF,
- * Prettier would double-encode it to `\r\r\n`. So we always tell the
- * engine to emit `\n` and let Prettier own the line-ending conversion.
- */
-function mapOptions(options: {
+type PrettierOptions = {
+  filepath?: string;
   tabWidth?: number;
   useTabs?: boolean;
   printWidth?: number;
-}): {
-  indent: number;
-  useTabs: boolean;
-  newline: "\n";
-  lineWidth: number;
-} {
-  return {
-    indent: options.tabWidth ?? 2,
+  trailingComma?: "all" | "es5" | "none";
+  bracketSpacing?: boolean;
+  objectWrap?: "preserve" | "collapse";
+};
+
+/**
+ * The engine options for one file. A `.flatbuffers-format.json` found
+ * for it wins outright, so Prettier formats exactly as the CLI and the
+ * other editor plugins do. Without one, Prettier's options map across:
+ *
+ *   `tabWidth`       → `indent` (spaces per level)
+ *   `useTabs`        → `useTabs`, one tab per level as in Prettier,
+ *                      whatever `tabWidth` says (there it only sets
+ *                      how wide a tab is drawn)
+ *   `printWidth`     → `lineWidth`
+ *   `trailingComma`  → `trailingComma` ("none" stays "none"; "all" and
+ *                      "es5" both mean a comma after the last value)
+ *   `bracketSpacing` → `bracketSpacing`
+ *   `objectWrap`     → `objectWrap`
+ *
+ * The engine always emits `\n`: Prettier converts the output to its own
+ * `endOfLine` afterwards, and CRLF from the engine would come out as
+ * `\r\r\n`. A config file's `"lf"` or `"crlf"` is handed to Prettier
+ * instead (see `preprocess`); its `"auto"` cannot be, because Prettier
+ * has resolved `auto` and normalized the line breaks before the plugin
+ * sees the text, so Prettier's own `endOfLine` applies. Without a config
+ * file, pragmas are Prettier's job, through the parser's `hasPragma` /
+ * `hasIgnorePragma` hooks below; a config file's pragma options reach
+ * the engine, as they do from the CLI.
+ */
+function engineOptions(options: PrettierOptions, fromFile: FormatOptions | null): FormatOptions {
+  const base: FormatOptions = fromFile ?? {
+    indent: options.useTabs ? 1 : (options.tabWidth ?? 2),
     useTabs: options.useTabs ?? false,
-    newline: "\n",
     lineWidth: options.printWidth ?? 80,
+    trailingComma: options.trailingComma === "none" ? "none" : "all",
+    bracketSpacing: options.bracketSpacing ?? true,
+    objectWrap: options.objectWrap ?? "preserve",
   };
+  return { ...base, newline: "\n", endOfLine: "lf" };
 }
 
 const languages: SupportLanguage[] = [
@@ -65,7 +88,14 @@ const parsers: Record<string, Parser<FbsRoot>> = {
     // "AST" is just an opaque wrapper around the formatted string.
     preprocess: (text, options) => {
       try {
-        return fbsFormat(text, mapOptions(options as Parameters<typeof mapOptions>[0]));
+        const prettierOptions = options as PrettierOptions & { endOfLine?: string };
+        const fromFile = prettierOptions.filepath ? resolveConfig(prettierOptions.filepath) : null;
+        if (fromFile?.endOfLine === "lf" || fromFile?.endOfLine === "crlf") {
+          // The options object Prettier prints with, so this sets the
+          // line endings of the result.
+          prettierOptions.endOfLine = fromFile.endOfLine;
+        }
+        return fbsFormat(text, engineOptions(prettierOptions, fromFile));
       } catch (e) {
         if (e instanceof FormatError) {
           // Re-throw as a SyntaxError carrying Prettier's expected
@@ -82,6 +112,8 @@ const parsers: Record<string, Parser<FbsRoot>> = {
       }
     },
     parse: (text) => ({ type: "fbs-root", text }),
+    hasPragma,
+    hasIgnorePragma,
     astFormat: "flatbuffers-format-ast",
     locStart: () => 0,
     locEnd: (node) => node.text.length,
@@ -91,6 +123,7 @@ const parsers: Record<string, Parser<FbsRoot>> = {
 const printers: Record<string, Printer<FbsRoot>> = {
   "flatbuffers-format-ast": {
     print: (path) => path.node.text,
+    insertPragma: (text) => `// @format\n${text}`,
   },
 };
 

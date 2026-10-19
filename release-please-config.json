@@ -4,12 +4,21 @@
   "include-component-in-tag": true,
   "pull-request-title-pattern": "chore(${component}): release ${version}",
   "separate-pull-requests": false,
+  "plugins": [
+    {
+      "type": "node-workspace",
+      "merge": false
+    }
+  ],
   "packages": {
     "flatbuffers-formatter": {
       "release-type": "node",
       "package-name": "flatbuffers-format",
       "changelog-path": "CHANGELOG.md",
-      "bump-minor-pre-major": true
+      "bump-minor-pre-major": true,
+      "extra-files": [
+        "src/version.ts"
+      ]
     },
     "prettier-plugin-flatbuffers": {
       "release-type": "node",

@@ -61,6 +61,9 @@ class FormatterCliArgsTest {
             FormatterCliArgs.COMMENT_WIDTH_INHERIT,
             fresh.commentWidth,
         )
+        assertTrue("the engine ends expanded enums with a comma", fresh.trailingComma)
+        assertTrue("the engine keeps bodies the source broke", fresh.preserveObjectWrap)
+        assertTrue(fresh.bracketSpacing)
         assertEquals("", fresh.extraArgs)
     }
 
@@ -75,6 +78,9 @@ class FormatterCliArgsTest {
         assertEquals(listOf("--max-blank-lines", "3"), args { maxBlankLines = 3 })
         assertEquals(listOf("--wrap-comments"), args { wrapComments = true })
         assertEquals(listOf("--comment-width", "72"), args { commentWidth = 72 })
+        assertEquals(listOf("--trailing-comma", "none"), args { trailingComma = false })
+        assertEquals(listOf("--object-wrap", "collapse"), args { preserveObjectWrap = false })
+        assertEquals(listOf("--no-bracket-spacing"), args { bracketSpacing = false })
     }
 
     @Test

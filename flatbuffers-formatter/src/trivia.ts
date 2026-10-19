@@ -140,7 +140,7 @@ export function tailTrivia(stream: BufferedTokenStream): Trivia[] {
     }
   }
   if (lastReal < 0) return toTrivia(tokens.filter((t) => t.channel !== 0));
-  let tail = tokens.slice(lastReal + 1).filter((t) => t.channel !== 0);
+  const tail = tokens.slice(lastReal + 1).filter((t) => t.channel !== 0);
   // The last real token (typically `}`) may itself have a trailing
   // comment on the same line — that's emitted by the decl printer
   // via writeTrailing. Drop any hidden tokens before the first
