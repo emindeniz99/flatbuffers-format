@@ -76,6 +76,7 @@
     "@types/node": "^22.10.0",
     "antlr-ng": "^1.0.10",
     "esbuild": "^0.28.1",
+    "typedoc": "^0.28.20",
     "typescript": "^5.6.0"
   }
 }
