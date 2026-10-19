@@ -69,11 +69,12 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22
+      # No `version:` here: the action also reads the repo's
+      # `packageManager` pin and fails when the two disagree.
       - name: Setup pnpm
         if: matrix.pm == 'pnpm'
         uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
-          version: 10
           run_install: false
       - name: Setup Yarn Classic (v1) # zizmor: ignore[adhoc-packages]
         if: matrix.pm == 'yarn-classic'
@@ -143,7 +144,10 @@ jobs:
         run: |
           set -eux
           v="$VERSION"
-          mkdir consumer && cd consumer
+          # Outside the checkout: inside it, yarn and pnpm see the repo's
+          # package.json (its `packageManager` pin, its workspace) and
+          # refuse to run or install into the workspace instead.
+          mkdir "$RUNNER_TEMP/consumer" && cd "$RUNNER_TEMP/consumer"
           # Hand-rolled ESM package.json — avoids each PM's `init`
           # quirks (notably bun's `init -y` creates a subdirectory
           # rather than initialising in cwd).
@@ -170,7 +174,8 @@ jobs:
               # node-modules linker to mirror npm semantics for the
               # CLI invocation. The PnP-compat angle is exercised by
               # the dedicated flatbuffers-pm-compat.yml workflow.
-              echo "nodeLinker: node-modules" > .yarnrc.yml
+              # Append: `yarn set version` wrote `yarnPath` into this file.
+              echo "nodeLinker: node-modules" >> .yarnrc.yml
               yarn add "flatbuffers-format@$v"
               bin=node_modules/.bin/flatbuffers-format
               ;;
@@ -187,12 +192,13 @@ jobs:
             exit 1
           fi
 
-          # CLI: read .fbs from stdin, write formatted to stdout.
-          out=$(printf 'table T{x:int;}\n' | "$bin" -)
-          expected=$'table T { x: int; }\n'
-          if [ "$out" != "$expected" ]; then
+          # CLI: read .fbs from stdin, write formatted to stdout. Compared
+          # as files: `$(...)` would strip the trailing newline under test.
+          printf 'table T{x:int;}\n' | "$bin" - > got.fbs
+          printf 'table T { x: int; }\n' > expected.fbs
+          if ! cmp -s got.fbs expected.fbs; then
             echo "::error::Canonical-output mismatch under $PM"
-            diff <(printf '%s' "$out") <(printf '%s' "$expected") || true
+            diff got.fbs expected.fbs || true
             exit 1
           fi
 
@@ -269,7 +275,7 @@ jobs:
           ENGINE: ${{ steps.ver.outputs.engine }}
         run: |
           set -euo pipefail
-          mkdir -p /tmp/smoke && cd /tmp/smoke
+          mkdir -p "$RUNNER_TEMP/smoke" && cd "$RUNNER_TEMP/smoke"
           npm init -y >/dev/null
           npm i --no-audit --no-fund prettier \
             "prettier-plugin-flatbuffers@$VERSION" \
@@ -282,11 +288,10 @@ jobs:
             exit 1
           fi
           npx prettier --write ugly.fbs >/dev/null
-          got=$(cat ugly.fbs)
-          expected=$'table T { x: int; }\n'
-          if [ "$got" != "$expected" ]; then
+          printf 'table T { x: int; }\n' > expected.fbs
+          if ! cmp -s ugly.fbs expected.fbs; then
             echo "::error::Prettier-formatted output != canonical"
-            diff <(printf '%s' "$got") <(printf '%s' "$expected") || true
+            diff ugly.fbs expected.fbs || true
             exit 1
           fi
           echo "✓ prettier-plugin-flatbuffers@$VERSION engages and formats cleanly."
@@ -346,7 +351,7 @@ jobs:
           VERSION: ${{ steps.ver.outputs.version }}
         run: |
           set -euo pipefail
-          mkdir -p /tmp/ts-smoke && cd /tmp/ts-smoke
+          mkdir -p "$RUNNER_TEMP/ts-smoke" && cd "$RUNNER_TEMP/ts-smoke"
           npm init -y >/dev/null
           # node-gyp build happens during install of tree-sitter-flatbuffers.
           npm i --no-audit --no-fund tree-sitter \
@@ -409,6 +414,14 @@ jobs:
         run: |
           set -euo pipefail
           v="$VERSION"
+          # Publishing to the Marketplace waits on a VSCE_PAT, and until the
+          # first publish `vsce show` finds no extension at all. Say so
+          # instead of failing every run; once it is listed, a missing
+          # version is a real failure.
+          if ! npx --yes @vscode/vsce show emindeniz99.vscode-flatbuffers --json >/dev/null 2>&1; then
+            echo "::warning::emindeniz99.vscode-flatbuffers is not on the Marketplace yet; skipping."
+            exit 0
+          fi
           # vsce show returns JSON with a versions[] sorted newest-first.
           for i in 1 2 3 4 5 6 7 8 9; do
             latest=$(npx --yes @vscode/vsce show emindeniz99.vscode-flatbuffers --json 2>/dev/null \
