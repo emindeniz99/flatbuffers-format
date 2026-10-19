@@ -1020,18 +1020,14 @@ static bool ts_lex(TSLexer *lexer, TSStateId state) {
       if (lookahead == '\\') ADVANCE(16);
       if (lookahead != 0 &&
           lookahead != '\n' &&
-          lookahead != '\r' &&
-          lookahead != 0x17f &&
-          lookahead != 0x212a) ADVANCE(2);
+          lookahead != '\r') ADVANCE(2);
       END_STATE();
     case 3:
       if (lookahead == '\'') ADVANCE(40);
       if (lookahead == '\\') ADVANCE(17);
       if (lookahead != 0 &&
           lookahead != '\n' &&
-          lookahead != '\r' &&
-          lookahead != 0x17f &&
-          lookahead != 0x212a) ADVANCE(3);
+          lookahead != '\r') ADVANCE(3);
       END_STATE();
     case 4:
       ADVANCE_MAP(
@@ -1056,15 +1052,11 @@ static bool ts_lex(TSLexer *lexer, TSStateId state) {
     case 6:
       if (lookahead == '*') ADVANCE(6);
       if (lookahead == '/') ADVANCE(44);
-      if (lookahead != 0 &&
-          lookahead != 0x17f &&
-          lookahead != 0x212a) ADVANCE(7);
+      if (lookahead != 0) ADVANCE(7);
       END_STATE();
     case 7:
       if (lookahead == '*') ADVANCE(6);
-      if (lookahead != 0 &&
-          lookahead != 0x17f &&
-          lookahead != 0x212a) ADVANCE(7);
+      if (lookahead != 0) ADVANCE(7);
       END_STATE();
     case 8:
       if (lookahead == '.') ADVANCE(15);
@@ -1105,15 +1097,11 @@ static bool ts_lex(TSLexer *lexer, TSStateId state) {
       END_STATE();
     case 16:
       if (lookahead != 0 &&
-          lookahead != '\n' &&
-          lookahead != 0x17f &&
-          lookahead != 0x212a) ADVANCE(2);
+          lookahead != '\n') ADVANCE(2);
       END_STATE();
     case 17:
       if (lookahead != 0 &&
-          lookahead != '\n' &&
-          lookahead != 0x17f &&
-          lookahead != 0x212a) ADVANCE(3);
+          lookahead != '\n') ADVANCE(3);
       END_STATE();
     case 18:
       ACCEPT_TOKEN(ts_builtin_sym_end);
@@ -1214,26 +1202,20 @@ static bool ts_lex(TSLexer *lexer, TSStateId state) {
       ACCEPT_TOKEN(sym_doc_comment);
       if (lookahead != 0 &&
           lookahead != '\n' &&
-          lookahead != '\r' &&
-          lookahead != 0x17f &&
-          lookahead != 0x212a) ADVANCE(41);
+          lookahead != '\r') ADVANCE(41);
       END_STATE();
     case 42:
       ACCEPT_TOKEN(sym_line_comment);
       if (lookahead == '/') ADVANCE(41);
       if (lookahead != 0 &&
           lookahead != '\n' &&
-          lookahead != '\r' &&
-          lookahead != 0x17f &&
-          lookahead != 0x212a) ADVANCE(43);
+          lookahead != '\r') ADVANCE(43);
       END_STATE();
     case 43:
       ACCEPT_TOKEN(sym_line_comment);
       if (lookahead != 0 &&
           lookahead != '\n' &&
-          lookahead != '\r' &&
-          lookahead != 0x17f &&
-          lookahead != 0x212a) ADVANCE(43);
+          lookahead != '\r') ADVANCE(43);
       END_STATE();
     case 44:
       ACCEPT_TOKEN(sym_block_comment);
