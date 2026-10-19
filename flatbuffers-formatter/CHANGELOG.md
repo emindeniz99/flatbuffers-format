@@ -9,6 +9,20 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > pre-publication development. Nothing installed from the registry needs
 > to migrate for them.
 
+## [0.4.0](https://github.com/emindeniz99/flatbuffers-format/compare/flatbuffers-format-v0.3.0...flatbuffers-format-v0.4.0) (2026-10-19)
+
+
+### Features
+
+* **formatter:** read options from a .flatbuffers-format.json file ([85232b0](https://github.com/emindeniz99/flatbuffers-format/commit/85232b069aefb8e57d10a63a1064b645d052b408))
+
+
+### Bug Fixes
+
+* **formatter:** keep comments after commas and in comment-only bodies ([5bbb498](https://github.com/emindeniz99/flatbuffers-format/commit/5bbb498e9f34ad7539b2f8fa327717ae079a5c81))
+* **formatter:** keep object literal comments next to their field ([a902771](https://github.com/emindeniz99/flatbuffers-format/commit/a902771249e9fc4e5f6574d7695306f31261b191))
+* **formatter:** validate every config before --write touches a file ([47ed18e](https://github.com/emindeniz99/flatbuffers-format/commit/47ed18ee5a82fb1501822ae69647d2d9915abbb1))
+
 ## [0.3.0](https://github.com/emindeniz99/flatbuffers-format/compare/flatbuffers-format-v0.2.0...flatbuffers-format-v0.3.0) (2026-08-07)
 
 

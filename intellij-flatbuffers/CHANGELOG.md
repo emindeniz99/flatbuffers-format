@@ -13,6 +13,21 @@ do not hand-edit released entries.
 > "breaking changes" between internal names — describe pre-publication
 > development rather than migrations for an installed version.
 
+## [0.4.0](https://github.com/emindeniz99/flatbuffers-format/compare/intellij-flatbuffers-v0.3.0...intellij-flatbuffers-v0.4.0) (2026-10-19)
+
+
+### Features
+
+* **intellij:** format with the project's .flatbuffers-format.json ([38612a7](https://github.com/emindeniz99/flatbuffers-format/commit/38612a75adac55351ff558cb7996df446f89539f))
+* **intellij:** let another FlatBuffers plugin highlight .fbs files ([bd1d916](https://github.com/emindeniz99/flatbuffers-format/commit/bd1d916cfabc2bd65ee3533107bb131df2768115))
+
+
+### Bug Fixes
+
+* **intellij:** format .FBS files the overrider hands to another plugin ([e6f7b07](https://github.com/emindeniz99/flatbuffers-format/commit/e6f7b07213af0c1e53f70ce7c3053016ba050c9c))
+* **intellij:** respect the user's *.fbs file type when deferring ([9660c3a](https://github.com/emindeniz99/flatbuffers-format/commit/9660c3add6c8731831246e16fcbdfcc9b1dbba1f))
+* **intellij:** show "FlatBuffers (flatbuffers-format)" as display name ([279b836](https://github.com/emindeniz99/flatbuffers-format/commit/279b8367d9874166c135efb652511615ff397b51))
+
 ## [0.3.0](https://github.com/emindeniz99/flatbuffers-format/compare/intellij-flatbuffers-v0.2.0...intellij-flatbuffers-v0.3.0) (2026-08-07)
 
 
