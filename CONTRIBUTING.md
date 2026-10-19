@@ -348,14 +348,21 @@ Actions**:
 | `APPLE_DEVELOPER_ID_CERT_P12_BASE64`, `APPLE_DEVELOPER_ID_CERT_PASSWORD`, `APPLE_ID`, `APPLE_ID_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` | macOS native-binary Developer-ID signing + Apple notarization (optional) | Generate a Developer ID Application certificate from [Apple Developer → Certificates](https://developer.apple.com/account/resources/certificates/list), export as `.p12`, base64-encode (`base64 -w0 cert.p12`), and store as `APPLE_DEVELOPER_ID_CERT_P12_BASE64`. Generate an app-specific password from [appleid.apple.com → Security](https://appleid.apple.com/account/manage) and store as `APPLE_ID_APP_SPECIFIC_PASSWORD`. The team ID comes from the certificate. If unset, the native-binaries workflow falls back to an ad-hoc codesign — binaries still run, but downloaded copies hit macOS Gatekeeper quarantine until cleared manually. |
 
 The JetBrains secrets live in the **`jetbrains-marketplace` environment**
-(Settings → Environments), not under repository secrets. Only the two
-jobs that name that environment can read them: the JetBrains publish
-job in `release-please.yml` and the one in `flatbuffers-republish.yml`.
-Any other workflow, including one added in a pull request, sees an empty
-value. Adding yourself under the environment's **Required reviewers**
-makes every JetBrains publish wait for your approval. A secret with the
-same name under repository secrets would be visible to every workflow;
-delete it if one exists.
+(Settings → Environments), not under repository secrets. A job can read
+them only if it names that environment. Two jobs do: the JetBrains
+publish job in `release-please.yml` and the one in
+`flatbuffers-republish.yml`. Naming the environment is not a
+restriction in itself, so configure the environment:
+
+- **Deployment branches and tags → Selected branches → `main`.** A job
+  on any other branch is then refused the secrets, even if it names the
+  environment. A job on `main` that names it can still read them, so
+  review workflow changes that add `environment: jetbrains-marketplace`.
+- **Required reviewers → yourself** (optional). Every job that uses the
+  environment then waits for your approval before it starts.
+
+A secret with the same name under repository secrets would be visible to
+every workflow; delete it if one exists.
 
 Plus the one-time repo setting:
 
