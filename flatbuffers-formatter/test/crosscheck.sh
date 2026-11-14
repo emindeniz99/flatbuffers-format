@@ -87,7 +87,7 @@ echo "Non-default combo ($flags): $combo_fail mismatches"
 
 # The Prettier-compatible options and spaceAfterTypeColon, all away from
 # their defaults.
-flags2="--trailing-comma=none --object-wrap=collapse --no-bracket-spacing --no-space-after-type-colon --end-of-line=crlf"
+flags2="--trailing-comma=none --object-wrap=collapse --no-bracket-spacing --no-space-after-type-colon --no-space-after-attribute-colon --end-of-line=crlf"
 combo2_fail=0
 for f in "$CORPUS"/*.fbs; do
   name=$(basename "$f")

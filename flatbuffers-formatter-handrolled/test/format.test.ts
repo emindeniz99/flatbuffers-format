@@ -439,6 +439,42 @@ test("spaceAroundEnumColon: a space on both sides of an enum's colon, whatever s
   assert.match(format(src, { spaceAfterTypeColon: false }), /^enum Color:byte /);
 });
 
+test("a comment after a one-line body does not expand it", () => {
+  // The comment sits outside the braces, so the body is the same body
+  // with or without it. It used to force the expanded form.
+  const src = "union Equipment { Weapon } // Optionally add more tables.\nenum Color:byte { Red, Green } /* palette */\ntable T { x:int; } // one field";
+  const out = format(src);
+  assert.equal(
+    out,
+    "union Equipment { Weapon } // Optionally add more tables.\n\nenum Color: byte { Red, Green } /* palette */\n\ntable T { x: int; } // one field\n",
+  );
+  assert.equal(format(out), out);
+  // Files formatted before this change hold the expanded form, and the
+  // default objectWrap keeps a body that breaks after its `{` expanded,
+  // so they do not change.
+  const expanded = "union Equipment {\n  Weapon,\n} // Optionally add more tables.\n";
+  assert.equal(format(expanded), expanded);
+  assert.equal(format(expanded, { objectWrap: "collapse" }), "union Equipment { Weapon } // Optionally add more tables.\n");
+  // The comment does not count toward lineWidth, as on any other line.
+  const long = `enum E: byte { A, B } // ${"x".repeat(100)}\n`;
+  assert.equal(format(long), long);
+  // A comment inside the braces is still content and keeps the body open.
+  assert.equal(format("enum E:byte { A, // first\n B }"), "enum E: byte {\n  A, // first\n  B,\n}\n");
+});
+
+test("spaceAfterAttributeColon: false tightens attribute colons and nothing else", () => {
+  const src = 'table T (native_type: "N") {\n  id:ulong (key, hash: "fnv1a_64", id: 3);\n}\n\nenum E:byte {\n  A (weight: 1),\n}\n\nrpc_service S {\n  Get(T):T (streaming: "none");\n}';
+  const tight = 'table T (native_type:"N") {\n  id: ulong (key, hash:"fnv1a_64", id:3);\n}\n\nenum E: byte {\n  A (weight:1),\n}\n\nrpc_service S {\n  Get(T): T (streaming:"none");\n}\n';
+  const out = format(src, { spaceAfterAttributeColon: false });
+  assert.equal(out, tight);
+  assert.equal(format(out, { spaceAfterAttributeColon: false }), out);
+  // The default is unchanged, and undoes the option.
+  assert.equal(format(out), format(src));
+  assert.match(format(src), /id: ulong \(key, hash: "fnv1a_64", id: 3\);/);
+  // The type colons belong to spaceAfterTypeColon; the two combine.
+  assert.match(format(src, { spaceAfterAttributeColon: false, spaceAfterTypeColon: false }), /id:ulong \(key, hash:"fnv1a_64", id:3\);/);
+});
+
 test("collapseEmptyBodies: a body with nothing in it prints as {}, a comment keeps it open", () => {
   const src = "table A{}\nstruct B {\n}\nenum C:byte{}\nunion D{}\nrpc_service E{}";
   assert.equal(format(src), "table A {\n}\n\nstruct B {\n}\n\nenum C: byte {\n}\n\nunion D {\n}\n\nrpc_service E {\n}\n");

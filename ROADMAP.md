@@ -38,6 +38,23 @@ file an issue and we can prioritise it.
 - **Sourcemap for Prettier integration** so the plugin can offer
   in-place fixes via Prettier's error-on-format mode.
 
+### Layouts the formatter cannot keep yet
+
+Measured on the 82 schemas in flatbuffers' own `tests/` and `samples/`
+(v25.12.19), after the style options of 0.6.0. Each would be an opt-in
+option; the defaults do not change.
+
+- **Trailing comments aligned in a column**, or two spaces before a
+  `//`. 21 lines in 5 files. The formatter puts one space before the
+  comment. Needs alignment across consecutive lines in both printers.
+- **A table or struct with several fields on one line**
+  (`struct Test { a:short; b:byte; }`). 3 files. Only single-field
+  bodies collapse; these expand.
+- **Several enum values per line** in an enum that spans lines
+  (`Bar, Baz`). 8 lines in 4 files. Expanded enums get one value per
+  line.
+- **Long attribute lists** are never wrapped, whatever `lineWidth` says.
+
 ## Supply chain / security
 
 - **SBOM emission on every published artefact.** No CycloneDX or SPDX
@@ -106,6 +123,12 @@ Only the repo owner can do these — account/secret config.
 
 So a future session doesn't re-litigate decisions already made.
 
+- **An opening brace on its own line.** The FlatBuffers style guide
+  puts it on the declaration's line, and so does the formatter. 6 of
+  upstream's 82 schemas write it the other way.
+- **Changing a default to match a style.** The editor plugins bundle
+  the engine and update on their own, so a new default would reformat
+  users' files unasked. New layouts arrive as opt-in options.
 - **Bundle all 5 platform binaries inside the IntelliJ plugin .zip.**
   Rejected — would push the .zip from ~100 KiB to ~600 MiB.
   Download-on-demand is the chosen path.

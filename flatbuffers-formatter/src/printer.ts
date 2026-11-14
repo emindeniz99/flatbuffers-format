@@ -135,6 +135,12 @@ export type FormatOptions = {
    */
   spaceAroundEnumColon?: boolean;
   /**
+   * A space after the colon in an attribute: `(id: 1)` when true,
+   * `(id:1)` when false. Object literals keep their space either way.
+   * Default: true.
+   */
+  spaceAfterAttributeColon?: boolean;
+  /**
    * Print a body with nothing in it, not even a comment, as `{}` on
    * the declaration's line: `table Weapon {}`. When false, the braces
    * go on two lines. Default: false.
@@ -189,6 +195,7 @@ const DEFAULTS = {
   bracketSpacing: true,
   spaceAfterTypeColon: true,
   spaceAroundEnumColon: false,
+  spaceAfterAttributeColon: true,
   collapseEmptyBodies: false,
   separateDeclarations: "always" as "always" | "multiline",
 };
@@ -518,12 +525,13 @@ export class Printer {
     const leading = this.leadingFor(f, true);
     if (leading.length > 0) return false;
     if (this.trailingFor(f)) return false;
-    if (this.trailingFor(ctx)) return false;
     const body = this.formatField(f);
     const candidate = `${this.indent(depth)}${head} ${this.braced(body)}`;
     if (candidate.length > this.opts.lineWidth) return false;
     this.out.push(candidate);
-    this.nl();
+    // A comment after the `}` rides along; it does not count toward
+    // lineWidth, as on any other line.
+    this.endLine(ctx.stop!.tokenIndex, 0);
     return true;
   }
 
@@ -603,11 +611,12 @@ export class Printer {
   private formatMetadata(ctx: MetadataContext): string {
     const entries = ctx.metadataEntry();
     if (entries.length === 0) return "()";
+    const colon = this.opts.spaceAfterAttributeColon ? ": " : ":";
     const parts = entries.map((e) => {
       const key = e.identifier().getText();
       const sv = e.singleValue();
       if (!sv) return key;
-      return `${key}: ${this.formatSingle(sv)}`;
+      return `${key}${colon}${this.formatSingle(sv)}`;
     });
     return `(${parts.join(", ")})`;
   }
@@ -688,13 +697,14 @@ export class Printer {
       if (leading.length > 0) return false;
       if (this.trailingFor(v)) return false;
     }
-    if (this.trailingFor(ctx)) return false;
     const parts = values.map((v) => this.formatEnumVal(v));
     const body = parts.join(", ");
     const candidate = `${this.indent(depth)}${head} ${this.braced(body)}`;
     if (candidate.length > this.opts.lineWidth) return false;
     this.out.push(candidate);
-    this.nl();
+    // A comment after the `}` rides along; it does not count toward
+    // lineWidth, as on any other line.
+    this.endLine(ctx.stop!.tokenIndex, 0);
     return true;
   }
 
@@ -754,13 +764,14 @@ export class Printer {
       if (leading.length > 0) return false;
       if (this.trailingFor(v)) return false;
     }
-    if (this.trailingFor(ctx)) return false;
     const parts = vals.map((v) => this.formatUnionVal(v));
     const body = parts.join(", ");
     const candidate = `${this.indent(depth)}${head} ${this.braced(body)}`;
     if (candidate.length > this.opts.lineWidth) return false;
     this.out.push(candidate);
-    this.nl();
+    // A comment after the `}` rides along; it does not count toward
+    // lineWidth, as on any other line.
+    this.endLine(ctx.stop!.tokenIndex, 0);
     return true;
   }
 

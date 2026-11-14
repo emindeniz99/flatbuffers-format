@@ -111,6 +111,8 @@ object FormatterCliArgs {
 
         if (state.spaceAroundEnumColon) add("--space-around-enum-colon")
 
+        if (!state.spaceAfterAttributeColon) add("--no-space-after-attribute-colon")
+
         if (state.collapseEmptyBodies) add("--collapse-empty-bodies")
 
         if (!state.separateOneLineDeclarations) {

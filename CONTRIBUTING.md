@@ -255,6 +255,14 @@ If `--only` is awkward (dirty index, tricky globs, deleted files), fall
 back to `git add <paths> && git diff --cached --name-only && git commit`
 — same rule: one topic per commit.
 
+## Branch names
+
+Name a branch `<type>/<short-kebab-topic>`, with the same types as
+commits: `feat/attribute-colon-option`, `fix/crlf-comments`,
+`ci/native-binaries-runner`. The name should say what the pull request
+does, so the merge commit (`Merge pull request #N from <branch>`) reads
+well in `git log`. Tool-generated names (`claude/…`, `patch-1`) don't.
+
 ## Merging pull requests
 
 **Always a real merge commit. Never squash, never rebase-merge.**

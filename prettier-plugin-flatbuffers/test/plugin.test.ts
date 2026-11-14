@@ -148,6 +148,10 @@ test("the other style guide options are plugin options too", async () => {
     await fmt(src, { spaceAroundEnumColon: true, collapseEmptyBodies: true, separateDeclarations: "multiline" }),
     "enum E : byte { A }\ntable T {}\ntable U {}\n",
   );
+  assert.equal(
+    await fmt("table T{x:int (id: 1);}", { spaceAfterAttributeColon: false }),
+    "table T {\n  x: int (id:1);\n}\n",
+  );
   // A choice Prettier does not know is rejected, not ignored.
   await assert.rejects(fmt(src, { separateDeclarations: "never" }), /separateDeclarations/);
 });
