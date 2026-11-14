@@ -141,11 +141,15 @@ class Printer {
         // rpc_service / object) even if the source omitted it; with
         // `separateDeclarations: "multiline"`, only around those that
         // take several lines.
-        const blanks = countBlankLines(item.leading);
+        //
+        // Only the blank lines above the item's comments are counted.
+        // Those between the comments are printed again with them, and
+        // counting them too made the separator grow on every pass.
+        // `maxBlankLines` caps the result, so 0 removes every one.
         const forced = prevSeparates || separates;
-        let want = 0;
-        if (forced && blanks === 0) want = 1;
-        else if (blanks > 0) want = Math.min(blanks, this.opts.maxBlankLines);
+        let want = leadingBlankLines(item.leading);
+        if (want === 0 && (forced || item.leading.some((t) => t.kind === "blank_line"))) want = 1;
+        want = Math.min(want, this.opts.maxBlankLines);
         if (want > 0) this.out.splice(mark, 0, ...Array<string>(want).fill(this.opts.newline));
       }
       prevSeparates = separates;
@@ -660,9 +664,10 @@ function isBlockDecl(item: TopLevel): boolean {
   );
 }
 
-function countBlankLines(leading: Trivia[]): number {
+// Blank lines at the start of `leading`, before its first comment.
+function leadingBlankLines(leading: Trivia[]): number {
   let n = 0;
-  for (const t of leading) if (t.kind === "blank_line") n++;
+  while (n < leading.length && leading[n]!.kind === "blank_line") n++;
   return n;
 }
 
