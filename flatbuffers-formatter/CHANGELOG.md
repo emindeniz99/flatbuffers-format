@@ -9,6 +9,17 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > pre-publication development. Nothing installed from the registry needs
 > to migrate for them.
 
+## [0.7.0](https://github.com/emindeniz99/flatbuffers-format/compare/flatbuffers-format-v0.6.0...flatbuffers-format-v0.7.0) (2026-11-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* **formatter:** output changes for `maxBlankLines` values other than the default 1. With 0, no blank line is left between declarations; it used to alternate between none and one on successive runs. With 2 or more, the blank lines above a commented declaration keep the source's count instead of growing to the cap; files already formatted keep the blank lines they have. Nothing changes with the default.
+
+### Bug Fixes
+
+* **formatter:** keep output stable when maxBlankLines is not 1 ([16e0169](https://github.com/emindeniz99/flatbuffers-format/commit/16e0169e2cfaa1d2d6375ca55c88005dd2392863))
+
 ## [0.6.0](https://github.com/emindeniz99/flatbuffers-format/compare/flatbuffers-format-v0.5.0...flatbuffers-format-v0.6.0) (2026-11-14)
 
 

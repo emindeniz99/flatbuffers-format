@@ -13,6 +13,13 @@ do not hand-edit released entries.
 > "breaking changes" between internal names — describe pre-publication
 > development rather than migrations for an installed version.
 
+## [0.7.0](https://github.com/emindeniz99/flatbuffers-format/compare/intellij-flatbuffers-v0.6.0...intellij-flatbuffers-v0.7.0) (2026-11-14)
+
+
+### Bug Fixes
+
+* **intellij:** keep Reformat Code stable with Max blank lines at 0 ([93d126f](https://github.com/emindeniz99/flatbuffers-format/commit/93d126fe1958cd79dadfae4745572bccfebd6331))
+
 ## [0.6.0](https://github.com/emindeniz99/flatbuffers-format/compare/intellij-flatbuffers-v0.5.0...intellij-flatbuffers-v0.6.0) (2026-11-14)
 
 
