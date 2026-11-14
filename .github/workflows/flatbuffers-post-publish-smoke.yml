@@ -176,6 +176,10 @@ jobs:
               # the dedicated flatbuffers-pm-compat.yml workflow.
               # Append: `yarn set version` wrote `yarnPath` into this file.
               echo "nodeLinker: node-modules" >> .yarnrc.yml
+              # Yarn 4 quarantines versions younger than a day
+              # (`npmMinimalAgeGate`), and this job runs minutes after
+              # the publish. Exempt only the package under test.
+              echo 'npmPreapprovedPackages: ["flatbuffers-format"]' >> .yarnrc.yml
               yarn add "flatbuffers-format@$v"
               bin=node_modules/.bin/flatbuffers-format
               ;;
