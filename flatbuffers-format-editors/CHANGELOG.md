@@ -14,6 +14,17 @@ do not hand-edit released entries.
 > pre-publication development. Nothing installed from the registry needs
 > to migrate for them.
 
+## [0.1.2](https://github.com/emindeniz99/flatbuffers-format/compare/flatbuffers-format-editors-v0.1.1...flatbuffers-format-editors-v0.1.2) (2026-11-14)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * flatbuffers-format bumped to 0.6.0
+  * peerDependencies
+    * flatbuffers-format bumped to 0.6.0
+
 ## [0.1.1](https://github.com/emindeniz99/flatbuffers-format/compare/flatbuffers-format-editors-v0.1.0...flatbuffers-format-editors-v0.1.1) (2026-10-19)
 
 

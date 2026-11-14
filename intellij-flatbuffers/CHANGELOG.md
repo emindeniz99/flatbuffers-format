@@ -13,6 +13,15 @@ do not hand-edit released entries.
 > "breaking changes" between internal names — describe pre-publication
 > development rather than migrations for an installed version.
 
+## [0.6.0](https://github.com/emindeniz99/flatbuffers-format/compare/intellij-flatbuffers-v0.5.0...intellij-flatbuffers-v0.6.0) (2026-11-14)
+
+
+### Features
+
+* **intellij:** add settings for the style guide's layout ([1b268a9](https://github.com/emindeniz99/flatbuffers-format/commit/1b268a9c291946631b33db82569a5f9edd47a09e)), closes [#16](https://github.com/emindeniz99/flatbuffers-format/issues/16)
+* **intellij:** add the attribute colon setting ([44f1d00](https://github.com/emindeniz99/flatbuffers-format/commit/44f1d000ed307eaaf9a37fbe74730c09d965f88d))
+* **intellij:** add the space-after-type-colon setting ([3ae26d3](https://github.com/emindeniz99/flatbuffers-format/commit/3ae26d370927348a489dc82155fd106120a433c8)), closes [#16](https://github.com/emindeniz99/flatbuffers-format/issues/16)
+
 ## [0.5.0](https://github.com/emindeniz99/flatbuffers-format/compare/intellij-flatbuffers-v0.4.0...intellij-flatbuffers-v0.5.0) (2026-10-19)
 
 
