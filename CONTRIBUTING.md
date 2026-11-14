@@ -340,6 +340,32 @@ You do not bump `version` in any `package.json` and you do not edit any
    `npm deprecate <pkg>@<version> "broken; use the next release"`
    and push a fix as a new release.
 
+### Packages that ship the engine
+
+Four packages ship the engine. A release that bumps the engine has to
+bump all four, or the users of the one left out stay on the old engine.
+
+| Package | How it gets the engine | What bumps it with the engine |
+|---|---|---|
+| `prettier-plugin-flatbuffers/` | npm dependency | release-please's `node-workspace` plugin |
+| `vscode-flatbuffers/` | bundled into the `.vsix` | `node-workspace` |
+| `flatbuffers-format-editors/` | npm peer dependency | `node-workspace` |
+| `intellij-flatbuffers/` | bundled into the plugin `.zip` | release-please's `linked-versions` plugin |
+
+`node-workspace` gives the three npm packages a patch release that
+records the new engine version. It cannot see the JetBrains plugin,
+which is a Gradle project, so `linked-versions` ties that one to the
+engine: the two always have the same version and are released together.
+The link works both ways. A change to the plugin alone also releases
+the engine, with a changelog entry that only says the versions were
+synchronized, and that engine release bumps the three npm packages.
+
+The `check-release-pr` job in
+[`release-please.yml`](.github/workflows/release-please.yml) reads the
+open release PR after every push to `main` and fails when it bumps the
+engine without one of the four. If you add a package that ships the
+engine, add it to that job's list and to this table.
+
 ### Required repository secrets
 
 The release workflow needs a handful of one-time configuration items.
