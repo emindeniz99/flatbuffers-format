@@ -8,6 +8,15 @@
     {
       "type": "node-workspace",
       "merge": false
+    },
+    {
+      "type": "linked-versions",
+      "groupName": "engine and JetBrains plugin",
+      "components": [
+        "flatbuffers-format",
+        "intellij-flatbuffers"
+      ],
+      "merge": false
     }
   ],
   "packages": {
