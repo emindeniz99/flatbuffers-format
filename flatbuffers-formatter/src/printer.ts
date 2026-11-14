@@ -245,17 +245,22 @@ export class Printer {
       const separates =
         isBlockCtxName(item.constructor.name) && (!onlyMultiline || this.spansLines(this.declStart));
       if (prev) {
-        const blanks = countBlankLines(leadingTrivia(item, this.stream));
-        // Decl separator: at least one blank line around block decls
-        // (with `separateDeclarations: "multiline"`, only around those
-        // that take several lines) or when the user had any blank line
-        // in the source; otherwise adjacent decls stay glued together.
-        // The user's blank-line count, when present, is honoured up to
-        // `maxBlankLines`.
+        const leading = leadingTrivia(item, this.stream);
+        // Decl separator. The blank lines the source has directly above
+        // the item (above its comments, if it has any) are kept. With
+        // none there, one is added around block decls (with
+        // `separateDeclarations: "multiline"`, only around those that
+        // take several lines) and above comments that have a blank line
+        // among them; otherwise adjacent decls stay glued together.
+        // `maxBlankLines` caps all of it, so 0 removes every one.
+        //
+        // Only the run above the comments is counted. Counting the blank
+        // lines between the comments too made the separator grow on
+        // every pass, because those are printed again further down.
         const forced = prevSeparates || separates;
-        let want = 0;
-        if (forced && blanks === 0) want = 1;
-        else if (blanks > 0) want = Math.min(blanks, this.opts.maxBlankLines);
+        let want = leadingBlankLines(leading);
+        if (want === 0 && (forced || hasBlankLine(leading))) want = 1;
+        want = Math.min(want, this.opts.maxBlankLines);
         if (want > 0) this.out.splice(mark, 0, ...Array<string>(want).fill(this.opts.newline));
       }
       prevSeparates = separates;
@@ -916,13 +921,12 @@ function hasBlankLine(trivia: Trivia[]): boolean {
   return trivia.some((t) => t.kind === "blank_line");
 }
 
-function countBlankLines(trivia: Trivia[]): number {
+// Blank lines at the start of `trivia`, before its first comment.
+function leadingBlankLines(trivia: Trivia[]): number {
   let n = 0;
-  for (const t of trivia) if (t.kind === "blank_line") n++;
+  while (n < trivia.length && trivia[n]!.kind === "blank_line") n++;
   return n;
 }
-
-void hasBlankLine;
 
 function fieldHasBlockingTrivia(
   printer: Printer,

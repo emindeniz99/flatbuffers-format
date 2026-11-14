@@ -1,10 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
-import { format, check, FormatError, hasIgnorePragma, hasPragma } from "../src/index.js";
+import { format, check, FormatError, type FormatOptions, hasIgnorePragma, hasPragma } from "../src/index.js";
 import { unifiedDiff } from "../src/diff.js";
 import { renderParseError } from "../src/error-render.js";
 
@@ -891,6 +891,69 @@ test("spaceAroundEnumColon: a space on both sides of an enum's colon, whatever s
   // Off, the enum colon follows spaceAfterTypeColon.
   assert.match(format(src), /^enum Color: byte /);
   assert.match(format(src, { spaceAfterTypeColon: false }), /^enum Color:byte /);
+});
+
+test("format is a fixed point on the corpus under every layout option", () => {
+  // The fixed-point checks elsewhere run with the defaults. Two bugs
+  // that made `maxBlankLines` values other than 1 unstable went unseen
+  // because of that, so this one sweeps the options.
+  const optionSets: FormatOptions[] = [
+    {},
+    { maxBlankLines: 0 },
+    { maxBlankLines: 2 },
+    { maxBlankLines: 5 },
+    { separateDeclarations: "multiline" },
+    { separateDeclarations: "multiline", maxBlankLines: 0 },
+    { separateDeclarations: "multiline", maxBlankLines: 3 },
+    { collapseEmptyBodies: true },
+    { objectWrap: "collapse" },
+    { compactSingleLine: false },
+    { trailingComma: "none" },
+    { bracketSpacing: false },
+    { lineWidth: 40 },
+    { indent: 4 },
+    { useTabs: true, indent: 1 },
+    { wrapComments: true, commentWidth: 40 },
+    { spaceAfterTypeColon: false, spaceAroundEnumColon: true, spaceAfterAttributeColon: false },
+  ];
+  const files = readdirSync(corpusDir).filter((name) => name.endsWith(".fbs"));
+  assert.ok(files.length >= 20, "corpus found");
+  const failures: string[] = [];
+  let checked = 0;
+  for (const name of files) {
+    const source = readCorpus(name);
+    for (const options of optionSets) {
+      const out = format(source, options);
+      checked++;
+      if (format(out, options) !== out) failures.push(`${name} ${JSON.stringify(options)}`);
+    }
+  }
+  assert.equal(checked, files.length * optionSets.length);
+  assert.deepEqual(failures, []);
+});
+
+test("maxBlankLines: 0 removes the blank lines between declarations, and stays put", () => {
+  const src = "namespace N;\n\ntable A {\n  x:int;\n}\n\n\n/// doc\ntable B {\n  y:int;\n}\nenum E:byte{X}\n";
+  const out = format(src, { maxBlankLines: 0 });
+  assert.equal(out, "namespace N;\ntable A {\n  x: int;\n}\n/// doc\ntable B {\n  y: int;\n}\nenum E: byte { X }\n");
+  // It used to put the blank lines back on the next run and take them
+  // out on the one after, so --check failed right after --write.
+  assert.equal(format(out, { maxBlankLines: 0 }), out);
+});
+
+test("maxBlankLines above 1 keeps the source's count instead of growing it", () => {
+  // One blank line above the comment, one between it and the table.
+  // Both used to be counted as the separator, so it grew by one on
+  // every run until it reached the cap.
+  const src = "enum E:byte{X}\n\n// kept apart from the table\n\ntable T {\n  x:int;\n  y:int;\n}\n";
+  const want = "enum E: byte { X }\n\n// kept apart from the table\n\ntable T {\n  x: int;\n  y: int;\n}\n";
+  for (const maxBlankLines of [1, 2, 3]) {
+    const out = format(src, { maxBlankLines });
+    assert.equal(out, want, `maxBlankLines ${maxBlankLines}`);
+    assert.equal(format(out, { maxBlankLines }), out, `maxBlankLines ${maxBlankLines}, second run`);
+  }
+  // More blank lines than the cap are cut to the cap.
+  assert.equal(format("table A{}\n\n\n\n\ntable B{}", { maxBlankLines: 2 }), "table A {\n}\n\n\ntable B {\n}\n");
 });
 
 test("a comment after a one-line body does not expand it", () => {

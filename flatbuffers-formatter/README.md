@@ -113,7 +113,7 @@ Options:
 | `--use-tabs` | Indent with tab characters instead of spaces |
 | `--line-width <n>` | Target column for compact/wrap decisions (default: 80) |
 | `--no-compact-single-line` | Disable single-line collapsing of small enum/union/single-field bodies |
-| `--max-blank-lines <n>` | Max consecutive blank lines kept between decls (default: 1) |
+| `--max-blank-lines <n>` | Max consecutive blank lines kept between decls; `0` removes them all (default: 1) |
 | `--wrap-comments` | Reflow long line comments at whitespace |
 | `--comment-width <n>` | Wrap column for `--wrap-comments` (defaults to `--line-width`) |
 | `--trailing-comma <all\|none>` | Comma after the last value of an expanded enum/union (default: `all`) |
