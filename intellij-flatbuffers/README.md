@@ -109,6 +109,7 @@ in a notification carrying the action that fixes it.
 | Spaces inside one-line braces | on | `{ A, B }` rather than `{A, B}` (`--no-bracket-spacing` when off). |
 | Space after the colon before a type | on | `x: int` rather than `x:int`, the [FlatBuffers style guide](https://flatbuffers.dev/schema/#style-guide)'s spelling (`--no-space-after-type-colon` when off). |
 | Space on both sides of an enum's colon | off | `enum E : byte` when on (`--space-around-enum-colon`); when off, the enum colon follows the setting above. |
+| Space after the colon in an attribute | on | `(id: 1)` rather than `(id:1)` (`--no-space-after-attribute-colon` when off). |
 | Print an empty body on one line | off | `table T {}` when on (`--collapse-empty-bodies`). |
 | Blank line around one-line declarations too | on | Untick to leave one-line declarations next to each other where the file has them so (`--separate-declarations multiline`). |
 | Extra arguments  | *(none)*      | Whitespace-separated CLI args for anything not covered above, e.g. `--no-gitignore`. Appended after the settings above, so a flag repeated here wins. |

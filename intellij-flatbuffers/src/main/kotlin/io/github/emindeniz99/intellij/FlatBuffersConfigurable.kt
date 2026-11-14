@@ -252,6 +252,12 @@ class FlatBuffersConfigurable(private val project: Project) : BoundConfigurable(
                             "Ticking passes <code>--space-around-enum-colon</code>.")
                 }
                 row {
+                    checkBox("Space after the colon in an attribute: (id: 1)")
+                        .bindSelected(settings::spaceAfterAttributeColon)
+                        .comment("Default: on. Unticking prints <code>(id:1)</code> " +
+                            "(<code>--no-space-after-attribute-colon</code>).")
+                }
+                row {
                     checkBox("Print an empty body on one line: table T {}")
                         .bindSelected(settings::collapseEmptyBodies)
                         .comment("Default: off. Ticking passes <code>--collapse-empty-bodies</code>.")

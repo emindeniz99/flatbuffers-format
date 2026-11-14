@@ -110,6 +110,9 @@ class FlatBuffersSettings : PersistentStateComponent<FlatBuffersSettings.State> 
         /** `enum E : byte`; `true` passes `--space-around-enum-colon`. */
         var spaceAroundEnumColon: Boolean = false
 
+        /** `(id: 1)` rather than `(id:1)`; `false` passes `--no-space-after-attribute-colon`. */
+        var spaceAfterAttributeColon: Boolean = true
+
         /** `table T {}` on one line; `true` passes `--collapse-empty-bodies`. */
         var collapseEmptyBodies: Boolean = false
 
@@ -196,6 +199,10 @@ class FlatBuffersSettings : PersistentStateComponent<FlatBuffersSettings.State> 
     var spaceAroundEnumColon: Boolean
         get() = state.spaceAroundEnumColon
         set(value) { state.spaceAroundEnumColon = value }
+
+    var spaceAfterAttributeColon: Boolean
+        get() = state.spaceAfterAttributeColon
+        set(value) { state.spaceAfterAttributeColon = value }
 
     var collapseEmptyBodies: Boolean
         get() = state.collapseEmptyBodies

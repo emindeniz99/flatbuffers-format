@@ -66,6 +66,7 @@ class FormatterCliArgsTest {
         assertTrue(fresh.bracketSpacing)
         assertTrue("the engine writes `x: int` unless told not to", fresh.spaceAfterTypeColon)
         assertFalse("the engine's enum colon follows the type colon", fresh.spaceAroundEnumColon)
+        assertTrue("the engine writes `(id: 1)` unless told not to", fresh.spaceAfterAttributeColon)
         assertFalse("the engine keeps empty bodies on two lines", fresh.collapseEmptyBodies)
         assertTrue("the engine separates every block declaration", fresh.separateOneLineDeclarations)
         assertEquals("", fresh.extraArgs)
@@ -87,6 +88,10 @@ class FormatterCliArgsTest {
         assertEquals(listOf("--no-bracket-spacing"), args { bracketSpacing = false })
         assertEquals(listOf("--no-space-after-type-colon"), args { spaceAfterTypeColon = false })
         assertEquals(listOf("--space-around-enum-colon"), args { spaceAroundEnumColon = true })
+        assertEquals(
+            listOf("--no-space-after-attribute-colon"),
+            args { spaceAfterAttributeColon = false },
+        )
         assertEquals(listOf("--collapse-empty-bodies"), args { collapseEmptyBodies = true })
         assertEquals(
             listOf("--separate-declarations", "multiline"),
