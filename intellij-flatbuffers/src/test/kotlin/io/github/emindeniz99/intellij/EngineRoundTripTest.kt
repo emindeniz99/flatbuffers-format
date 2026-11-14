@@ -82,6 +82,20 @@ class EngineRoundTripTest {
     }
 
     @Test
+    fun maxBlankLinesZeroIsStableThroughTheShippedEngine() {
+        // With "Max blank lines" at 0 the engine took the blank lines
+        // between declarations out on one run and put them back on the
+        // next, so every Reformat Code changed the file. The plugin ships
+        // its engine, so this holds only when the bundle has that fix.
+        val source = "namespace N;\n\ntable A {\n  x:int;\n}\n\n\ntable B {\n  y:int;\n}\n"
+        val project = Files.createTempDirectory("fbs-roundtrip-blank-lines")
+        val settings = FlatBuffersSettings.State().apply { maxBlankLines = 0 }
+        val once = formatLikeThePlugin(source, project, settings)
+        assertEquals("namespace N;\ntable A {\n  x: int;\n}\ntable B {\n  y: int;\n}\n", once)
+        assertEquals("a second Reformat Code must change nothing", once, formatLikeThePlugin(once, project, settings))
+    }
+
+    @Test
     fun aProjectConfigFileDecidesTheOutputNotTheSettingsPage() {
         // The document lives in the project; the engine only ever sees a
         // temp copy elsewhere, so this passes only if the plugin found the
