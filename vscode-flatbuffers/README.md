@@ -48,6 +48,9 @@ Or invoke "Format Document" (Shift+Alt+F) anytime.
 | `flatbuffers.format.objectWrap` | `"preserve"` | `"preserve"` keeps a body expanded when the source breaks after its `{`; `"collapse"` puts every body that fits on one line. |
 | `flatbuffers.format.bracketSpacing` | `true` | Spaces inside the braces of a body on one line: `{ A, B }` rather than `{A, B}`. |
 | `flatbuffers.format.spaceAfterTypeColon` | `true` | A space after the colon before a type: `x: int`. Turn off for `x:int`, as the [FlatBuffers style guide](https://flatbuffers.dev/schema/#style-guide) writes it. Attribute values (`(key: value)`) keep their space. |
+| `flatbuffers.format.spaceAroundEnumColon` | `false` | A space on both sides of an enum's colon: `enum E : byte`. When off, that colon follows `spaceAfterTypeColon`. |
+| `flatbuffers.format.collapseEmptyBodies` | `false` | Print an empty body as `{}` on the declaration's line: `table T {}`. |
+| `flatbuffers.format.separateDeclarations` | `"always"` | `"always"` puts a blank line around every table, struct, enum, union and rpc_service; `"multiline"` only around those that take more than one line. |
 
 For details on what each option does, see the
 [`flatbuffers-format` README](https://www.npmjs.com/package/flatbuffers-format#api).
