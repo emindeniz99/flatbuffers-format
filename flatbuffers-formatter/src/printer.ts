@@ -525,12 +525,13 @@ export class Printer {
     const leading = this.leadingFor(f, true);
     if (leading.length > 0) return false;
     if (this.trailingFor(f)) return false;
-    if (this.trailingFor(ctx)) return false;
     const body = this.formatField(f);
     const candidate = `${this.indent(depth)}${head} ${this.braced(body)}`;
     if (candidate.length > this.opts.lineWidth) return false;
     this.out.push(candidate);
-    this.nl();
+    // A comment after the `}` rides along; it does not count toward
+    // lineWidth, as on any other line.
+    this.endLine(ctx.stop!.tokenIndex, 0);
     return true;
   }
 
@@ -696,13 +697,14 @@ export class Printer {
       if (leading.length > 0) return false;
       if (this.trailingFor(v)) return false;
     }
-    if (this.trailingFor(ctx)) return false;
     const parts = values.map((v) => this.formatEnumVal(v));
     const body = parts.join(", ");
     const candidate = `${this.indent(depth)}${head} ${this.braced(body)}`;
     if (candidate.length > this.opts.lineWidth) return false;
     this.out.push(candidate);
-    this.nl();
+    // A comment after the `}` rides along; it does not count toward
+    // lineWidth, as on any other line.
+    this.endLine(ctx.stop!.tokenIndex, 0);
     return true;
   }
 
@@ -762,13 +764,14 @@ export class Printer {
       if (leading.length > 0) return false;
       if (this.trailingFor(v)) return false;
     }
-    if (this.trailingFor(ctx)) return false;
     const parts = vals.map((v) => this.formatUnionVal(v));
     const body = parts.join(", ");
     const candidate = `${this.indent(depth)}${head} ${this.braced(body)}`;
     if (candidate.length > this.opts.lineWidth) return false;
     this.out.push(candidate);
-    this.nl();
+    // A comment after the `}` rides along; it does not count toward
+    // lineWidth, as on any other line.
+    this.endLine(ctx.stop!.tokenIndex, 0);
     return true;
   }
 

@@ -521,7 +521,7 @@ test("invariant check: whitespace and a comma before } may change; unsafe skips 
   );
   withMangledPrinter(
     (out) => out.replace("int", "long").replace(" // c", ""),
-    () => assert.equal(format("table T { x: int; } // c", { unsafe: true }), "table T {\n  x: long;\n}\n"),
+    () => assert.equal(format("table T { x: int; } // c", { unsafe: true }), "table T { x: long; }\n"),
   );
 });
 
