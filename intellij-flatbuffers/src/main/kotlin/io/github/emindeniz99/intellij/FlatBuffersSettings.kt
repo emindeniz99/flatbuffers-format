@@ -107,6 +107,19 @@ class FlatBuffersSettings : PersistentStateComponent<FlatBuffersSettings.State> 
          */
         var spaceAfterTypeColon: Boolean = true
 
+        /** `enum E : byte`; `true` passes `--space-around-enum-colon`. */
+        var spaceAroundEnumColon: Boolean = false
+
+        /** `table T {}` on one line; `true` passes `--collapse-empty-bodies`. */
+        var collapseEmptyBodies: Boolean = false
+
+        /**
+         * A blank line around every block declaration, the engine's
+         * default; `false` passes `--separate-declarations multiline`,
+         * which leaves one-line declarations next to each other.
+         */
+        var separateOneLineDeclarations: Boolean = true
+
         /**
          * Extra CLI arguments, for engine options this panel does not
          * model (`--no-gitignore`, anything the engine adds after this
@@ -179,6 +192,18 @@ class FlatBuffersSettings : PersistentStateComponent<FlatBuffersSettings.State> 
     var spaceAfterTypeColon: Boolean
         get() = state.spaceAfterTypeColon
         set(value) { state.spaceAfterTypeColon = value }
+
+    var spaceAroundEnumColon: Boolean
+        get() = state.spaceAroundEnumColon
+        set(value) { state.spaceAroundEnumColon = value }
+
+    var collapseEmptyBodies: Boolean
+        get() = state.collapseEmptyBodies
+        set(value) { state.collapseEmptyBodies = value }
+
+    var separateOneLineDeclarations: Boolean
+        get() = state.separateOneLineDeclarations
+        set(value) { state.separateOneLineDeclarations = value }
 
     var extraArgs: String
         get() = state.extraArgs

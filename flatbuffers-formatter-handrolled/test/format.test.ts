@@ -426,6 +426,104 @@ test("spaceAfterTypeColon: false drops the space before every type, and only the
   assert.match(format(src), /pos: Vec3;/);
 });
 
+test("spaceAroundEnumColon: a space on both sides of an enum's colon, whatever spaceAfterTypeColon says", () => {
+  const src = "enum Color:byte { Red }\nunion Any:ubyte { A }\ntable T { c:Color; }";
+  const loose = "enum Color : byte { Red }\n\nunion Any : ubyte { A }\n\n";
+  assert.equal(format(src, { spaceAroundEnumColon: true }), `${loose}table T { c: Color; }\n`);
+  // The pair the style guide's example uses: `x:T` fields under `E : T` enums.
+  const guide = format(src, { spaceAroundEnumColon: true, spaceAfterTypeColon: false });
+  assert.equal(guide, `${loose}table T { c:Color; }\n`);
+  assert.equal(format(guide, { spaceAroundEnumColon: true, spaceAfterTypeColon: false }), guide);
+  // Off, the enum colon follows spaceAfterTypeColon.
+  assert.match(format(src), /^enum Color: byte /);
+  assert.match(format(src, { spaceAfterTypeColon: false }), /^enum Color:byte /);
+});
+
+test("collapseEmptyBodies: a body with nothing in it prints as {}, a comment keeps it open", () => {
+  const src = "table A{}\nstruct B {\n}\nenum C:byte{}\nunion D{}\nrpc_service E{}";
+  assert.equal(format(src), "table A {\n}\n\nstruct B {\n}\n\nenum C: byte {\n}\n\nunion D {\n}\n\nrpc_service E {\n}\n");
+  const out = format(src, { collapseEmptyBodies: true });
+  assert.equal(out, "table A {}\n\nstruct B {}\n\nenum C: byte {}\n\nunion D {}\n\nrpc_service E {}\n");
+  assert.equal(format(out, { collapseEmptyBodies: true }), out);
+  // It is its own switch: turning the other collapsing off does not undo it.
+  assert.equal(format("table A {\n}", { collapseEmptyBodies: true, compactSingleLine: false }), "table A {}\n");
+  // A comment is content. Collapsing would have to move or drop it.
+  const commented = "table A { // soon\n}\n\ntable B {\n  /* later */\n}\n";
+  assert.equal(format(commented, { collapseEmptyBodies: true }), commented);
+  assert.equal(format("table A {} // done", { collapseEmptyBodies: true }), "table A {} // done\n");
+});
+
+test("separateDeclarations: \"multiline\" lets one-line declarations stay together", () => {
+  const src = "namespace N;\nenum A:byte{X}\nenum B:byte{Y}\ntable T{\n  x:int;\n  y:int;\n}\nstruct S{x:int;}\n\n\n\nstruct R{x:int;}\nroot_type T;";
+  // The default separates every block declaration.
+  assert.equal(
+    format(src),
+    "namespace N;\n\nenum A: byte { X }\n\nenum B: byte { Y }\n\ntable T {\n  x: int;\n  y: int;\n}\n\nstruct S { x: int; }\n\nstruct R { x: int; }\n\nroot_type T;\n",
+  );
+  // "multiline" forces a blank line only around the table that takes
+  // several lines; between one-liners it keeps the source's own blank
+  // lines, capped by maxBlankLines as everywhere else.
+  const out = format(src, { separateDeclarations: "multiline" });
+  assert.equal(
+    out,
+    "namespace N;\nenum A: byte { X }\nenum B: byte { Y }\n\ntable T {\n  x: int;\n  y: int;\n}\n\nstruct S { x: int; }\n\nstruct R { x: int; }\nroot_type T;\n",
+  );
+  assert.equal(format(out, { separateDeclarations: "multiline" }), out);
+  // What counts is the printed form: a table the options keep expanded
+  // is separated even though the source wrote it on one line.
+  assert.equal(
+    format("enum A:byte{X}\ntable T{x:int;}\nenum B:byte{Y}", { separateDeclarations: "multiline", compactSingleLine: false }),
+    "enum A: byte {\n  X,\n}\n\ntable T {\n  x: int;\n}\n\nenum B: byte {\n  Y,\n}\n",
+  );
+});
+
+test("the style guide options together keep a schema written in the guide's style unchanged", () => {
+  // Same shapes as the example on flatbuffers.dev/schema: tight field
+  // colons, a spaced enum colon, empty tables on one line and next to
+  // each other.
+  const guideStyle = [
+    "// inventory schema",
+    "",
+    "namespace Shop;",
+    "",
+    'attribute "weight";',
+    "",
+    "enum Size : byte { Small = 1, Medium, Large }",
+    "",
+    "union Item { Shirt, Mug, Sticker }",
+    "",
+    "struct Point {",
+    "  x:float;",
+    "  y:float;",
+    "}",
+    "",
+    "table Shirt {",
+    "  at:Point;",
+    "  stock:short = 150;",
+    "  label:string;",
+    "  hidden:bool = false (deprecated, weight: 1);",
+    "  tags:[ubyte];",
+    "  size:Size = Large;",
+    "  other:Item;",
+    "}",
+    "",
+    "table Mug {}",
+    "table Sticker {}",
+    "",
+    "root_type Shirt;",
+    "",
+  ].join("\n");
+  const guide = {
+    spaceAfterTypeColon: false,
+    spaceAroundEnumColon: true,
+    collapseEmptyBodies: true,
+    separateDeclarations: "multiline",
+  } as const;
+  assert.equal(format(guideStyle, guide), guideStyle);
+  // Without them the defaults rewrite it, which is what issue #16 was about.
+  assert.notEqual(format(guideStyle), guideStyle);
+});
+
 test("endOfLine: crlf, lf and auto", () => {
   const crlf = "enum E:byte{A,B}\r\ntable T{x:int;}\r\n";
   assert.equal(format(crlf), "enum E: byte { A, B }\n\ntable T { x: int; }\n");

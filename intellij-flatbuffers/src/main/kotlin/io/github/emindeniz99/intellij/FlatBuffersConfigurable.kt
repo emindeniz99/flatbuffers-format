@@ -245,6 +245,23 @@ class FlatBuffersConfigurable(private val project: Project) : BoundConfigurable(
                         .comment("Default: on. Unticking prints <code>x:int</code>, as the FlatBuffers " +
                             "style guide does (<code>--no-space-after-type-colon</code>).")
                 }
+                row {
+                    checkBox("Space on both sides of an enum's colon: enum E : byte")
+                        .bindSelected(settings::spaceAroundEnumColon)
+                        .comment("Default: off, so the enum colon follows the setting above. " +
+                            "Ticking passes <code>--space-around-enum-colon</code>.")
+                }
+                row {
+                    checkBox("Print an empty body on one line: table T {}")
+                        .bindSelected(settings::collapseEmptyBodies)
+                        .comment("Default: off. Ticking passes <code>--collapse-empty-bodies</code>.")
+                }
+                row {
+                    checkBox("Blank line around one-line declarations too")
+                        .bindSelected(settings::separateOneLineDeclarations)
+                        .comment("Default: on. Unticking leaves one-line declarations next to each " +
+                            "other where the file has them so (<code>--separate-declarations multiline</code>).")
+                }
             }.enabled(projectConfig == null)
             row("Extra arguments:") {
                 textField()

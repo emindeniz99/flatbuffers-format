@@ -65,6 +65,9 @@ class FormatterCliArgsTest {
         assertTrue("the engine keeps bodies the source broke", fresh.preserveObjectWrap)
         assertTrue(fresh.bracketSpacing)
         assertTrue("the engine writes `x: int` unless told not to", fresh.spaceAfterTypeColon)
+        assertFalse("the engine's enum colon follows the type colon", fresh.spaceAroundEnumColon)
+        assertFalse("the engine keeps empty bodies on two lines", fresh.collapseEmptyBodies)
+        assertTrue("the engine separates every block declaration", fresh.separateOneLineDeclarations)
         assertEquals("", fresh.extraArgs)
     }
 
@@ -83,6 +86,12 @@ class FormatterCliArgsTest {
         assertEquals(listOf("--object-wrap", "collapse"), args { preserveObjectWrap = false })
         assertEquals(listOf("--no-bracket-spacing"), args { bracketSpacing = false })
         assertEquals(listOf("--no-space-after-type-colon"), args { spaceAfterTypeColon = false })
+        assertEquals(listOf("--space-around-enum-colon"), args { spaceAroundEnumColon = true })
+        assertEquals(listOf("--collapse-empty-bodies"), args { collapseEmptyBodies = true })
+        assertEquals(
+            listOf("--separate-declarations", "multiline"),
+            args { separateOneLineDeclarations = false },
+        )
     }
 
     @Test

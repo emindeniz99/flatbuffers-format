@@ -51,6 +51,11 @@ Options:
       --no-bracket-spacing    Print one-line bodies as {a, b} instead of { a, b }
       --no-space-after-type-colon
                               Print x:int instead of x: int, as the FlatBuffers style guide does
+      --space-around-enum-colon
+                              Print enum E : byte, with a space on both sides of the colon
+      --collapse-empty-bodies Print an empty body as {} on the declaration's line
+      --separate-declarations <always|multiline>
+                              Blank line around every block declaration, or only multi-line ones (default: always)
       --end-of-line <lf|crlf|auto>
                               Line endings; auto keeps the file's own (default: lf)
       --check-ignore-pragma   Leave files whose top comment has @noformat or @noprettier
@@ -191,6 +196,9 @@ async function main() {
     "object-wrap"?: string;
     "no-bracket-spacing"?: boolean;
     "no-space-after-type-colon"?: boolean;
+    "space-around-enum-colon"?: boolean;
+    "collapse-empty-bodies"?: boolean;
+    "separate-declarations"?: string;
     "end-of-line"?: string;
     "check-ignore-pragma"?: boolean;
     "require-pragma"?: boolean;
@@ -221,6 +229,9 @@ async function main() {
         "object-wrap": { type: "string" },
         "no-bracket-spacing": { type: "boolean" },
         "no-space-after-type-colon": { type: "boolean" },
+        "space-around-enum-colon": { type: "boolean" },
+        "collapse-empty-bodies": { type: "boolean" },
+        "separate-declarations": { type: "string" },
         "end-of-line": { type: "string" },
         "check-ignore-pragma": { type: "boolean" },
         "require-pragma": { type: "boolean" },
@@ -300,6 +311,13 @@ async function main() {
   if (objectWrap) opts.objectWrap = objectWrap;
   if (values["no-bracket-spacing"]) opts.bracketSpacing = false;
   if (values["no-space-after-type-colon"]) opts.spaceAfterTypeColon = false;
+  if (values["space-around-enum-colon"]) opts.spaceAroundEnumColon = true;
+  if (values["collapse-empty-bodies"]) opts.collapseEmptyBodies = true;
+  const separateDeclarations = choice("separate-declarations", values["separate-declarations"], [
+    "always",
+    "multiline",
+  ] as const);
+  if (separateDeclarations) opts.separateDeclarations = separateDeclarations;
   const endOfLine = choice("end-of-line", values["end-of-line"], ["lf", "crlf", "auto"] as const);
   if (endOfLine) opts.endOfLine = endOfLine;
   if (values["check-ignore-pragma"]) opts.checkIgnorePragma = true;

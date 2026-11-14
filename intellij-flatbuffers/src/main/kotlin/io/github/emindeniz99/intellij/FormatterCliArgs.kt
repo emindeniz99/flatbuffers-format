@@ -109,6 +109,15 @@ object FormatterCliArgs {
 
         if (!state.spaceAfterTypeColon) add("--no-space-after-type-colon")
 
+        if (state.spaceAroundEnumColon) add("--space-around-enum-colon")
+
+        if (state.collapseEmptyBodies) add("--collapse-empty-bodies")
+
+        if (!state.separateOneLineDeclarations) {
+            add("--separate-declarations")
+            add("multiline")
+        }
+
         // Last, always: the free-text box is the escape hatch for
         // options this panel does not model, and for overriding one that
         // it does. The engine keeps the last occurrence of a repeated

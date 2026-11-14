@@ -57,6 +57,9 @@ Without one, the plugin maps Prettier's options to `flatbuffers-format`'s
 | `bracketSpacing` (default `true`) | `{ A, B }` or `{A, B}` for bodies on one line. |
 | `objectWrap` (default `"preserve"`) | `"preserve"` keeps a body expanded when the source has a line break after its `{`; `"collapse"` puts every body that fits on one line. |
 | `spaceAfterTypeColon` (default `true`) | The plugin's own option, set in your Prettier config like the others. `false` prints `x:int` instead of `x: int`, as the [FlatBuffers style guide](https://flatbuffers.dev/schema/#style-guide) does. Attribute values (`(key: value)`) keep their space. |
+| `spaceAroundEnumColon` (default `false`) | The plugin's own option. `true` prints `enum E : byte`; otherwise the enum colon follows `spaceAfterTypeColon`. |
+| `collapseEmptyBodies` (default `false`) | The plugin's own option. `true` prints an empty body as `{}` on the declaration's line. |
+| `separateDeclarations` (default `"always"`) | The plugin's own option. `"always"` puts a blank line around every table, struct, enum, union and rpc_service; `"multiline"` only around those that take more than one line. |
 | `endOfLine`                | Handled by Prettier itself (`"lf"`, `"crlf"`, `"cr"`, `"auto"`). The engine always emits `\n`; Prettier post-processes the output to the requested line ending. |
 | `requirePragma`, `checkIgnorePragma`, `insertPragma` | Work as in Prettier: the pragmas are `@format` / `@prettier` and `@noformat` / `@noprettier` in a comment at the top of the file. |
 

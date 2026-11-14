@@ -90,6 +90,17 @@ function readFormatOptions(
   const spaceAfterTypeColon = config.get<boolean>("format.spaceAfterTypeColon");
   if (typeof spaceAfterTypeColon === "boolean") opts.spaceAfterTypeColon = spaceAfterTypeColon;
 
+  const spaceAroundEnumColon = config.get<boolean>("format.spaceAroundEnumColon");
+  if (typeof spaceAroundEnumColon === "boolean") opts.spaceAroundEnumColon = spaceAroundEnumColon;
+
+  const collapseEmptyBodies = config.get<boolean>("format.collapseEmptyBodies");
+  if (typeof collapseEmptyBodies === "boolean") opts.collapseEmptyBodies = collapseEmptyBodies;
+
+  const separateDeclarations = config.get<string>("format.separateDeclarations");
+  if (separateDeclarations === "always" || separateDeclarations === "multiline") {
+    opts.separateDeclarations = separateDeclarations;
+  }
+
   return opts;
 }
 

@@ -128,6 +128,25 @@
           "type": "boolean",
           "default": true,
           "description": "A space after the colon before a type: `x: int`. Turn off for `x:int`, as the FlatBuffers style guide writes it. Attribute values (`(key: value)`) keep their space."
+        },
+        "flatbuffers.format.spaceAroundEnumColon": {
+          "type": "boolean",
+          "default": false,
+          "description": "A space on both sides of an enum's colon: `enum E : byte`. When off, that colon follows `spaceAfterTypeColon`."
+        },
+        "flatbuffers.format.collapseEmptyBodies": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print an empty body as `{}` on the declaration's line: `table T {}`."
+        },
+        "flatbuffers.format.separateDeclarations": {
+          "type": "string",
+          "enum": [
+            "always",
+            "multiline"
+          ],
+          "default": "always",
+          "description": "`always` puts a blank line around every table, struct, enum, union and rpc_service; `multiline` only around those that take more than one line, so one-line declarations can stay together."
         }
       }
     }

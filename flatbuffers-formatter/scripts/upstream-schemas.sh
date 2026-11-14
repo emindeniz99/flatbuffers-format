@@ -32,7 +32,7 @@ done
 command -v flatc >/dev/null || { echo "upstream-schemas: flatc not on PATH." >&2; exit 1; }
 echo "upstream-schemas: $(flatc --version), schemas from ${SRC}"
 
-CHANGED="--trailing-comma=none --object-wrap=collapse --no-bracket-spacing --no-space-after-type-colon --use-tabs --indent=1 --line-width=40 --max-blank-lines=0 --wrap-comments --no-compact-single-line"
+CHANGED="--trailing-comma=none --object-wrap=collapse --no-bracket-spacing --no-space-after-type-colon --space-around-enum-colon --collapse-empty-bodies --separate-declarations=multiline --use-tabs --indent=1 --line-width=40 --max-blank-lines=0 --wrap-comments --no-compact-single-line"
 
 # The schemas include each other by paths relative to tests/, so each
 # copy keeps the whole tree.

@@ -44,7 +44,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: GitHub Release tag to upload to (e.g. flatbuffers-format-v0.1.1)
+        description: GitHub Release tag to build and upload to (e.g. flatbuffers-format-v0.1.1)
         required: false
         type: string
 
@@ -98,8 +98,13 @@ jobs:
       run:
         working-directory: flatbuffers-formatter
     steps:
+      # A dispatch with a tag builds that tag's source, whichever branch
+      # the workflow file comes from. Without this, dispatching from
+      # main to backfill a release would attach main's build to it. An
+      # empty ref (push, or no tag) means the triggering commit.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.tag }}
           persist-credentials: false
       # Held at v6.0.10. v6.1.0 bootstraps pnpm 11.25, whose switch to the
       # pinned 11.18 fails on macos-15-intel with

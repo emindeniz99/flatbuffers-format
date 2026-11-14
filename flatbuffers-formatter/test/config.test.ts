@@ -95,6 +95,9 @@ test("loadConfig rejects unknown keys and wrong types, naming the file and key",
     ['{"endOfLine": "cr"}', /"endOfLine" must be one of "lf", "crlf", "auto"/],
     ['{"bracketSpacing": 0}', /"bracketSpacing" must be a boolean/],
     ['{"spaceAfterTypeColon": "no"}', /"spaceAfterTypeColon" must be a boolean/],
+    ['{"spaceAroundEnumColon": 1}', /"spaceAroundEnumColon" must be a boolean/],
+    ['{"collapseEmptyBodies": "yes"}', /"collapseEmptyBodies" must be a boolean/],
+    ['{"separateDeclarations": "never"}', /"separateDeclarations" must be one of "always", "multiline", got "never"/],
     ['{"newline": "\\r\\n"}', /unknown key "newline"/],
     ['{"constructor": 1}', /unknown key "constructor"/],
     ['{"__proto__": 1}', /unknown key "__proto__"/],
@@ -128,6 +131,29 @@ test("CLI: spaceAfterTypeColon in a config file reaches the printer", () => {
   writeFileSync(join(root, ".flatbuffers-format.json"), JSON.stringify({ spaceAfterTypeColon: false }));
   writeFileSync(join(root, "x.fbs"), UGLY);
   assert.equal(cli([join(root, "x.fbs")]).stdout, "enum E:byte { A, B }\n");
+});
+
+// The README's style guide config, read from a file and through flags.
+test("CLI: the style guide options work from a config file and as flags", () => {
+  const root = mkdtempSync(join(tmpdir(), "fbs-config-guide-"));
+  const src = "enum E:byte{A}\ntable T{}\ntable U{}\n";
+  const want = "enum E : byte { A }\ntable T {}\ntable U {}\n";
+  writeFileSync(join(root, "x.fbs"), src);
+  assert.equal(
+    cli([
+      "--no-config",
+      "--space-around-enum-colon",
+      "--collapse-empty-bodies",
+      "--separate-declarations=multiline",
+      join(root, "x.fbs"),
+    ]).stdout,
+    want,
+  );
+  writeFileSync(
+    join(root, ".flatbuffers-format.json"),
+    JSON.stringify({ spaceAroundEnumColon: true, collapseEmptyBodies: true, separateDeclarations: "multiline" }),
+  );
+  assert.equal(cli([join(root, "x.fbs")]).stdout, want);
 });
 
 test("CLI: flags override the config file, --no-config ignores it", () => {

@@ -34,6 +34,9 @@ type PrettierOptions = {
   bracketSpacing?: boolean;
   objectWrap?: "preserve" | "collapse";
   spaceAfterTypeColon?: boolean;
+  spaceAroundEnumColon?: boolean;
+  collapseEmptyBodies?: boolean;
+  separateDeclarations?: "always" | "multiline";
 };
 
 /**
@@ -51,8 +54,9 @@ type PrettierOptions = {
  *   `bracketSpacing` → `bracketSpacing`
  *   `objectWrap`     → `objectWrap`
  *
- * `spaceAfterTypeColon` is the plugin's own option (see `options`
- * below) and reaches the engine under the same name.
+ * `spaceAfterTypeColon`, `spaceAroundEnumColon`, `collapseEmptyBodies`
+ * and `separateDeclarations` are the plugin's own options (see
+ * `options` below) and reach the engine under the same names.
  *
  * The engine always emits `\n`: Prettier converts the output to its own
  * `endOfLine` afterwards, and CRLF from the engine would come out as
@@ -73,6 +77,9 @@ function engineOptions(options: PrettierOptions, fromFile: FormatOptions | null)
     bracketSpacing: options.bracketSpacing ?? true,
     objectWrap: options.objectWrap ?? "preserve",
     spaceAfterTypeColon: options.spaceAfterTypeColon ?? true,
+    spaceAroundEnumColon: options.spaceAroundEnumColon ?? false,
+    collapseEmptyBodies: options.collapseEmptyBodies ?? false,
+    separateDeclarations: options.separateDeclarations ?? "always",
   };
   return { ...base, newline: "\n", endOfLine: "lf" };
 }
@@ -141,6 +148,28 @@ const options: SupportOptions = {
     default: true,
     description: "Put a space after the colon before a type: `x: int` rather than `x:int`.",
     oppositeDescription: "Print `x:int`, as the FlatBuffers style guide does.",
+  },
+  spaceAroundEnumColon: {
+    category: "FlatBuffers",
+    type: "boolean",
+    default: false,
+    description: "Put a space on both sides of an enum's colon: `enum E : byte`.",
+  },
+  collapseEmptyBodies: {
+    category: "FlatBuffers",
+    type: "boolean",
+    default: false,
+    description: "Print an empty body as `{}` on the declaration's line.",
+  },
+  separateDeclarations: {
+    category: "FlatBuffers",
+    type: "choice",
+    default: "always",
+    description: "Which declarations get a blank line around them.",
+    choices: [
+      { value: "always", description: "Every table, struct, enum, union and rpc_service." },
+      { value: "multiline", description: "Only those that take more than one line." },
+    ],
   },
 };
 
