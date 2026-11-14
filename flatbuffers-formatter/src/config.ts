@@ -47,6 +47,7 @@ const KEYS: Record<string, [Check, string]> = {
   trailingComma: oneOf("all", "none"),
   objectWrap: oneOf("preserve", "collapse"),
   bracketSpacing: [isBool, "a boolean"],
+  spaceAfterTypeColon: [isBool, "a boolean"],
   endOfLine: oneOf("lf", "crlf", "auto"),
   checkIgnorePragma: [isBool, "a boolean"],
   requirePragma: [isBool, "a boolean"],

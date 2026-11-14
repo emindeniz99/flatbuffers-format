@@ -94,6 +94,7 @@ test("loadConfig rejects unknown keys and wrong types, naming the file and key",
     ['{"objectWrap": true}', /"objectWrap" must be one of "preserve", "collapse"/],
     ['{"endOfLine": "cr"}', /"endOfLine" must be one of "lf", "crlf", "auto"/],
     ['{"bracketSpacing": 0}', /"bracketSpacing" must be a boolean/],
+    ['{"spaceAfterTypeColon": "no"}', /"spaceAfterTypeColon" must be a boolean/],
     ['{"newline": "\\r\\n"}', /unknown key "newline"/],
     ['{"constructor": 1}', /unknown key "constructor"/],
     ['{"__proto__": 1}', /unknown key "__proto__"/],
@@ -119,6 +120,14 @@ test("CLI: each file uses its nearest config", () => {
   const root = fixture();
   assert.equal(cli([join(root, "a", "x.fbs")]).stdout, EXPANDED_4);
   assert.equal(cli([join(root, "a", "b", "y.fbs")]).stdout, EXPANDED_TAB);
+});
+
+// The config from issue #16: the style guide's `name:type`.
+test("CLI: spaceAfterTypeColon in a config file reaches the printer", () => {
+  const root = mkdtempSync(join(tmpdir(), "fbs-config-colon-"));
+  writeFileSync(join(root, ".flatbuffers-format.json"), JSON.stringify({ spaceAfterTypeColon: false }));
+  writeFileSync(join(root, "x.fbs"), UGLY);
+  assert.equal(cli([join(root, "x.fbs")]).stdout, "enum E:byte { A, B }\n");
 });
 
 test("CLI: flags override the config file, --no-config ignores it", () => {

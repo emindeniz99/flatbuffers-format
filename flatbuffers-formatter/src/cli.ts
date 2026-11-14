@@ -49,6 +49,8 @@ Options:
       --object-wrap <preserve|collapse>
                               Keep bodies expanded when the source breaks after '{' (default: preserve)
       --no-bracket-spacing    Print one-line bodies as {a, b} instead of { a, b }
+      --no-space-after-type-colon
+                              Print x:int instead of x: int, as the FlatBuffers style guide does
       --end-of-line <lf|crlf|auto>
                               Line endings; auto keeps the file's own (default: lf)
       --check-ignore-pragma   Leave files whose top comment has @noformat or @noprettier
@@ -188,6 +190,7 @@ async function main() {
     "trailing-comma"?: string;
     "object-wrap"?: string;
     "no-bracket-spacing"?: boolean;
+    "no-space-after-type-colon"?: boolean;
     "end-of-line"?: string;
     "check-ignore-pragma"?: boolean;
     "require-pragma"?: boolean;
@@ -217,6 +220,7 @@ async function main() {
         "trailing-comma": { type: "string" },
         "object-wrap": { type: "string" },
         "no-bracket-spacing": { type: "boolean" },
+        "no-space-after-type-colon": { type: "boolean" },
         "end-of-line": { type: "string" },
         "check-ignore-pragma": { type: "boolean" },
         "require-pragma": { type: "boolean" },
@@ -295,6 +299,7 @@ async function main() {
   const objectWrap = choice("object-wrap", values["object-wrap"], ["preserve", "collapse"] as const);
   if (objectWrap) opts.objectWrap = objectWrap;
   if (values["no-bracket-spacing"]) opts.bracketSpacing = false;
+  if (values["no-space-after-type-colon"]) opts.spaceAfterTypeColon = false;
   const endOfLine = choice("end-of-line", values["end-of-line"], ["lf", "crlf", "auto"] as const);
   if (endOfLine) opts.endOfLine = endOfLine;
   if (values["check-ignore-pragma"]) opts.checkIgnorePragma = true;
