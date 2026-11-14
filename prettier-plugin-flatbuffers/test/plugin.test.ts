@@ -141,6 +141,17 @@ test("spaceAfterTypeColon is a plugin option a Prettier config can set", async (
   );
 });
 
+test("the other style guide options are plugin options too", async () => {
+  const src = "enum E:byte{A}\ntable T{}\ntable U{}\n";
+  assert.equal(await fmt(src), "enum E: byte { A }\n\ntable T {\n}\n\ntable U {\n}\n");
+  assert.equal(
+    await fmt(src, { spaceAroundEnumColon: true, collapseEmptyBodies: true, separateDeclarations: "multiline" }),
+    "enum E : byte { A }\ntable T {}\ntable U {}\n",
+  );
+  // A choice Prettier does not know is rejected, not ignored.
+  await assert.rejects(fmt(src, { separateDeclarations: "never" }), /separateDeclarations/);
+});
+
 test("requirePragma, checkIgnorePragma and insertPragma use the file's top comment", async () => {
   const ugly = "table T{x:int;}";
   assert.equal(await fmt(ugly, { requirePragma: true }), ugly);
