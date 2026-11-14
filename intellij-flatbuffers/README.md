@@ -108,6 +108,9 @@ in a notification carrying the action that fixes it.
 | Keep bodies expanded when the source breaks after `{` | on | As Prettier's `objectWrap` (`--object-wrap collapse` when off). |
 | Spaces inside one-line braces | on | `{ A, B }` rather than `{A, B}` (`--no-bracket-spacing` when off). |
 | Space after the colon before a type | on | `x: int` rather than `x:int`, the [FlatBuffers style guide](https://flatbuffers.dev/schema/#style-guide)'s spelling (`--no-space-after-type-colon` when off). |
+| Space on both sides of an enum's colon | off | `enum E : byte` when on (`--space-around-enum-colon`); when off, the enum colon follows the setting above. |
+| Print an empty body on one line | off | `table T {}` when on (`--collapse-empty-bodies`). |
+| Blank line around one-line declarations too | on | Untick to leave one-line declarations next to each other where the file has them so (`--separate-declarations multiline`). |
 | Extra arguments  | *(none)*      | Whitespace-separated CLI args for anything not covered above, e.g. `--no-gitignore`. Appended after the settings above, so a flag repeated here wins. |
 
 A format option is passed to the engine **only when you change it**, so
