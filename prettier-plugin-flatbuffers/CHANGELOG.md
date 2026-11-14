@@ -9,6 +9,15 @@ this file. This project follows [Semantic Versioning](https://semver.org/spec/v2
 > pre-publication development. Nothing installed from the registry needs
 > to migrate for them.
 
+## [0.3.1](https://github.com/emindeniz99/flatbuffers-format/compare/prettier-plugin-flatbuffers-v0.3.0...prettier-plugin-flatbuffers-v0.3.1) (2026-11-14)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * flatbuffers-format bumped to 0.7.0
+
 ## [0.3.0](https://github.com/emindeniz99/flatbuffers-format/compare/prettier-plugin-flatbuffers-v0.2.0...prettier-plugin-flatbuffers-v0.3.0) (2026-11-14)
 
 

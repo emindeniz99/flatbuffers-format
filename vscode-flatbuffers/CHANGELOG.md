@@ -8,6 +8,15 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > "breaking changes" between internal names — describe pre-publication
 > development rather than migrations for an installed version.
 
+## [0.4.1](https://github.com/emindeniz99/flatbuffers-format/compare/vscode-flatbuffers-v0.4.0...vscode-flatbuffers-v0.4.1) (2026-11-14)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * flatbuffers-format bumped to 0.7.0
+
 ## [0.4.0](https://github.com/emindeniz99/flatbuffers-format/compare/vscode-flatbuffers-v0.3.0...vscode-flatbuffers-v0.4.0) (2026-11-14)
 
 
