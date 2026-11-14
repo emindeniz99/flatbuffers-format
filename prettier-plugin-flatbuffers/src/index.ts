@@ -35,6 +35,7 @@ type PrettierOptions = {
   objectWrap?: "preserve" | "collapse";
   spaceAfterTypeColon?: boolean;
   spaceAroundEnumColon?: boolean;
+  spaceAfterAttributeColon?: boolean;
   collapseEmptyBodies?: boolean;
   separateDeclarations?: "always" | "multiline";
 };
@@ -54,9 +55,10 @@ type PrettierOptions = {
  *   `bracketSpacing` → `bracketSpacing`
  *   `objectWrap`     → `objectWrap`
  *
- * `spaceAfterTypeColon`, `spaceAroundEnumColon`, `collapseEmptyBodies`
- * and `separateDeclarations` are the plugin's own options (see
- * `options` below) and reach the engine under the same names.
+ * `spaceAfterTypeColon`, `spaceAroundEnumColon`,
+ * `spaceAfterAttributeColon`, `collapseEmptyBodies` and
+ * `separateDeclarations` are the plugin's own options (see `options`
+ * below) and reach the engine under the same names.
  *
  * The engine always emits `\n`: Prettier converts the output to its own
  * `endOfLine` afterwards, and CRLF from the engine would come out as
@@ -78,6 +80,7 @@ function engineOptions(options: PrettierOptions, fromFile: FormatOptions | null)
     objectWrap: options.objectWrap ?? "preserve",
     spaceAfterTypeColon: options.spaceAfterTypeColon ?? true,
     spaceAroundEnumColon: options.spaceAroundEnumColon ?? false,
+    spaceAfterAttributeColon: options.spaceAfterAttributeColon ?? true,
     collapseEmptyBodies: options.collapseEmptyBodies ?? false,
     separateDeclarations: options.separateDeclarations ?? "always",
   };
@@ -154,6 +157,13 @@ const options: SupportOptions = {
     type: "boolean",
     default: false,
     description: "Put a space on both sides of an enum's colon: `enum E : byte`.",
+  },
+  spaceAfterAttributeColon: {
+    category: "FlatBuffers",
+    type: "boolean",
+    default: true,
+    description: "Put a space after the colon in an attribute: `(id: 1)` rather than `(id:1)`.",
+    oppositeDescription: "Print `(id:1)`.",
   },
   collapseEmptyBodies: {
     category: "FlatBuffers",

@@ -58,6 +58,7 @@ Without one, the plugin maps Prettier's options to `flatbuffers-format`'s
 | `objectWrap` (default `"preserve"`) | `"preserve"` keeps a body expanded when the source has a line break after its `{`; `"collapse"` puts every body that fits on one line. |
 | `spaceAfterTypeColon` (default `true`) | The plugin's own option, set in your Prettier config like the others. `false` prints `x:int` instead of `x: int`, as the [FlatBuffers style guide](https://flatbuffers.dev/schema/#style-guide) does. Attribute values (`(key: value)`) keep their space. |
 | `spaceAroundEnumColon` (default `false`) | The plugin's own option. `true` prints `enum E : byte`; otherwise the enum colon follows `spaceAfterTypeColon`. |
+| `spaceAfterAttributeColon` (default `true`) | The plugin's own option. `false` prints attributes as `(id:1)` instead of `(id: 1)`. |
 | `collapseEmptyBodies` (default `false`) | The plugin's own option. `true` prints an empty body as `{}` on the declaration's line. |
 | `separateDeclarations` (default `"always"`) | The plugin's own option. `"always"` puts a blank line around every table, struct, enum, union and rpc_service; `"multiline"` only around those that take more than one line. |
 | `endOfLine`                | Handled by Prettier itself (`"lf"`, `"crlf"`, `"cr"`, `"auto"`). The engine always emits `\n`; Prettier post-processes the output to the requested line ending. |
