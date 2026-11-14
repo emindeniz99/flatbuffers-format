@@ -391,12 +391,13 @@ class Printer {
     // away.
     if (stripLeadingBlankLines(f.leading).length > 0) return false;
     if (f.trailing?.length) return false;
-    if (decl.trailing?.length) return false;
     const body = this.formatField(f);
     const candidate = `${head} ${this.braced(body)}`;
     if (candidate.length > this.opts.lineWidth) return false;
     this.out.push(candidate);
-    this.nl();
+    // A comment after the `}` rides along; it does not count toward
+    // lineWidth, as on any other line.
+    this.endLine(decl.trailing ?? [], 0);
     return true;
   }
 
@@ -460,12 +461,13 @@ class Printer {
       if (leading.length > 0) return false;
       if (v.trailing?.length) return false;
     }
-    if (decl.trailing?.length) return false;
     const parts = decl.values.map((v) => this.formatEnumValInline(v));
     const candidate = `${head} ${this.braced(parts.join(", "))}`;
     if (candidate.length > this.opts.lineWidth) return false;
     this.out.push(candidate);
-    this.nl();
+    // A comment after the `}` rides along; it does not count toward
+    // lineWidth, as on any other line.
+    this.endLine(decl.trailing ?? [], 0);
     return true;
   }
 
@@ -521,12 +523,13 @@ class Printer {
       if (leading.length > 0) return false;
       if (v.trailing?.length) return false;
     }
-    if (decl.trailing?.length) return false;
     const parts = decl.values.map((v) => this.formatUnionVal(v));
     const candidate = `${head} ${this.braced(parts.join(", "))}`;
     if (candidate.length > this.opts.lineWidth) return false;
     this.out.push(candidate);
-    this.nl();
+    // A comment after the `}` rides along; it does not count toward
+    // lineWidth, as on any other line.
+    this.endLine(decl.trailing ?? [], 0);
     return true;
   }
 
