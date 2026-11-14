@@ -8,6 +8,22 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > "breaking changes" between internal names — describe pre-publication
 > development rather than migrations for an installed version.
 
+## [0.4.0](https://github.com/emindeniz99/flatbuffers-format/compare/vscode-flatbuffers-v0.3.0...vscode-flatbuffers-v0.4.0) (2026-11-14)
+
+
+### Features
+
+* **vscode:** add settings for the style guide's layout ([11e7045](https://github.com/emindeniz99/flatbuffers-format/commit/11e7045a8984bcc842f8ab95b852cdda2c90a076)), closes [#16](https://github.com/emindeniz99/flatbuffers-format/issues/16)
+* **vscode:** add the spaceAfterAttributeColon setting ([20a04d6](https://github.com/emindeniz99/flatbuffers-format/commit/20a04d6c713e9d6f2ae3e047bd98af823564ddce))
+* **vscode:** add the spaceAfterTypeColon setting ([d12f1e0](https://github.com/emindeniz99/flatbuffers-format/commit/d12f1e0e980ae5631d91ae05c80d34fd694d49d0)), closes [#16](https://github.com/emindeniz99/flatbuffers-format/issues/16)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * flatbuffers-format bumped to 0.6.0
+
 ## [0.3.0](https://github.com/emindeniz99/flatbuffers-format/compare/vscode-flatbuffers-v0.2.0...vscode-flatbuffers-v0.3.0) (2026-10-19)
 
 

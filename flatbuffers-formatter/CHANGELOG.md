@@ -9,6 +9,24 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > pre-publication development. Nothing installed from the registry needs
 > to migrate for them.
 
+## [0.6.0](https://github.com/emindeniz99/flatbuffers-format/compare/flatbuffers-format-v0.5.0...flatbuffers-format-v0.6.0) (2026-11-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* **formatter:** a body that fits on one line now stays there when a comment follows its closing brace (`enum E { A } // note`); it used to be expanded. Files already formatted with the default options do not change: the default `objectWrap: "preserve"` keeps a body that breaks after its `{` expanded. With `objectWrap: "collapse"`, such bodies now collapse onto one line. To keep one expanded, break the line after its `{` and leave `objectWrap` at "preserve".
+
+### Features
+
+* **formatter:** add opt-in options for the style guide's layout ([5ee4632](https://github.com/emindeniz99/flatbuffers-format/commit/5ee4632574aab75fc893eebf552c0985ce8fe8cd)), closes [#16](https://github.com/emindeniz99/flatbuffers-format/issues/16)
+* **formatter:** add spaceAfterAttributeColon for (id:1) attributes ([36d12b0](https://github.com/emindeniz99/flatbuffers-format/commit/36d12b085e9a1ac8e8dac7c244f7ecff3d99a8d6))
+* **formatter:** add spaceAfterTypeColon for the style guide's x:int ([4657acf](https://github.com/emindeniz99/flatbuffers-format/commit/4657acfacc8d59342282993f354889f7f2f509a9)), closes [#16](https://github.com/emindeniz99/flatbuffers-format/issues/16)
+
+
+### Bug Fixes
+
+* **formatter:** keep a one-line body together when a comment follows ([a23497d](https://github.com/emindeniz99/flatbuffers-format/commit/a23497d82009fcff3878f98845560e1eeef81ad9))
+
 ## [0.5.0](https://github.com/emindeniz99/flatbuffers-format/compare/flatbuffers-format-v0.4.0...flatbuffers-format-v0.5.0) (2026-10-19)
 
 
