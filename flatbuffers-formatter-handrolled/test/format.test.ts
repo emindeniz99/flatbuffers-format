@@ -439,6 +439,30 @@ test("spaceAroundEnumColon: a space on both sides of an enum's colon, whatever s
   assert.match(format(src, { spaceAfterTypeColon: false }), /^enum Color:byte /);
 });
 
+test("maxBlankLines: 0 removes the blank lines between declarations, and stays put", () => {
+  const src = "namespace N;\n\ntable A {\n  x:int;\n}\n\n\n/// doc\ntable B {\n  y:int;\n}\nenum E:byte{X}\n";
+  const out = format(src, { maxBlankLines: 0 });
+  assert.equal(out, "namespace N;\ntable A {\n  x: int;\n}\n/// doc\ntable B {\n  y: int;\n}\nenum E: byte { X }\n");
+  // It used to put the blank lines back on the next run and take them
+  // out on the one after, so --check failed right after --write.
+  assert.equal(format(out, { maxBlankLines: 0 }), out);
+});
+
+test("maxBlankLines above 1 keeps the source's count instead of growing it", () => {
+  // One blank line above the comment, one between it and the table.
+  // Both used to be counted as the separator, so it grew by one on
+  // every run until it reached the cap.
+  const src = "enum E:byte{X}\n\n// kept apart from the table\n\ntable T {\n  x:int;\n  y:int;\n}\n";
+  const want = "enum E: byte { X }\n\n// kept apart from the table\n\ntable T {\n  x: int;\n  y: int;\n}\n";
+  for (const maxBlankLines of [1, 2, 3]) {
+    const out = format(src, { maxBlankLines });
+    assert.equal(out, want, `maxBlankLines ${maxBlankLines}`);
+    assert.equal(format(out, { maxBlankLines }), out, `maxBlankLines ${maxBlankLines}, second run`);
+  }
+  // More blank lines than the cap are cut to the cap.
+  assert.equal(format("table A{}\n\n\n\n\ntable B{}", { maxBlankLines: 2 }), "table A {\n}\n\n\ntable B {\n}\n");
+});
+
 test("a comment after a one-line body does not expand it", () => {
   // The comment sits outside the braces, so the body is the same body
   // with or without it. It used to force the expanded form.
