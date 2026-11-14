@@ -69,12 +69,13 @@ jobs:
           # Intel macOS is still a free standard runner for public repos,
           # but the label moved: macos-13 was retired and replaced by the
           # `-intel` suffixed images (macos-15-intel, macos-26-intel).
-          # The plain macos-14/15/26 labels are all Apple Silicon.
+          # The plain macos-15/26 labels are all Apple Silicon; macos-14
+          # was retired on 2026-11-02.
           - platform: macos-x64
             os: macos-15-intel
             artifact: flatbuffers-format-macos-x64
           - platform: macos-arm64
-            os: macos-14
+            os: macos-15
             artifact: flatbuffers-format-macos-arm64
           - platform: windows-x64
             os: windows-2022
