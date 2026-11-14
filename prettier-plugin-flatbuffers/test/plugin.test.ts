@@ -127,6 +127,20 @@ test("bracketSpacing and objectWrap forward to the engine", async () => {
   assert.equal(await fmt(broken, { objectWrap: "collapse" }), "enum E: byte { A, B }\n");
 });
 
+// Prettier drops options no plugin declares, so this passes only while
+// the plugin both declares the option and forwards it.
+test("spaceAfterTypeColon is a plugin option a Prettier config can set", async () => {
+  const src = "enum E:byte{A,B}\ntable T{x:int=1 (deprecated, priority: 1);}";
+  assert.equal(
+    await fmt(src),
+    "enum E: byte { A, B }\n\ntable T {\n  x: int = 1 (deprecated, priority: 1);\n}\n",
+  );
+  assert.equal(
+    await fmt(src, { spaceAfterTypeColon: false }),
+    "enum E:byte { A, B }\n\ntable T {\n  x:int = 1 (deprecated, priority: 1);\n}\n",
+  );
+});
+
 test("requirePragma, checkIgnorePragma and insertPragma use the file's top comment", async () => {
   const ugly = "table T{x:int;}";
   assert.equal(await fmt(ugly, { requirePragma: true }), ugly);

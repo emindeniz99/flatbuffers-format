@@ -123,6 +123,11 @@
           "type": "boolean",
           "default": true,
           "description": "Spaces inside the braces of a body on one line: `{ A, B }` rather than `{A, B}`. Same as Prettier's option."
+        },
+        "flatbuffers.format.spaceAfterTypeColon": {
+          "type": "boolean",
+          "default": true,
+          "description": "A space after the colon before a type: `x: int`. Turn off for `x:int`, as the FlatBuffers style guide writes it. Attribute values (`(key: value)`) keep their space."
         }
       }
     }

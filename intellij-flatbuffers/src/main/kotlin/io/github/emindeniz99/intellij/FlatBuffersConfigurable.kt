@@ -239,6 +239,12 @@ class FlatBuffersConfigurable(private val project: Project) : BoundConfigurable(
                         .bindSelected(settings::bracketSpacing)
                         .comment("Default: on. Unticking passes <code>--no-bracket-spacing</code>.")
                 }
+                row {
+                    checkBox("Space after the colon before a type: x: int")
+                        .bindSelected(settings::spaceAfterTypeColon)
+                        .comment("Default: on. Unticking prints <code>x:int</code>, as the FlatBuffers " +
+                            "style guide does (<code>--no-space-after-type-colon</code>).")
+                }
             }.enabled(projectConfig == null)
             row("Extra arguments:") {
                 textField()

@@ -64,6 +64,7 @@ class FormatterCliArgsTest {
         assertTrue("the engine ends expanded enums with a comma", fresh.trailingComma)
         assertTrue("the engine keeps bodies the source broke", fresh.preserveObjectWrap)
         assertTrue(fresh.bracketSpacing)
+        assertTrue("the engine writes `x: int` unless told not to", fresh.spaceAfterTypeColon)
         assertEquals("", fresh.extraArgs)
     }
 
@@ -81,6 +82,7 @@ class FormatterCliArgsTest {
         assertEquals(listOf("--trailing-comma", "none"), args { trailingComma = false })
         assertEquals(listOf("--object-wrap", "collapse"), args { preserveObjectWrap = false })
         assertEquals(listOf("--no-bracket-spacing"), args { bracketSpacing = false })
+        assertEquals(listOf("--no-space-after-type-colon"), args { spaceAfterTypeColon = false })
     }
 
     @Test

@@ -47,6 +47,7 @@ Or invoke "Format Document" (Shift+Alt+F) anytime.
 | `flatbuffers.format.trailingComma` | `"all"` | `"all"` puts a comma after the last value of an expanded enum or union; `"none"` leaves it off. |
 | `flatbuffers.format.objectWrap` | `"preserve"` | `"preserve"` keeps a body expanded when the source breaks after its `{`; `"collapse"` puts every body that fits on one line. |
 | `flatbuffers.format.bracketSpacing` | `true` | Spaces inside the braces of a body on one line: `{ A, B }` rather than `{A, B}`. |
+| `flatbuffers.format.spaceAfterTypeColon` | `true` | A space after the colon before a type: `x: int`. Turn off for `x:int`, as the [FlatBuffers style guide](https://flatbuffers.dev/schema/#style-guide) writes it. Attribute values (`(key: value)`) keep their space. |
 
 For details on what each option does, see the
 [`flatbuffers-format` README](https://www.npmjs.com/package/flatbuffers-format#api).

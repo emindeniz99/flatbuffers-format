@@ -17,7 +17,7 @@ import {
   hasPragma,
 } from "flatbuffers-format";
 import { resolveConfig } from "flatbuffers-format/config";
-import type { Parser, Plugin, Printer, SupportLanguage } from "prettier";
+import type { Parser, Plugin, Printer, SupportLanguage, SupportOptions } from "prettier";
 
 /** The single-node AST produced by our parser and consumed by our printer. */
 interface FbsRoot {
@@ -33,6 +33,7 @@ type PrettierOptions = {
   trailingComma?: "all" | "es5" | "none";
   bracketSpacing?: boolean;
   objectWrap?: "preserve" | "collapse";
+  spaceAfterTypeColon?: boolean;
 };
 
 /**
@@ -49,6 +50,9 @@ type PrettierOptions = {
  *                      "es5" both mean a comma after the last value)
  *   `bracketSpacing` → `bracketSpacing`
  *   `objectWrap`     → `objectWrap`
+ *
+ * `spaceAfterTypeColon` is the plugin's own option (see `options`
+ * below) and reaches the engine under the same name.
  *
  * The engine always emits `\n`: Prettier converts the output to its own
  * `endOfLine` afterwards, and CRLF from the engine would come out as
@@ -68,6 +72,7 @@ function engineOptions(options: PrettierOptions, fromFile: FormatOptions | null)
     trailingComma: options.trailingComma === "none" ? "none" : "all",
     bracketSpacing: options.bracketSpacing ?? true,
     objectWrap: options.objectWrap ?? "preserve",
+    spaceAfterTypeColon: options.spaceAfterTypeColon ?? true,
   };
   return { ...base, newline: "\n", endOfLine: "lf" };
 }
@@ -127,5 +132,17 @@ const printers: Record<string, Printer<FbsRoot>> = {
   },
 };
 
-const plugin: Plugin = { languages, parsers, printers };
+// Options Prettier has no equivalent for. Declaring one here is what
+// lets a .prettierrc or the CLI set it; Prettier drops unknown keys.
+const options: SupportOptions = {
+  spaceAfterTypeColon: {
+    category: "FlatBuffers",
+    type: "boolean",
+    default: true,
+    description: "Put a space after the colon before a type: `x: int` rather than `x:int`.",
+    oppositeDescription: "Print `x:int`, as the FlatBuffers style guide does.",
+  },
+};
+
+const plugin: Plugin = { languages, parsers, printers, options };
 export default plugin;

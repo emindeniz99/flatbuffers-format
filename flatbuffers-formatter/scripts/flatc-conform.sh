@@ -149,7 +149,7 @@ if [[ ! -f "${CLI}" ]]; then
 fi
 declare -A OPTION_SETS=(
   [defaults]=""
-  [changed]="--trailing-comma=none --object-wrap=collapse --no-bracket-spacing --use-tabs --indent=1 --line-width=40 --max-blank-lines=0 --wrap-comments --no-compact-single-line"
+  [changed]="--trailing-comma=none --object-wrap=collapse --no-bracket-spacing --no-space-after-type-colon --use-tabs --indent=1 --line-width=40 --max-blank-lines=0 --wrap-comments --no-compact-single-line"
 )
 cp -r "${CORPUS_DIR}" "${OUT_DIR}/original"
 codegen_fail=0

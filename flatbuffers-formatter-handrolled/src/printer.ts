@@ -73,6 +73,8 @@ export type FormatOptions = {
   objectWrap?: "preserve" | "collapse";
   /** Spaces inside a one-line body's braces. Default true. */
   bracketSpacing?: boolean;
+  /** A space after the colon before a type: `x: int` or `x:int`. Default true. */
+  spaceAfterTypeColon?: boolean;
   /** Line endings; "auto" keeps the source's. Overrides `newline`. Default "lf". */
   endOfLine?: "lf" | "crlf" | "auto";
 };
@@ -92,6 +94,7 @@ const DEFAULTS = {
   trailingComma: "all" as "all" | "none",
   objectWrap: "preserve" as "preserve" | "collapse",
   bracketSpacing: true,
+  spaceAfterTypeColon: true,
 };
 
 class Printer {
@@ -326,6 +329,11 @@ class Printer {
     return this.opts.bracketSpacing ? `{ ${body} }` : `{${body}}`;
   }
 
+  // The colon before a type; not the one in `(key: value)` metadata.
+  private typeColon(): string {
+    return this.opts.spaceAfterTypeColon ? ": " : ":";
+  }
+
   private tryCompactTableLike(head: string, decl: TableDecl | StructDecl): boolean {
     if (decl.fields.length !== 1) return false;
     const f = decl.fields[0]!;
@@ -345,7 +353,7 @@ class Printer {
   }
 
   private formatField(field: FieldDecl): string {
-    let s = `${field.name}:${this.formatType(field.type)}`;
+    let s = `${field.name}${this.typeColon()}${this.formatType(field.type).trimStart()}`;
     if (field.defaultValue) {
       s += ` = ${formatScalar(field.defaultValue)}`;
     } else if (field.emptyVectorDefault) {
@@ -376,7 +384,7 @@ class Printer {
 
   private printEnum(decl: EnumDecl) {
     let head = `enum ${decl.name}`;
-    if (decl.baseType) head += `: ${decl.baseType}`;
+    if (decl.baseType) head += `${this.typeColon()}${decl.baseType}`;
     if (decl.metadata) head += " " + this.formatMetadata(decl.metadata);
     if (
       this.opts.compactSingleLine &&
@@ -431,7 +439,7 @@ class Printer {
 
   private printUnion(decl: UnionDecl) {
     let head = `union ${decl.name}`;
-    if (decl.baseType) head += `: ${decl.baseType}`;
+    if (decl.baseType) head += `${this.typeColon()}${decl.baseType}`;
     if (decl.metadata) head += " " + this.formatMetadata(decl.metadata);
     if (
       this.opts.compactSingleLine &&
@@ -472,7 +480,7 @@ class Printer {
   }
 
   private formatUnionVal(v: UnionValueDecl): string {
-    let s = v.alias ? `${v.alias}: ${v.type}` : v.type;
+    let s = v.alias ? `${v.alias}${this.typeColon()}${v.type}` : v.type;
     if (v.value) s += ` = ${formatScalar(v.value)}`;
     if (v.metadata) s += " " + this.formatMetadata(v.metadata);
     return s;
@@ -483,7 +491,7 @@ class Printer {
     this.endLine(decl.openTrailing, 1);
     for (let i = 0; i < decl.methods.length; i++) {
       const m = decl.methods[i]!;
-      let s = `${m.name}(${m.request}): ${m.response}`;
+      let s = `${m.name}(${m.request})${this.typeColon()}${m.response}`;
       if (m.metadata) s += " " + this.formatMetadata(m.metadata);
       s += ";";
       this.writeItem(m, s, i === 0);

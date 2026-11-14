@@ -119,6 +119,15 @@ export type FormatOptions = {
    */
   bracketSpacing?: boolean;
   /**
+   * A space after the colon that comes before a type: `x: int` when
+   * true, `x:int` when false, which is how the FlatBuffers style guide
+   * writes it. Covers field types, the underlying type of an enum or
+   * union, union member aliases and rpc return types. Attribute values
+   * (`(key: value)`) and object literals keep their space either way.
+   * Default: true.
+   */
+  spaceAfterTypeColon?: boolean;
+  /**
    * Line endings: `"lf"`, `"crlf"`, or `"auto"` to keep the ones the
    * source uses (decided by its first line break). Takes precedence
    * over `newline`. Default: "lf".
@@ -158,6 +167,7 @@ const DEFAULTS = {
   trailingComma: "all" as "all" | "none",
   objectWrap: "preserve" as "preserve" | "collapse",
   bracketSpacing: true,
+  spaceAfterTypeColon: true,
 };
 
 // Token types of the grammar's anonymous `{` and `,` literals. Compared
@@ -492,6 +502,12 @@ export class Printer {
     return this.opts.bracketSpacing ? `{ ${body} }` : `{${body}}`;
   }
 
+  // The colon before a type. Attribute values and object literals do
+  // not use it: their colon separates a key from a value.
+  private typeColon(): string {
+    return this.opts.spaceAfterTypeColon ? ": " : ":";
+  }
+
   private leadingFor(ctx: ParserRuleContext, stripBlank: boolean): Trivia[] {
     let trivia = leadingTrivia(ctx, this.stream);
     if (stripBlank) trivia = stripLeadingBlanks(trivia);
@@ -502,7 +518,7 @@ export class Printer {
   }
 
   private formatField(ctx: FieldDeclContext): string {
-    let s = `${ctx.identifier().getText()}: ${this.formatType(ctx.typeRef())}`;
+    let s = `${ctx.identifier().getText()}${this.typeColon()}${this.formatType(ctx.typeRef())}`;
     const scalar = ctx.scalar();
     if (scalar) s += ` = ${this.formatScalar(scalar)}`;
     else if (ctx.emptyVector()) s += " = []";
@@ -568,7 +584,7 @@ export class Printer {
   private printEnum(ctx: EnumDeclContext) {
     const ids = ctx.identifier();
     let head = `enum ${ids[0]!.getText()}`;
-    if (ids.length > 1) head += `: ${ids[1]!.getText()}`;
+    if (ids.length > 1) head += `${this.typeColon()}${ids[1]!.getText()}`;
     const meta = ctx.metadata();
     if (meta) head += ` ${this.formatMetadata(meta)}`;
     const values = ctx.enumValDecl();
@@ -638,7 +654,7 @@ export class Printer {
   private printUnion(ctx: UnionDeclContext) {
     const ids = ctx.identifier();
     let head = `union ${ids[0]!.getText()}`;
-    if (ids.length > 1) head += `: ${ids[1]!.getText()}`;
+    if (ids.length > 1) head += `${this.typeColon()}${ids[1]!.getText()}`;
     const meta = ctx.metadata();
     if (meta) head += ` ${this.formatMetadata(meta)}`;
     const vals = ctx.unionValDecl();
@@ -694,7 +710,7 @@ export class Printer {
   private formatUnionVal(v: UnionValDeclContext): string {
     const alias = v.identifier();
     let s = this.formatNsIdent(v.nsIdent());
-    if (alias) s = `${alias.getText()}: ${s}`;
+    if (alias) s = `${alias.getText()}${this.typeColon()}${s}`;
     const sc = v.scalar();
     if (sc) s += ` = ${this.formatScalar(sc)}`;
     const meta = v.metadata();
@@ -722,7 +738,7 @@ export class Printer {
   private formatRpcMethod(m: RpcMethodContext): string {
     const name = m.identifier().getText();
     const nss = m.nsIdent();
-    let s = `${name}(${this.formatNsIdent(nss[0]!)}): ${this.formatNsIdent(nss[1]!)}`;
+    let s = `${name}(${this.formatNsIdent(nss[0]!)})${this.typeColon()}${this.formatNsIdent(nss[1]!)}`;
     const meta = m.metadata();
     if (meta) s += ` ${this.formatMetadata(meta)}`;
     s += ";";

@@ -101,6 +101,13 @@ class FlatBuffersSettings : PersistentStateComponent<FlatBuffersSettings.State> 
         var bracketSpacing: Boolean = true
 
         /**
+         * `x: int` rather than `x:int`; `false` passes
+         * `--no-space-after-type-colon`, the FlatBuffers style guide's
+         * spelling.
+         */
+        var spaceAfterTypeColon: Boolean = true
+
+        /**
          * Extra CLI arguments, for engine options this panel does not
          * model (`--no-gitignore`, anything the engine adds after this
          * release). Appended after the typed options above so they can
@@ -168,6 +175,10 @@ class FlatBuffersSettings : PersistentStateComponent<FlatBuffersSettings.State> 
     var bracketSpacing: Boolean
         get() = state.bracketSpacing
         set(value) { state.bracketSpacing = value }
+
+    var spaceAfterTypeColon: Boolean
+        get() = state.spaceAfterTypeColon
+        set(value) { state.spaceAfterTypeColon = value }
 
     var extraArgs: String
         get() = state.extraArgs

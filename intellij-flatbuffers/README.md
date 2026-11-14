@@ -107,6 +107,7 @@ in a notification carrying the action that fixes it.
 | Comma after the last enum and union value | on | When the values are one per line, as Prettier's `trailingComma` (`--trailing-comma none` when off). |
 | Keep bodies expanded when the source breaks after `{` | on | As Prettier's `objectWrap` (`--object-wrap collapse` when off). |
 | Spaces inside one-line braces | on | `{ A, B }` rather than `{A, B}` (`--no-bracket-spacing` when off). |
+| Space after the colon before a type | on | `x: int` rather than `x:int`, the [FlatBuffers style guide](https://flatbuffers.dev/schema/#style-guide)'s spelling (`--no-space-after-type-colon` when off). |
 | Extra arguments  | *(none)*      | Whitespace-separated CLI args for anything not covered above, e.g. `--no-gitignore`. Appended after the settings above, so a flag repeated here wins. |
 
 A format option is passed to the engine **only when you change it**, so
