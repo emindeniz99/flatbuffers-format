@@ -75,6 +75,12 @@ export type FormatOptions = {
   bracketSpacing?: boolean;
   /** A space after the colon before a type: `x: int` or `x:int`. Default true. */
   spaceAfterTypeColon?: boolean;
+  /** `enum E : byte`; when false the enum colon follows `spaceAfterTypeColon`. Default false. */
+  spaceAroundEnumColon?: boolean;
+  /** Print a body with nothing in it as `{}` on one line. Default false. */
+  collapseEmptyBodies?: boolean;
+  /** Blank line around every block declaration, or only multi-line ones. Default "always". */
+  separateDeclarations?: "always" | "multiline";
   /** Line endings; "auto" keeps the source's. Overrides `newline`. Default "lf". */
   endOfLine?: "lf" | "crlf" | "auto";
 };
@@ -95,10 +101,16 @@ const DEFAULTS = {
   objectWrap: "preserve" as "preserve" | "collapse",
   bracketSpacing: true,
   spaceAfterTypeColon: true,
+  spaceAroundEnumColon: false,
+  collapseEmptyBodies: false,
+  separateDeclarations: "always" as "always" | "multiline",
 };
 
 class Printer {
   private out: string[] = [];
+  // Where in `out` the top-level declaration being printed starts,
+  // after its leading comments.
+  private declStart = 0;
   private readonly opts: Resolved;
   constructor(opts: FormatOptions) {
     const { endOfLine: _, ...rest } = opts;
@@ -110,21 +122,30 @@ class Printer {
   }
 
   print(schema: Schema): string {
+    const onlyMultiline = this.opts.separateDeclarations === "multiline";
     let prev: TopLevel | undefined;
+    let prevSeparates = false;
     for (const item of schema.items) {
+      // The item is printed first and its separator spliced in before
+      // it, because "multiline" has to see how many lines it took.
+      const mark = this.out.length;
+      this.printTopLevel(item);
+      const separates = isBlockDecl(item) && (!onlyMultiline || this.spansLines(this.declStart));
       if (prev) {
         // Preserve up to `maxBlankLines` consecutive blank lines
         // between top-level items. Always insert a single blank line
         // around block declarations (table / struct / enum / union /
-        // rpc_service / object) even if the source omitted it.
+        // rpc_service / object) even if the source omitted it; with
+        // `separateDeclarations: "multiline"`, only around those that
+        // take several lines.
         const blanks = countBlankLines(item.leading);
-        const forced = isBlockDecl(item) || isBlockDecl(prev);
+        const forced = prevSeparates || separates;
         let want = 0;
         if (forced && blanks === 0) want = 1;
         else if (blanks > 0) want = Math.min(blanks, this.opts.maxBlankLines);
-        for (let k = 0; k < want; k++) this.nl();
+        if (want > 0) this.out.splice(mark, 0, ...Array<string>(want).fill(this.opts.newline));
       }
-      this.printTopLevel(item);
+      prevSeparates = separates;
       prev = item;
     }
     // Emit any trivia that lived between the last decl and EOF —
@@ -145,6 +166,14 @@ class Printer {
   // -----------------------------------------------------------------
   // Helpers
   // -----------------------------------------------------------------
+
+  // Whether the output from chunk `from` on takes more than one line.
+  // "\n" ends both kinds of line break the printer writes.
+  private spansLines(from: number): boolean {
+    const text = this.out.slice(from).join("");
+    const first = text.indexOf("\n");
+    return first !== -1 && first !== text.length - 1;
+  }
 
   private nl() {
     this.out.push(this.opts.newline);
@@ -251,6 +280,7 @@ class Printer {
     // separator between items is handled in `print()`.
     const leading = stripLeadingBlankLines(item.leading);
     this.writeLeading(leading, 0);
+    this.declStart = this.out.length;
     if (item.raw !== undefined && item.leading.some(isIgnoreComment)) {
       this.out.push(item.raw.replace(/\r?\n/g, this.opts.newline));
       this.endLine(item.trailing ?? [], 0);
@@ -305,6 +335,7 @@ class Printer {
   private printTableOrStruct(decl: TableDecl | StructDecl) {
     let head = `${decl.kind} ${decl.name}`;
     if (decl.metadata) head += " " + this.formatMetadata(decl.metadata);
+    if (this.tryEmptyBody(head, decl, decl.fields)) return;
 
     if (
       this.opts.compactSingleLine &&
@@ -332,6 +363,20 @@ class Printer {
   // The colon before a type; not the one in `(key: value)` metadata.
   private typeColon(): string {
     return this.opts.spaceAfterTypeColon ? ": " : ":";
+  }
+
+  // The colon before the underlying type of an enum or union.
+  private enumColon(): string {
+    return this.opts.spaceAroundEnumColon ? " : " : this.typeColon();
+  }
+
+  // `head {}` for a body with nothing in it, not even a comment.
+  private tryEmptyBody(head: string, decl: WithBody & WithTrivia, items: WithTrivia[]): boolean {
+    if (!this.opts.collapseEmptyBodies || items.length > 0) return false;
+    if (bodyHasComments(decl, items)) return false;
+    this.out.push(`${head} {}`);
+    this.endLine(decl.trailing ?? [], 0);
+    return true;
   }
 
   private tryCompactTableLike(head: string, decl: TableDecl | StructDecl): boolean {
@@ -384,8 +429,9 @@ class Printer {
 
   private printEnum(decl: EnumDecl) {
     let head = `enum ${decl.name}`;
-    if (decl.baseType) head += `${this.typeColon()}${decl.baseType}`;
+    if (decl.baseType) head += `${this.enumColon()}${decl.baseType}`;
     if (decl.metadata) head += " " + this.formatMetadata(decl.metadata);
+    if (this.tryEmptyBody(head, decl, decl.values)) return;
     if (
       this.opts.compactSingleLine &&
       !bodyHasComments(decl, decl.values) &&
@@ -439,8 +485,9 @@ class Printer {
 
   private printUnion(decl: UnionDecl) {
     let head = `union ${decl.name}`;
-    if (decl.baseType) head += `${this.typeColon()}${decl.baseType}`;
+    if (decl.baseType) head += `${this.enumColon()}${decl.baseType}`;
     if (decl.metadata) head += " " + this.formatMetadata(decl.metadata);
+    if (this.tryEmptyBody(head, decl, decl.values)) return;
     if (
       this.opts.compactSingleLine &&
       !bodyHasComments(decl, decl.values) &&
@@ -487,7 +534,9 @@ class Printer {
   }
 
   private printRpcService(decl: RpcServiceDecl) {
-    this.out.push(`rpc_service ${decl.name} {`);
+    const head = `rpc_service ${decl.name}`;
+    if (this.tryEmptyBody(head, decl, decl.methods)) return;
+    this.out.push(`${head} {`);
     this.endLine(decl.openTrailing, 1);
     for (let i = 0; i < decl.methods.length; i++) {
       const m = decl.methods[i]!;
