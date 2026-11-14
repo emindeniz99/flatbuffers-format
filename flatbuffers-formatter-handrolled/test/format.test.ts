@@ -400,6 +400,32 @@ test("bracketSpacing: false prints one-line bodies without inner spaces", () => 
   assert.equal(format(out, { bracketSpacing: false }), out);
 });
 
+test("spaceAfterTypeColon: false drops the space before every type, and only there", () => {
+  const src = [
+    "enum Color : byte { Red, Green }",
+    "union Any { M : Monster, Weapon }",
+    "struct Vec3 { v : [float:3]; }",
+    "table Monster {\n  pos : Vec3;\n  hp : short = 100 (deprecated, priority: 1);\n  inv : [ubyte];\n}",
+    'rpc_service S {\n  Store(Monster) : Stat (streaming: "none");\n}',
+  ].join("\n");
+  const tight = [
+    "enum Color:byte { Red, Green }",
+    "union Any { M:Monster, Weapon }",
+    "struct Vec3 { v:[float:3]; }",
+    // The colon in `(priority: 1)` separates a key from a value, so it
+    // keeps its space, as in the style guide's own example.
+    "table Monster {\n  pos:Vec3;\n  hp:short = 100 (deprecated, priority: 1);\n  inv:[ubyte];\n}",
+    'rpc_service S {\n  Store(Monster):Stat (streaming: "none");\n}',
+  ].join("\n\n");
+  const out = format(src, { spaceAfterTypeColon: false });
+  assert.equal(out, `${tight}\n`);
+  assert.equal(format(out, { spaceAfterTypeColon: false }), out);
+  // The default is unchanged, and undoes the option.
+  assert.equal(format(out), format(src));
+  assert.equal(format(src), format(src, { spaceAfterTypeColon: true }));
+  assert.match(format(src), /pos: Vec3;/);
+});
+
 test("endOfLine: crlf, lf and auto", () => {
   const crlf = "enum E:byte{A,B}\r\ntable T{x:int;}\r\n";
   assert.equal(format(crlf), "enum E: byte { A, B }\n\ntable T { x: int; }\n");
