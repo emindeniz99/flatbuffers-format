@@ -77,6 +77,8 @@ export type FormatOptions = {
   spaceAfterTypeColon?: boolean;
   /** `enum E : byte`; when false the enum colon follows `spaceAfterTypeColon`. Default false. */
   spaceAroundEnumColon?: boolean;
+  /** A space after the colon in an attribute: `(id: 1)` or `(id:1)`. Default true. */
+  spaceAfterAttributeColon?: boolean;
   /** Print a body with nothing in it as `{}` on one line. Default false. */
   collapseEmptyBodies?: boolean;
   /** Blank line around every block declaration, or only multi-line ones. Default "always". */
@@ -102,6 +104,7 @@ const DEFAULTS = {
   bracketSpacing: true,
   spaceAfterTypeColon: true,
   spaceAroundEnumColon: false,
+  spaceAfterAttributeColon: true,
   collapseEmptyBodies: false,
   separateDeclarations: "always" as "always" | "multiline",
 };
@@ -420,9 +423,10 @@ class Printer {
 
   private formatMetadata(m: Metadata): string {
     if (m.entries.length === 0) return "()";
+    const colon = this.opts.spaceAfterAttributeColon ? ": " : ":";
     const parts = m.entries.map((e) => {
       if (e.value === undefined) return e.key;
-      return `${e.key}: ${formatScalar(e.value)}`;
+      return `${e.key}${colon}${formatScalar(e.value)}`;
     });
     return `(${parts.join(", ")})`;
   }

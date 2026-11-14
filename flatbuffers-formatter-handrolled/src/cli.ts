@@ -40,6 +40,8 @@ Options:
                               Print x:int instead of x: int, as the FlatBuffers style guide does
       --space-around-enum-colon
                               Print enum E : byte, with a space on both sides of the colon
+      --no-space-after-attribute-colon
+                              Print (id:1) instead of (id: 1)
       --collapse-empty-bodies Print an empty body as {} on the declaration's line
       --separate-declarations <always|multiline>
                               Blank line around every block declaration, or only multi-line ones (default: always)
@@ -164,6 +166,7 @@ async function main() {
     "no-bracket-spacing"?: boolean;
     "no-space-after-type-colon"?: boolean;
     "space-around-enum-colon"?: boolean;
+    "no-space-after-attribute-colon"?: boolean;
     "collapse-empty-bodies"?: boolean;
     "separate-declarations"?: string;
     "end-of-line"?: string;
@@ -189,6 +192,7 @@ async function main() {
         "no-bracket-spacing": { type: "boolean" },
         "no-space-after-type-colon": { type: "boolean" },
         "space-around-enum-colon": { type: "boolean" },
+        "no-space-after-attribute-colon": { type: "boolean" },
         "collapse-empty-bodies": { type: "boolean" },
         "separate-declarations": { type: "string" },
         "end-of-line": { type: "string" },
@@ -255,6 +259,7 @@ async function main() {
   if (values["no-bracket-spacing"]) opts.bracketSpacing = false;
   if (values["no-space-after-type-colon"]) opts.spaceAfterTypeColon = false;
   if (values["space-around-enum-colon"]) opts.spaceAroundEnumColon = true;
+  if (values["no-space-after-attribute-colon"]) opts.spaceAfterAttributeColon = false;
   if (values["collapse-empty-bodies"]) opts.collapseEmptyBodies = true;
   const separateDeclarations = choice("separate-declarations", values["separate-declarations"], [
     "always",
