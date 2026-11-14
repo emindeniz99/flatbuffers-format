@@ -56,6 +56,7 @@ Without one, the plugin maps Prettier's options to `flatbuffers-format`'s
 | `trailingComma` (default `"all"`) | `"all"` and `"es5"` put a comma after the last value of an expanded enum or union; `"none"` leaves it off. |
 | `bracketSpacing` (default `true`) | `{ A, B }` or `{A, B}` for bodies on one line. |
 | `objectWrap` (default `"preserve"`) | `"preserve"` keeps a body expanded when the source has a line break after its `{`; `"collapse"` puts every body that fits on one line. |
+| `spaceAfterTypeColon` (default `true`) | The plugin's own option, set in your Prettier config like the others. `false` prints `x:int` instead of `x: int`, as the [FlatBuffers style guide](https://flatbuffers.dev/schema/#style-guide) does. Attribute values (`(key: value)`) keep their space. |
 | `endOfLine`                | Handled by Prettier itself (`"lf"`, `"crlf"`, `"cr"`, `"auto"`). The engine always emits `\n`; Prettier post-processes the output to the requested line ending. |
 | `requirePragma`, `checkIgnorePragma`, `insertPragma` | Work as in Prettier: the pragmas are `@format` / `@prettier` and `@noformat` / `@noprettier` in a comment at the top of the file. |
 
