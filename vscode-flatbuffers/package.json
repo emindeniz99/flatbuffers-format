@@ -134,6 +134,11 @@
           "default": false,
           "description": "A space on both sides of an enum's colon: `enum E : byte`. When off, that colon follows `spaceAfterTypeColon`."
         },
+        "flatbuffers.format.spaceAfterAttributeColon": {
+          "type": "boolean",
+          "default": true,
+          "description": "A space after the colon in an attribute: `(id: 1)`. Turn off for `(id:1)`."
+        },
         "flatbuffers.format.collapseEmptyBodies": {
           "type": "boolean",
           "default": false,

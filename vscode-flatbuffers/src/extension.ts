@@ -93,6 +93,9 @@ function readFormatOptions(
   const spaceAroundEnumColon = config.get<boolean>("format.spaceAroundEnumColon");
   if (typeof spaceAroundEnumColon === "boolean") opts.spaceAroundEnumColon = spaceAroundEnumColon;
 
+  const spaceAfterAttributeColon = config.get<boolean>("format.spaceAfterAttributeColon");
+  if (typeof spaceAfterAttributeColon === "boolean") opts.spaceAfterAttributeColon = spaceAfterAttributeColon;
+
   const collapseEmptyBodies = config.get<boolean>("format.collapseEmptyBodies");
   if (typeof collapseEmptyBodies === "boolean") opts.collapseEmptyBodies = collapseEmptyBodies;
 
