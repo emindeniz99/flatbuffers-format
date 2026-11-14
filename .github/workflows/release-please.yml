@@ -69,6 +69,59 @@ jobs:
           manifest-file: .release-please-manifest.json
           token: ${{ secrets.GITHUB_TOKEN }}
 
+  # Four packages ship the engine: the Prettier plugin, the VS Code
+  # extension and the editors package depend on it, and the JetBrains
+  # plugin bundles a copy. A release that bumps the engine and leaves one
+  # of them out leaves that package's users on the old engine, and
+  # nothing says so: the release PR for engine 0.7.0 first came up without
+  # the JetBrains plugin and looked complete.
+  #
+  # release-please-config.json is what keeps them together (node-workspace
+  # for the npm packages, linked-versions for the JetBrains plugin). This
+  # job checks the result, the release PR itself, so a config slip or a
+  # new package that ships the engine shows up as a red run before anyone
+  # merges the release.
+  #
+  # It is a job of its own on purpose. As a step of the job above, a
+  # failure would skip every publish job on a run that also created
+  # releases.
+  check-release-pr:
+    name: release PR bumps every package that ships the engine
+    needs: release-please
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Compare the release PR's files with the list
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pr=$(gh api "repos/$GITHUB_REPOSITORY/pulls?state=open&head=$GITHUB_REPOSITORY_OWNER:release-please--branches--main" --jq '.[0].number // empty')
+          if [ -z "$pr" ]; then
+            echo "No open release PR."
+            exit 0
+          fi
+          files=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$pr/files" --paginate --jq '.[].filename')
+          if ! grep -qxF "flatbuffers-formatter/package.json" <<<"$files"; then
+            echo "Release PR #$pr does not bump the engine."
+            exit 0
+          fi
+          missing=0
+          for file in \
+            prettier-plugin-flatbuffers/package.json \
+            vscode-flatbuffers/package.json \
+            flatbuffers-format-editors/package.json \
+            intellij-flatbuffers/gradle.properties
+          do
+            if ! grep -qxF "$file" <<<"$files"; then
+              echo "::error::Release PR #$pr bumps the engine but not $file, so that package would keep shipping the old engine. Check the plugins in release-please-config.json."
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ] && echo "Release PR #$pr bumps the engine and all four packages that ship it."
+          exit "$missing"
+
   publish-flatbuffers-format:
     name: npm publish flatbuffers-format
     needs: release-please
