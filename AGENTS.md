@@ -100,6 +100,14 @@ migration path.
 - Never use `--no-verify`, `--amend` on pushed commits, or force-push
   without explicit user confirmation.
 
+## Branch names
+
+`<type>/<short-kebab-topic>`, where `<type>` is one of the commit
+types above: `feat/attribute-colon-option`, `fix/crlf-comments`,
+`ci/native-binaries-runner`, `docs/style-guide-section`. Name the
+branch for what the pull request does. Don't push work on a
+tool-generated name (`claude/…`, `codex/…`, `patch-1`).
+
 ## Merging pull requests — always a real merge commit
 
 - **Default to the `merge` method** — a real merge commit that preserves
