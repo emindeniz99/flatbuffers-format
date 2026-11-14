@@ -87,6 +87,9 @@ function readFormatOptions(
   const bracketSpacing = config.get<boolean>("format.bracketSpacing");
   if (typeof bracketSpacing === "boolean") opts.bracketSpacing = bracketSpacing;
 
+  const spaceAfterTypeColon = config.get<boolean>("format.spaceAfterTypeColon");
+  if (typeof spaceAfterTypeColon === "boolean") opts.spaceAfterTypeColon = spaceAfterTypeColon;
+
   return opts;
 }
 
