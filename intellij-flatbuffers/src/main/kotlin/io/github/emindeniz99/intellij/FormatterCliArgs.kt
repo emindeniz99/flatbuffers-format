@@ -107,6 +107,8 @@ object FormatterCliArgs {
 
         if (!state.bracketSpacing) add("--no-bracket-spacing")
 
+        if (!state.spaceAfterTypeColon) add("--no-space-after-type-colon")
+
         // Last, always: the free-text box is the escape hatch for
         // options this panel does not model, and for overriding one that
         // it does. The engine keeps the last occurrence of a repeated
