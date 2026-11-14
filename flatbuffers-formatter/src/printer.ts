@@ -128,6 +128,26 @@ export type FormatOptions = {
    */
   spaceAfterTypeColon?: boolean;
   /**
+   * A space on both sides of the colon before the underlying type of
+   * an enum or union: `enum Color : byte`, as the example in the
+   * FlatBuffers style guide writes it. When false, that colon follows
+   * `spaceAfterTypeColon`. Default: false.
+   */
+  spaceAroundEnumColon?: boolean;
+  /**
+   * Print a body with nothing in it, not even a comment, as `{}` on
+   * the declaration's line: `table Weapon {}`. When false, the braces
+   * go on two lines. Default: false.
+   */
+  collapseEmptyBodies?: boolean;
+  /**
+   * `"always"` puts a blank line around every table, struct, enum,
+   * union, rpc_service and object. `"multiline"` does so only around
+   * those that take more than one line, so one-line declarations stay
+   * next to each other where the source has them so. Default: "always".
+   */
+  separateDeclarations?: "always" | "multiline";
+  /**
    * Line endings: `"lf"`, `"crlf"`, or `"auto"` to keep the ones the
    * source uses (decided by its first line break). Takes precedence
    * over `newline`. Default: "lf".
@@ -168,6 +188,9 @@ const DEFAULTS = {
   objectWrap: "preserve" as "preserve" | "collapse",
   bracketSpacing: true,
   spaceAfterTypeColon: true,
+  spaceAroundEnumColon: false,
+  collapseEmptyBodies: false,
+  separateDeclarations: "always" as "always" | "multiline",
 };
 
 // Token types of the grammar's anonymous `{` and `,` literals. Compared
@@ -186,6 +209,9 @@ const BLOCK_DECL_RULES = new Set([
 
 export class Printer {
   private out: string[] = [];
+  // Where in `out` the top-level declaration being printed starts,
+  // after its leading comments.
+  private declStart = 0;
   private readonly opts: Resolved;
   constructor(private readonly stream: BufferedTokenStream, opts: FormatOptions) {
     const { endOfLine: _, checkIgnorePragma: _i, requirePragma: _r, unsafe: _u, ...rest } = opts;
@@ -198,29 +224,34 @@ export class Printer {
 
   print(schema: SchemaContext): string {
     const decls = schema.decl();
+    const onlyMultiline = this.opts.separateDeclarations === "multiline";
     let prev: DeclContext | undefined;
+    let prevSeparates = false;
     for (const d of decls) {
       const item = d.getChild(0);
       if (!(item instanceof ParserRuleContext)) continue;
 
+      // The item is printed first and its separator spliced in before
+      // it, because "multiline" has to see how many lines it took.
+      const mark = this.out.length;
+      this.printDeclItem(item);
+      const separates =
+        isBlockCtxName(item.constructor.name) && (!onlyMultiline || this.spansLines(this.declStart));
       if (prev) {
-        const prevName = prev.getChild(0)?.constructor.name ?? "";
-        const itemName = item.constructor.name;
-        const wasBlock = isBlockCtxName(prevName);
-        const isBlock = isBlockCtxName(itemName);
         const blanks = countBlankLines(leadingTrivia(item, this.stream));
         // Decl separator: at least one blank line around block decls
-        // or when the user had any blank line in the source; otherwise
-        // adjacent single-line decls (include / namespace / ...) stay
-        // glued together. The user's blank-line count, when present,
-        // is honoured up to `maxBlankLines`.
-        const forced = wasBlock || isBlock;
+        // (with `separateDeclarations: "multiline"`, only around those
+        // that take several lines) or when the user had any blank line
+        // in the source; otherwise adjacent decls stay glued together.
+        // The user's blank-line count, when present, is honoured up to
+        // `maxBlankLines`.
+        const forced = prevSeparates || separates;
         let want = 0;
         if (forced && blanks === 0) want = 1;
         else if (blanks > 0) want = Math.min(blanks, this.opts.maxBlankLines);
-        for (let k = 0; k < want; k++) this.nl();
+        if (want > 0) this.out.splice(mark, 0, ...Array<string>(want).fill(this.opts.newline));
       }
-      this.printDeclItem(item);
+      prevSeparates = separates;
       prev = d;
     }
 
@@ -236,6 +267,14 @@ export class Printer {
 
   // ---------------------------------------------------------------
   private nl() { this.out.push(this.opts.newline); }
+
+  // Whether the output from chunk `from` on takes more than one line.
+  // "\n" ends both kinds of line break the printer writes.
+  private spansLines(from: number): boolean {
+    const text = this.out.slice(from).join("");
+    const first = text.indexOf("\n");
+    return first !== -1 && first !== text.length - 1;
+  }
   private indent(depth: number) {
     const ch = this.opts.useTabs ? "\t" : " ";
     return ch.repeat(this.opts.indent * depth);
@@ -368,6 +407,7 @@ export class Printer {
   // ---------------------------------------------------------------
   private printDeclItem(item: ParserRuleContext) {
     this.writeLeading(item, 0, true);
+    this.declStart = this.out.length;
     if (leadingTrivia(item, this.stream).some(isIgnoreComment)) {
       const start = item.start!.tokenIndex;
       const stop = item.stop!.tokenIndex;
@@ -437,6 +477,7 @@ export class Printer {
     const fields = ctx.fieldDecl();
     const open = this.openBrace(ctx);
     const close = ctx.stop!.tokenIndex;
+    if (this.tryEmptyBody(head, open, close, fields.length)) return;
 
     // Try compact single-line form: only valid for SINGLE-field bodies,
     // and only when no field has trivia / metadata and the result fits
@@ -506,6 +547,20 @@ export class Printer {
   // not use it: their colon separates a key from a value.
   private typeColon(): string {
     return this.opts.spaceAfterTypeColon ? ": " : ":";
+  }
+
+  // The colon before the underlying type of an enum or union.
+  private enumColon(): string {
+    return this.opts.spaceAroundEnumColon ? " : " : this.typeColon();
+  }
+
+  // `head {}` for a body with nothing in it, not even a comment.
+  private tryEmptyBody(head: string, open: number, close: number, items: number): boolean {
+    if (!this.opts.collapseEmptyBodies || items > 0) return false;
+    if (hasCommentsBetween(open, close, this.stream)) return false;
+    this.out.push(`${head} {}`);
+    this.endLine(close, 0);
+    return true;
   }
 
   private leadingFor(ctx: ParserRuleContext, stripBlank: boolean): Trivia[] {
@@ -584,12 +639,13 @@ export class Printer {
   private printEnum(ctx: EnumDeclContext) {
     const ids = ctx.identifier();
     let head = `enum ${ids[0]!.getText()}`;
-    if (ids.length > 1) head += `${this.typeColon()}${ids[1]!.getText()}`;
+    if (ids.length > 1) head += `${this.enumColon()}${ids[1]!.getText()}`;
     const meta = ctx.metadata();
     if (meta) head += ` ${this.formatMetadata(meta)}`;
     const values = ctx.enumValDecl();
     const open = this.openBrace(ctx);
     const close = ctx.stop!.tokenIndex;
+    if (this.tryEmptyBody(head, open, close, values.length)) return;
     if (
       this.opts.compactSingleLine &&
       !hasCommentsBetween(open, close, this.stream) &&
@@ -654,12 +710,13 @@ export class Printer {
   private printUnion(ctx: UnionDeclContext) {
     const ids = ctx.identifier();
     let head = `union ${ids[0]!.getText()}`;
-    if (ids.length > 1) head += `${this.typeColon()}${ids[1]!.getText()}`;
+    if (ids.length > 1) head += `${this.enumColon()}${ids[1]!.getText()}`;
     const meta = ctx.metadata();
     if (meta) head += ` ${this.formatMetadata(meta)}`;
     const vals = ctx.unionValDecl();
     const open = this.openBrace(ctx);
     const close = ctx.stop!.tokenIndex;
+    if (this.tryEmptyBody(head, open, close, vals.length)) return;
     if (
       this.opts.compactSingleLine &&
       !hasCommentsBetween(open, close, this.stream) &&
@@ -719,10 +776,13 @@ export class Printer {
   }
 
   private printRpc(ctx: RpcServiceDeclContext) {
-    this.out.push(`rpc_service ${ctx.identifier().getText()} {`);
+    const head = `rpc_service ${ctx.identifier().getText()}`;
+    const open = this.openBrace(ctx);
     const close = ctx.stop!.tokenIndex;
-    this.endLine(this.openBrace(ctx), 1);
     const methods = ctx.rpcMethod();
+    if (this.tryEmptyBody(head, open, close, methods.length)) return;
+    this.out.push(`${head} {`);
+    this.endLine(open, 1);
     methods.forEach((m, i) => {
       this.writeLeading(m, 1, i === 0);
       this.writeInterior(m.start!.tokenIndex, m.stop!.tokenIndex, 1);

@@ -120,6 +120,9 @@ Options:
 | `--object-wrap <preserve\|collapse>` | Keep a body expanded when the source breaks after its `{` (default: `preserve`) |
 | `--no-bracket-spacing` | Print one-line bodies as `{a, b}` instead of `{ a, b }` |
 | `--no-space-after-type-colon` | Print `x:int` instead of `x: int`, as the FlatBuffers style guide does |
+| `--space-around-enum-colon` | Print `enum E : byte`, with a space on both sides of the colon |
+| `--collapse-empty-bodies` | Print an empty body as `{}` on the declaration's line |
+| `--separate-declarations <always\|multiline>` | Blank line around every block declaration, or only around multi-line ones (default: `always`) |
 | `--end-of-line <lf\|crlf\|auto>` | Line endings; `auto` keeps the file's own (default: `lf`) |
 | `--check-ignore-pragma` | Leave files whose top comment has `@noformat` or `@noprettier` |
 | `--require-pragma` | Format only files whose top comment has `@format` or `@prettier` |
@@ -151,7 +154,8 @@ all format the same way without per-developer flags or IDE settings:
 
 Keys are the format options: `indent`, `useTabs`, `lineWidth`,
 `compactSingleLine`, `maxBlankLines`, `wrapComments`, `commentWidth`,
-`spaceAfterTypeColon`, `trailingComma`, `objectWrap`, `bracketSpacing`,
+`spaceAfterTypeColon`, `spaceAroundEnumColon`, `collapseEmptyBodies`,
+`separateDeclarations`, `trailingComma`, `objectWrap`, `bracketSpacing`,
 `endOfLine`, `checkIgnorePragma`, `requirePragma`. Omitted keys keep
 their defaults.
 
@@ -198,20 +202,42 @@ to disable. **Outside a repo** (or if `git` isn't in `PATH`),
 The [official style guide](https://flatbuffers.dev/schema/#style-guide)
 asks for the opening brace on the declaration's line, a 2-space indent,
 a space on both sides of `=`, and none around the `:` before a type.
-The defaults do the first three. For the fourth, set:
+The defaults do the first three. This config does the fourth, and also
+matches the layout of the guide's example schema:
 
 ```json
 {
-  "spaceAfterTypeColon": false
+  "spaceAfterTypeColon": false,
+  "spaceAroundEnumColon": true,
+  "collapseEmptyBodies": true,
+  "separateDeclarations": "multiline"
 }
 ```
 
-`x: int` then prints as `x:int`. The option covers field types, the
-underlying type of an enum or union, union member aliases and rpc
-return types. Attribute values (`(priority: 1)`) keep their space, as
-they do in the guide's own example. The guide's naming rules
-(`UpperCamelCase` types, `snake_case` fields) are not checked: the
-formatter never renames anything.
+| Option | Default prints | With the value above |
+|---|---|---|
+| `spaceAfterTypeColon` | `pos: Vec3;` | `pos:Vec3;` |
+| `spaceAroundEnumColon` | `enum Color: byte` | `enum Color : byte` |
+| `collapseEmptyBodies` | `table Weapon {` and `}` on two lines | `table Weapon {}` |
+| `separateDeclarations` | a blank line between `table Weapon {}` and `table Pickup {}` | the two stay on adjacent lines, as written |
+
+- `spaceAfterTypeColon` covers field types, the underlying type of an
+  enum or union, union member aliases and rpc return types. Attribute
+  values (`(priority: 1)`) keep their space, as they do in the guide's
+  example.
+- `spaceAroundEnumColon` only affects the colon before the underlying
+  type of an enum or union. Without it, that colon follows
+  `spaceAfterTypeColon`.
+- `collapseEmptyBodies` leaves a body that holds a comment open.
+- `separateDeclarations: "multiline"` still puts a blank line around
+  every declaration that takes more than one line. One-line
+  declarations keep the blank lines the source has between them, up to
+  `maxBlankLines`.
+
+All four default to the output earlier versions produced, so adding
+none of them changes nothing. The guide's naming rules (`UpperCamelCase`
+types, `snake_case` fields) are not checked: the formatter never renames
+anything.
 
 ## Install
 
@@ -402,6 +428,9 @@ type FormatOptions = {
   objectWrap?: "preserve" | "collapse";   // default "preserve" — keep bodies the source broke after `{`
   bracketSpacing?: boolean;               // default true — `{ a, b }` vs `{a, b}`
   spaceAfterTypeColon?: boolean;          // default true — `x: int` vs `x:int`
+  spaceAroundEnumColon?: boolean;         // default false — `enum E : byte`
+  collapseEmptyBodies?: boolean;          // default false — `table T {}` on one line
+  separateDeclarations?: "always" | "multiline"; // default "always" — blank line around every block declaration
   endOfLine?: "lf" | "crlf" | "auto";     // default "lf" — overrides `newline`
   checkIgnorePragma?: boolean;            // default false — skip files with @noformat / @noprettier
   requirePragma?: boolean;                // default false — format only files with @format / @prettier
@@ -467,7 +496,9 @@ commit the new baseline in the same PR.
 
 | Construct | Rule | Configurable? |
 |---|---|---|
-| Top-level | One blank line between block declarations (table/struct/enum/union/rpc_service). Single statements collapse together. | `maxBlankLines` (default 1) |
+| Top-level | One blank line between block declarations (table/struct/enum/union/rpc_service). Single statements collapse together. | `maxBlankLines` (default 1), `separateDeclarations` (default `always`; `multiline` lets one-line declarations stay together) |
+| Enum and union headers | `enum Name: type`, following the field colon. | `spaceAfterTypeColon`, `spaceAroundEnumColon` (default off; on prints `enum Name : type`) |
+| Empty bodies | `{` and `}` on two lines. | `collapseEmptyBodies` (default off; on prints `{}`) |
 | Fields | `name: Type` (no space before the colon, one after it). Defaults: ` = value`. Metadata: ` (key, key: value)`. Trailing `;`. | `spaceAfterTypeColon` (default on; off prints `name:Type`) |
 | Enum/union/single-field bodies | Collapse to one line if the result fits in `lineWidth`; expand otherwise. A body with a line break after its `{` in the source stays expanded, like a Prettier object. Any comment inside the body, and per-value metadata, force expansion. | `compactSingleLine` (default on), `objectWrap` (default `preserve`), `lineWidth` (default 80), `bracketSpacing` (default on) |
 | Enum values | One per line (when expanded), comma-separated, with a comma after the last value. A one-line body never has one. | `trailingComma` (default `all`) |

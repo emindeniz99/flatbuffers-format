@@ -103,6 +103,23 @@ for f in "$CORPUS"/*.fbs; do
 done
 echo "Non-default combo ($flags2): $combo2_fail mismatches"
 
+# The options for the FlatBuffers style guide's layout, together.
+flags3="--no-space-after-type-colon --space-around-enum-colon --collapse-empty-bodies --separate-declarations=multiline"
+combo3_fail=0
+for f in "$CORPUS"/*.fbs; do
+  name=$(basename "$f")
+  h=$($HAND $flags3 "$f" 2>/dev/null);  h_st=$?
+  a=$($ANTL $flags3 "$f" 2>/dev/null);  a_st=$?
+  if [ $h_st -ne 0 ] && [ $a_st -ne 0 ]; then
+    continue
+  fi
+  if [ "$h" != "$a" ]; then
+    echo "  COMBO-MISMATCH $name"
+    combo3_fail=$((combo3_fail+1))
+  fi
+done
+echo "Non-default combo ($flags3): $combo3_fail mismatches"
+
 # Third pass: every corpus file with CRLF line endings. Windows checkouts
 # have them, and the two lexers once disagreed on them (the hand-rolled
 # one kept the `\r` inside `//` comments).
@@ -122,4 +139,4 @@ for f in "$CORPUS"/*.fbs; do
 done
 echo "CRLF line endings: $crlf_fail mismatches"
 
-[ $fail -eq 0 ] && [ $parse_div -eq 0 ] && [ $combo_fail -eq 0 ] && [ $combo2_fail -eq 0 ] && [ $crlf_fail -eq 0 ]
+[ $fail -eq 0 ] && [ $parse_div -eq 0 ] && [ $combo_fail -eq 0 ] && [ $combo2_fail -eq 0 ] && [ $combo3_fail -eq 0 ] && [ $crlf_fail -eq 0 ]
