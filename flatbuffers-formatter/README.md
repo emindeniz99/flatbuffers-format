@@ -121,6 +121,7 @@ Options:
 | `--no-bracket-spacing` | Print one-line bodies as `{a, b}` instead of `{ a, b }` |
 | `--no-space-after-type-colon` | Print `x:int` instead of `x: int`, as the FlatBuffers style guide does |
 | `--space-around-enum-colon` | Print `enum E : byte`, with a space on both sides of the colon |
+| `--no-space-after-attribute-colon` | Print `(id:1)` instead of `(id: 1)` |
 | `--collapse-empty-bodies` | Print an empty body as `{}` on the declaration's line |
 | `--separate-declarations <always\|multiline>` | Blank line around every block declaration, or only around multi-line ones (default: `always`) |
 | `--end-of-line <lf\|crlf\|auto>` | Line endings; `auto` keeps the file's own (default: `lf`) |
@@ -154,7 +155,8 @@ all format the same way without per-developer flags or IDE settings:
 
 Keys are the format options: `indent`, `useTabs`, `lineWidth`,
 `compactSingleLine`, `maxBlankLines`, `wrapComments`, `commentWidth`,
-`spaceAfterTypeColon`, `spaceAroundEnumColon`, `collapseEmptyBodies`,
+`spaceAfterTypeColon`, `spaceAroundEnumColon`,
+`spaceAfterAttributeColon`, `collapseEmptyBodies`,
 `separateDeclarations`, `trailingComma`, `objectWrap`, `bracketSpacing`,
 `endOfLine`, `checkIgnorePragma`, `requirePragma`. Omitted keys keep
 their defaults.
@@ -238,6 +240,11 @@ All four default to the output earlier versions produced, so adding
 none of them changes nothing. The guide's naming rules (`UpperCamelCase`
 types, `snake_case` fields) are not checked: the formatter never renames
 anything.
+
+One more colon is yours to choose. The guide's example writes
+attributes as `(priority: 1)`, which is the default; schemas such as
+upstream's `monster_test.fbs` write `(id:1, hash:"fnv1a_64")`, which
+`"spaceAfterAttributeColon": false` prints.
 
 ## Install
 
@@ -429,6 +436,7 @@ type FormatOptions = {
   bracketSpacing?: boolean;               // default true — `{ a, b }` vs `{a, b}`
   spaceAfterTypeColon?: boolean;          // default true — `x: int` vs `x:int`
   spaceAroundEnumColon?: boolean;         // default false — `enum E : byte`
+  spaceAfterAttributeColon?: boolean;     // default true — `(id: 1)` vs `(id:1)`
   collapseEmptyBodies?: boolean;          // default false — `table T {}` on one line
   separateDeclarations?: "always" | "multiline"; // default "always" — blank line around every block declaration
   endOfLine?: "lf" | "crlf" | "auto";     // default "lf" — overrides `newline`
@@ -503,7 +511,7 @@ commit the new baseline in the same PR.
 | Enum/union/single-field bodies | Collapse to one line if the result fits in `lineWidth`; expand otherwise. A body with a line break after its `{` in the source stays expanded, like a Prettier object. Any comment inside the body, and per-value metadata, force expansion. | `compactSingleLine` (default on), `objectWrap` (default `preserve`), `lineWidth` (default 80), `bracketSpacing` (default on) |
 | Enum values | One per line (when expanded), comma-separated, with a comma after the last value. A one-line body never has one. | `trailingComma` (default `all`) |
 | Union variants | Same as enum values. Aliases written as `Alias: Type`. | `spaceAfterTypeColon` (default on) |
-| Metadata | Always inline: `(deprecated, key: "x")`. | fixed by design |
+| Metadata | Always inline: `(deprecated, key: "x")`. | `spaceAfterAttributeColon` (default on; off prints `key:"x"`) |
 | Comments | `//`, `///`, `/* */` all preserved, in order. Doc comments stay attached to the following declaration. Trailing comments stay on their owning line, after the comma for enum/union values (`Red, // first`). Comments before a `}` and in comment-only bodies stay inside the braces. A comment inside a declaration, where the output has no slot for it (between a field name and its `:`, inside metadata, inside an object literal), moves onto its own line above that declaration. Long `//` lines optionally reflowed. | `wrapComments` (default off), `commentWidth` (default = lineWidth) |
 | Indent | 2 spaces. | `indent` (count), `useTabs` (char) |
 | Newlines | LF, single trailing newline at EOF. | `endOfLine` (default `lf`) |

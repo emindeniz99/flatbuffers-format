@@ -893,6 +893,19 @@ test("spaceAroundEnumColon: a space on both sides of an enum's colon, whatever s
   assert.match(format(src, { spaceAfterTypeColon: false }), /^enum Color:byte /);
 });
 
+test("spaceAfterAttributeColon: false tightens attribute colons and nothing else", () => {
+  const src = 'table T (native_type: "N") {\n  id:ulong (key, hash: "fnv1a_64", id: 3);\n}\n\nenum E:byte {\n  A (weight: 1),\n}\n\nrpc_service S {\n  Get(T):T (streaming: "none");\n}';
+  const tight = 'table T (native_type:"N") {\n  id: ulong (key, hash:"fnv1a_64", id:3);\n}\n\nenum E: byte {\n  A (weight:1),\n}\n\nrpc_service S {\n  Get(T): T (streaming:"none");\n}\n';
+  const out = format(src, { spaceAfterAttributeColon: false });
+  assert.equal(out, tight);
+  assert.equal(format(out, { spaceAfterAttributeColon: false }), out);
+  // The default is unchanged, and undoes the option.
+  assert.equal(format(out), format(src));
+  assert.match(format(src), /id: ulong \(key, hash: "fnv1a_64", id: 3\);/);
+  // The type colons belong to spaceAfterTypeColon; the two combine.
+  assert.match(format(src, { spaceAfterAttributeColon: false, spaceAfterTypeColon: false }), /id:ulong \(key, hash:"fnv1a_64", id:3\);/);
+});
+
 test("collapseEmptyBodies: a body with nothing in it prints as {}, a comment keeps it open", () => {
   const src = "table A{}\nstruct B {\n}\nenum C:byte{}\nunion D{}\nrpc_service E{}";
   assert.equal(format(src), "table A {\n}\n\nstruct B {\n}\n\nenum C: byte {\n}\n\nunion D {\n}\n\nrpc_service E {\n}\n");
@@ -997,6 +1010,13 @@ test("CLI: the Prettier-compatible flags set their options and reject unknown va
   );
   assert.equal(run("--no-space-after-type-colon", "--object-wrap=collapse").stdout, "enum E:byte { A, B }\n");
   assert.equal(run("--space-around-enum-colon", "--object-wrap=collapse").stdout, "enum E : byte { A, B }\n");
+  assert.equal(
+    spawnSync(process.execPath, [cliPath, "--no-space-after-attribute-colon", "-"], {
+      input: "table T{x:int (id: 1);}",
+      encoding: "utf8",
+    }).stdout,
+    "table T {\n  x: int (id:1);\n}\n",
+  );
   for (const bad of ["--trailing-comma=es5", "--object-wrap=keep", "--end-of-line=cr", "--separate-declarations=never"]) {
     const r = run(bad);
     assert.equal(r.status, 2, `${bad} → exit 2`);

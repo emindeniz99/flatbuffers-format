@@ -49,6 +49,7 @@ const KEYS: Record<string, [Check, string]> = {
   bracketSpacing: [isBool, "a boolean"],
   spaceAfterTypeColon: [isBool, "a boolean"],
   spaceAroundEnumColon: [isBool, "a boolean"],
+  spaceAfterAttributeColon: [isBool, "a boolean"],
   collapseEmptyBodies: [isBool, "a boolean"],
   separateDeclarations: oneOf("always", "multiline"),
   endOfLine: oneOf("lf", "crlf", "auto"),

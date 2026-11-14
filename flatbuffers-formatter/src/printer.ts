@@ -135,6 +135,12 @@ export type FormatOptions = {
    */
   spaceAroundEnumColon?: boolean;
   /**
+   * A space after the colon in an attribute: `(id: 1)` when true,
+   * `(id:1)` when false. Object literals keep their space either way.
+   * Default: true.
+   */
+  spaceAfterAttributeColon?: boolean;
+  /**
    * Print a body with nothing in it, not even a comment, as `{}` on
    * the declaration's line: `table Weapon {}`. When false, the braces
    * go on two lines. Default: false.
@@ -189,6 +195,7 @@ const DEFAULTS = {
   bracketSpacing: true,
   spaceAfterTypeColon: true,
   spaceAroundEnumColon: false,
+  spaceAfterAttributeColon: true,
   collapseEmptyBodies: false,
   separateDeclarations: "always" as "always" | "multiline",
 };
@@ -603,11 +610,12 @@ export class Printer {
   private formatMetadata(ctx: MetadataContext): string {
     const entries = ctx.metadataEntry();
     if (entries.length === 0) return "()";
+    const colon = this.opts.spaceAfterAttributeColon ? ": " : ":";
     const parts = entries.map((e) => {
       const key = e.identifier().getText();
       const sv = e.singleValue();
       if (!sv) return key;
-      return `${key}: ${this.formatSingle(sv)}`;
+      return `${key}${colon}${this.formatSingle(sv)}`;
     });
     return `(${parts.join(", ")})`;
   }
