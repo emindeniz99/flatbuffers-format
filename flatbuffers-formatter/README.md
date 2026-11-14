@@ -241,6 +241,10 @@ none of them changes nothing. The guide's naming rules (`UpperCamelCase`
 types, `snake_case` fields) are not checked: the formatter never renames
 anything.
 
+[`docs/style-survey.md`](./docs/style-survey.md) has the survey of
+upstream's schemas these options came from, and the layouts that still
+have no option.
+
 One more colon is yours to choose. The guide's example writes
 attributes as `(priority: 1)`, which is the default; schemas such as
 upstream's `monster_test.fbs` write `(id:1, hash:"fnv1a_64")`, which
